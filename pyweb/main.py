@@ -4,18 +4,26 @@
 #
 # This software may be used and distributed according to the terms of the
 # MIT license: http://www.opensource.org/licenses/mit-license.php
-import sys, runpy, cherrypy
+import sys, cherrypy, os
 from os.path import dirname, join, realpath
-from idigbio.storage.importer.web.webapp import HelloWorld
- 
-def prep_syspath():
-    REPO_ROOT = dirname(realpath(__file__))
-    EXTRA_PATHS = [REPO_ROOT, join(REPO_ROOT, "lib")]
-    sys.path = EXTRA_PATHS + sys.path
+from idigbio.storage.dataingestion.ui.ingestui import DataIngestionUI
+from idigbio.storage.dataingestion.services.ingestservice import DataIngestionService
+from idigbio.storage.dataingestion.services import swiftclient 
+
+current_dir = dirname(realpath(__file__))
+#sys.path = [current_dir] + sys.path
 
 def main(argv):
-    prep_syspath()
-    cherrypy.quickstart(HelloWorld(), '/', config='cherrypy.config')
+    swiftclient.setup(join(current_dir, 'etc', 'swiftclient.conf'))
+    
+#    cherrypy.clientconf.update(join(current_dir, 'etc', 'http.conf'))
+    engine_conf_path = os.path.join(current_dir, 'etc', 'engine.conf')
+    
+    ui = cherrypy.tree.mount(DataIngestionUI(), '/', config=engine_conf_path)
+    svc = cherrypy.tree.mount(DataIngestionService(), '/services', config=engine_conf_path)
+    cherrypy.log("Starting...")
+    cherrypy.engine.start()
+#    cherrypy.quickstart(Root(), '/', clientconf=engine_conf_path)
 
 if __name__ == '__main__':
     main(sys.argv)

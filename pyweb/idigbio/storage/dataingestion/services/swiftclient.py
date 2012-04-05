@@ -6,10 +6,9 @@
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 
 from idigbio.swift import *
-import ConfigParser, os
+import ConfigParser
 from os.path import join
 
-clientconf = None
 container = 'dataingestor_test0'
 
 options = None
@@ -18,12 +17,13 @@ object_queue = None
 file_map = {}
 
 def setup(conf_path):
-    global clientconf, options
+    global options
     clientconf = ConfigParser.ConfigParser()
     clientconf.read(conf_path)
     
-    def Object(object):
+    class Object(object):
         pass
+    
     options = Object()
     options.verbose = True
     options.leave_segments = False
@@ -38,17 +38,18 @@ def setup(conf_path):
     options.auth_version = '1.0'
     
 def get_progress():
-    pass
+    """
+    Return (total items, remaining items).
+    """
+    if object_queue is None:
+        raise ValueError("Upload has not started yet.")
+    
+    return len(file_map), object_queue.qsize()
+    
     
 def upload(root_path):
-    if clientconf is None:
+    if options is None:
         raise ValueError("This module hasn't been setup yet.")
-    
-    for root, dirs, files in os.walk(root_path):
-        for name in files:
-            path = join(root, name)
-            file_map[path] = ''
-    
     
     # Modified from swift.__main__
     print_queue = Queue(10000)
@@ -96,6 +97,7 @@ def _st_upload(root_path, print_queue, error_queue):
     """
     Copied from swift/bin/swift.st_upload
     """
+    global object_queue
     
     args = [container, root_path]
     
@@ -209,6 +211,11 @@ def _st_upload(root_path, print_queue, error_queue):
                 else:
                     conn.put_object(container, obj, open(path, 'rb'),
                         content_length=getsize(path), headers=put_headers)
+                    
+                    # Sleep a while after each upload to slow down the rate
+                    # for demo purpose.
+                    sleep(4)
+                    
                 if old_manifest:
                     segment_queue = Queue(10000)
                     scontainer, sprefix = old_manifest.split('/', 1)
@@ -251,6 +258,8 @@ def _st_upload(root_path, print_queue, error_queue):
                     _upload_dir(subpath)
                 else:
                     object_queue.put({'path': subpath})
+                    # Add an entry to files_map to track progress
+                    file_map[subpath] = ''
 
     create_connection = lambda: get_conn(options)
     object_threads = [QueueFunctionThread(object_queue, _object_job,

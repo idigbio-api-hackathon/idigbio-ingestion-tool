@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!--
+Design by Free CSS Templates
+http://www.freecsstemplates.org
+Released for free under a Creative Commons Attribution 3.0 License
+
+Name       : Sandstorm
+Description: A two-column, fixed-width design with brown color scheme.
+Version    : 1.0
+Released   : 20120205
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="description" content="" />
+<meta name="keywords" content="" />
+<title>iDigBio Data Ingestion Tool</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="http://fonts.googleapis.com/css?family=Oswald"
+    rel="stylesheet" type="text/css" />
+<link rel="stylesheet" type="text/css" href="sandstorm/style.css" />
+
+<link type="text/css" href="jquery-ui-1.8.18.custom/css/swanky-purse/jquery-ui-1.8.18.custom.css" rel="Stylesheet" />  
+<script type="text/javascript" src="jquery-ui-1.8.18.custom/js/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="jquery-ui-1.8.18.custom/js/jquery-ui-1.8.18.custom.min.js"></script>
+<script type="text/javascript" src="js/ui.js"></script>
+
+</head>
+<body>
+    <div id="wrapper">
+        <div id="header">
+            <div id="logo">
+                <h1>
+                    <a href="#">iDigBio Data Ingestion Tool</a>
+                </h1>
+            </div>
+            <div id="menu">
+                <ul>
+                    <li class="first"><a
+                        href="http://www.idigbio.org/">iDigBio</a>
+                    </li>
+                    <li class="last"><a href="http://yan.jxu.me">Contact</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div id="page">
+            <div id="sidebar">
+                <h3>Menu</h3>
+                <ul class="list">
+                    <li class="first"><a href="/">Home</a></li>
+                    <li><a href="ingest">Import Data</a></li>
+                    <li class="last"><a href="#">Check Status</a></li>
+                </ul>
+                <p>Use the menu items above for services.</p>
+            </div>
+            <div id="content">
+                <div id="post1">
+                    <h2>{{ title }}</h2>
+                    <p>{{ description }}</p>
+                    
+                    <!-- Begin Testing -->
+                    <div class="data-injection-box">
+                        <form id="upload-form" action="/">
+	                        <input type="text" id="root-path" value="" />
+	                        <input type="submit" value="Upload" />
+                        </form>
+                    </div>
+                    <div id="uploading-dialog" title="Uploading" style="display: none;">
+                        <p>Files are being uploaded to the cloud. <br/>
+                        </p>
+                        <div id="progressbar"></div>
+                        <div><label id="progresstext">Progress: 0</label></div>
+                    </div>
+                    
+                    <!-- End Testing -->
+                    
+                </div>
+                <br class="clearfix" />
+            </div>
+            <br class="clearfix" />
+        </div>
+        <div id="page-bottom">
+            <div id="page-bottom-sidebar">
+                <h3>Links</h3>
+                <ul class="list">
+                    <li class="first"><a
+                        href="http://www.acis.ufl.edu">ACIS - Lab</a></li>
+                    <li class="last"><a href="http://www.ufl.edu">University
+                            of Florida</a></li>
+                </ul>
+            </div>
+            <div id="page-bottom-content">
+                <h3>Address</h3>
+                <p>P.O. Box 116200, 339 Larsen Hall, Gainesville, FL
+                    32611-6200; 352.392.4964</p>
+            </div>
+            <br class="clearfix" />
+        </div>
+    </div>
+    <div id="footer">Copyright © 2012.</div>
+</body>
+</html>
