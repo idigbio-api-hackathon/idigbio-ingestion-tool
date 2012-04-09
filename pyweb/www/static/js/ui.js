@@ -54,7 +54,7 @@ updateProgress = function() {
             return;
         }
         
-        setTimeout("updateProgress()", 4000)
+        setTimeout("updateProgress()", 8000)
     }, typeOfDataToReceive);
     
 }

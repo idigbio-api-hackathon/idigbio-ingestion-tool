@@ -18,7 +18,6 @@ class DataIngestionService(object):
         Get ingestion status.
         """
         total, remaining = ingestmanager.check_progress()
-        cherrypy.log("t,r = %s, %s" % (total, remaining))
         return simplejson.dumps(dict(total=total, remaining=remaining))
     
     def POST(self, rootPath):

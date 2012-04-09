@@ -8,6 +8,7 @@
 from idigbio.swift import *
 import ConfigParser
 from os.path import join
+import hashlib, os, uuid
 
 container = 'dataingestor_test0'
 
@@ -209,6 +210,16 @@ def _st_upload(root_path, print_queue, error_queue):
                     conn.put_object(container, obj, '', content_length=0,
                                     headers=put_headers)
                 else:
+                    # Hash!
+                    path_root, ext = os.path.splitext(path)
+                    hasher = hashlib.sha1()
+                    with open(path, 'rb') as f:
+                        hasher.update(f.read(512))
+                    
+                    obj =  str(uuid.UUID(bytes=hasher.digest()[:16])) + ext
+                    
+                    file_map[path] = obj
+                    
                     conn.put_object(container, obj, open(path, 'rb'),
                         content_length=getsize(path), headers=put_headers)
                     
