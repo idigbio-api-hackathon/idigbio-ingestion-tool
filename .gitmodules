@@ -1,3 +1,0 @@
-[submodule "pyweb/swift"]
-	path = pyweb/swift
-	url = https://github.com/openstack/swift.git
