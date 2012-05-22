@@ -4,11 +4,11 @@
 <pydev_project>
 
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.7</pydev_property>
-<pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">Default</pydev_property>
+<pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">python27 opt</pydev_property>
 <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
 <path>/Library/Python/2.7/site-packages/CherryPy-3.2.2-py2.7.egg</path>
 <path>/Library/Python/2.7/site-packages/Jinja2-2.6-py2.7.egg</path>
-<path>/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages</path>
+<path>/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/poster-0.8.1-py2.7.egg</path>
 </pydev_pathproperty>
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
 <path>/pyweb</path>

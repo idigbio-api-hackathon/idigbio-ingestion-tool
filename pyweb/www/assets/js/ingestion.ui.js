@@ -1,23 +1,10 @@
-
 $(function() {
-    $("input:submit", ".data-injection-box").button();
-    $("input:text", ".data-injection-box")
-        .button()
-        .css({
-            'font' : 'inherit',
-            'color' : 'inherit',
-            'text-align' : 'left',
-            'outline' : 'none',
-            'cursor' : 'text'
-        });
-    
     $('#upload-form').submit(function(event){
         // we want to submit the form using Ajax (prevent page refresh)
         event.preventDefault();
         var rootPath = $('#root-path').val();
         
         var callback = function(dataReceived){
-            $.get()
         };
         
         // type of data to receive (in our case we're expecting an HTML snippet)
@@ -28,9 +15,12 @@ $(function() {
         // now send the form and wait to hear back
         $.post(url, { rootPath: rootPath }, callback, typeOfDataToReceive);
         
-        $("#uploading-dialog").dialog();
-        
-        setTimeout("updateProgress()", 4000)
+        $('#root-path').attr('disabled', true);
+        $("#upload-button").attr('disabled', true);
+        $("#upload-button").toggleClass('disabled');
+        $(".progress-primary").toggleClass('active');
+        $("#progressbar-container").toggleClass('in');
+        setTimeout("updateProgress()", 1000)
     });
 });
 
@@ -44,17 +34,19 @@ updateProgress = function() {
         
         var progress = Math.floor(uploaded / total * 100);
         
-        $("#progresstext").text("Finished " + uploaded + " out of " + total + ".");
+        $("#progresstext").text("Finished " + uploaded + " out of " + total + " files.");
         
-        $("#progressbar").progressbar({
-            value: progress
-        });
+        $("#upload-progressbar").width(progress + '%')
         
         if (progress >= 100) {
+            $(".progress-primary").toggleClass('active');
+            $("#upload-button").attr('disabled', false);
+            $("#upload-button").toggleClass('disabled');
+            $('#root-path').attr('disabled', false);
             return;
         }
         
-        setTimeout("updateProgress()", 8000)
+        setTimeout("updateProgress()", 4000)
     }, typeOfDataToReceive);
     
 }

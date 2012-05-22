@@ -7,26 +7,18 @@
 
 from jinja2 import Environment, FileSystemLoader
 
-env = Environment(loader=FileSystemLoader('www/templates/sandstorm'))
-
-class DataIngestionResource(object):
-    exposed = True
-    def GET(self):
-        tmpl = env.get_template('index.html')
-        page_description = """
-        Upload data from this page.
-        """
-        return tmpl.render(title='Data Ingestion', description=page_description)
+env = Environment(loader=FileSystemLoader('www/'))
 
 class DataIngestionUI(object):
     exposed = True
     
     def __init__(self):
-        self.ingest = DataIngestionResource()
+        pass
     
     def GET(self):
         tmpl = env.get_template('index.html')
+        title = "iDigBio Data Ingestion Tool"
         page_description = """
-        This is iDigBio Data Ingestion Tool, a tool to ingest data into the Swift data cloud.
+        This is a tool that helps you ingest data into the iDigBio storage cloud.
         """
-        return tmpl.render(title='Homepage', description=page_description)
+        return tmpl.render(title=title, description=page_description)

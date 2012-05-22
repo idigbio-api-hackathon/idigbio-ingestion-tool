@@ -3,28 +3,24 @@
 # Copyright (c) 2012 Xu, Jiang Yan <me@jxu.me>, University of Florida
 #
 # This software may be used and distributed according to the terms of the
-# MIT license: http://www.opensource.org/licenses/mit-license.php 
-import time
+# MIT license: http://www.opensource.org/licenses/mit-license.php
+
+"""
+This is the service module that the web service front-end calls to serve data
+upload requests.
+""" 
 from idigbio.storage.dataingestion.task_queue import BackgroundTaskQueue
 import cherrypy
 import Queue
-import swiftclient
+import client_manager
 
 singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
 singleton_task.subscribe()
 singleton_task.start()
-
-progress = 0
-def sleep_task():
-    global progress
-    while (progress < 100):
-        time.sleep(1)
-        progress = progress + 1
-        
         
 def upload_task(root_path):
     global task_ongoing
-    swiftclient.upload(root_path)
+    client_manager.upload(root_path)
     cherrypy.log("Upload task finished.")
     task_ongoing = False
 
@@ -46,4 +42,4 @@ def start_upload(root_path):
         return False
 
 def check_progress():
-    return swiftclient.get_progress()
+    return client_manager.get_progress()
