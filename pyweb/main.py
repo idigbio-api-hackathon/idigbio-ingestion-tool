@@ -1,17 +1,22 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2011 Xu, Jiang Yan <me@jxu.me>, University of Florida
+# Copyright (c) 2012 Xu, Jiang Yan <me@jxu.me>, University of Florida
 #
 # This software may be used and distributed according to the terms of the
 # MIT license: http://www.opensource.org/licenses/mit-license.php
-import sys, cherrypy, os, logging, tempfile
-from os.path import dirname, realpath, join
+import sys, cherrypy, os, logging
+from os.path import dirname, realpath, join, exists
 from idigbio.storage.dataingestion.ui.ingestui import DataIngestionUI
 from idigbio.storage.dataingestion.services.ingest_rest import DataIngestionService
-import idigbio.storage.dataingestion.services.model 
+import idigbio.storage.dataingestion.services.model
 
 current_dir = dirname(realpath(__file__))
-#sys.path = [current_dir] + sys.path
+sys.path = [join(current_dir, "lib")] + sys.path
+
+import appdirs
+
+APP_NAME = 'iDigBioDataIngestion'
+APP_AUTHOR = 'iDigBio'
 
 def main(argv):
     
@@ -25,9 +30,13 @@ def main(argv):
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s - %(message)s'))
     svc_log.addHandler(handler)
-    svc_log.setLevel(logging.INFO)
+    svc_log.setLevel(logging.DEBUG)
     
-    db_file = join(tempfile.gettempdir(), "idigbio.ingest.db")
+    db_folder = appdirs.user_cache_dir(APP_NAME, APP_AUTHOR)
+    if not exists(db_folder):
+        os.mkdir(db_folder)
+    db_file = join(db_folder, "idigbio.ingest.db")
+    cherrypy.log.error("Use DB file: {0}".format(db_file), "main")
     idigbio.storage.dataingestion.services.model.setup(db_file)
     
     cherrypy.log("Starting...")

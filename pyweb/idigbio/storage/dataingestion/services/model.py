@@ -29,6 +29,7 @@ class ImageRecord(Base):
     md5 = Column(String)
     comments = Column(String)
     upload_time = Column(DateTime)
+    url = Column(String)
     batch_id = Column(Integer, ForeignKey('batches.id', onupdate="cascade"))
     
     def __init__(self, path, md5, batch):
@@ -98,21 +99,16 @@ def count_batch_size(batch_id):
     query = session.query(UploadBatch).filter_by(id=batch_id).join(UploadBatch.images)
     return query.count()
 
+def get_batch_details(batch_id):
+    batch_id = int(batch_id)
+    query = session.query(ImageRecord.path, ImageRecord.url).filter_by(batch_id=batch_id)
+    return query.all()
+
 def commit():
     if session is None:
         raise ValueError
     logger.info("Log is being committed to DB.")
     session.commit()
-
-#class SAEnginePlugin(plugins.SimplePlugin):
-#    
-#    def start(self):
-#        
-# 
-#    def stop(self):
-#        if self.sa_engine:
-#            self.sa_engine.dispose()
-#            self.sa_engine = None
 
 def main():
     parser = argparse.ArgumentParser()

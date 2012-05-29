@@ -17,7 +17,7 @@ class DataIngestionUI(object):
     
     def GET(self):
         tmpl = env.get_template('index.html')
-        title = "iDigBio Data Ingestion Tool"
+        title = "Data Ingestion Tool"
         page_description = """
         This is a tool that helps you ingest data into the iDigBio storage cloud.
         """

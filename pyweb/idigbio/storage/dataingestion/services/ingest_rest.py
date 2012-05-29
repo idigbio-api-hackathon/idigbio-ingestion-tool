@@ -8,26 +8,52 @@
 from idigbio.storage.dataingestion.services import ingest_service
 #from idigbio.storage.dataingestion.services import mock_ingest_svc as ingest_service
 import cherrypy, simplejson
+from idigbio.storage.dataingestion.services.client_manager import ClientManagerException
+from cherrypy import HTTPError
+from cherrypy._cpcompat import ntob
+
+class JsonHTTPError(HTTPError):
+    def set_response(self):
+        cherrypy.response.status = self.status
+        cherrypy.response.headers['Content-Type'] = "text/html;charset=utf-8"
+        cherrypy.response.headers.pop('Content-Length', None)
+        cherrypy.response.body = ntob(self._message)
+
+class IngestionResult(object):
+    exposed = True
+    
+    def GET(self):
+        try:
+            result = ingest_service.get_result()
+            return simplejson.dumps(result)
+        except ClientManagerException as ex:
+            raise cherrypy.HTTPError(409, str(ex))
 
 class DataIngestionService(object):
     """
-    The web service exposed through CherryPy.
+    The RESTful web service exposed through CherryPy.
     """
     exposed = True
     
     def __init__(self):
-        pass
+        self.result = IngestionResult()
     
     def GET(self):
         """
         Get ingestion status.
         """
-        total, remaining = ingest_service.check_progress()
-        return simplejson.dumps(dict(total=total, remaining=remaining))
+        try:
+            total, remaining = ingest_service.check_progress()
+            return simplejson.dumps(dict(total=total, remaining=remaining))
+        except ClientManagerException as ex:
+            raise cherrypy.HTTPError(409, str(ex))
     
     def POST(self, rootPath):
         """
         Ingest data.
         """
         cherrypy.log.error("POST request received.", self.__class__.__name__)
-        ingest_service.start_upload(rootPath)
+        try:
+            ingest_service.start_upload(rootPath)
+        except ValueError as ex:
+            raise JsonHTTPError(409, str(ex))

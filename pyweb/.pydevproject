@@ -12,5 +12,6 @@
 </pydev_pathproperty>
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
 <path>/pyweb</path>
+<path>/pyweb/lib</path>
 </pydev_pathproperty>
 </pydev_project>

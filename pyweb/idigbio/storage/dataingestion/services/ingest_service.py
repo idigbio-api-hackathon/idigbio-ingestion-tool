@@ -11,7 +11,7 @@ upload requests.
 """ 
 from idigbio.storage.dataingestion.task_queue import BackgroundTaskQueue
 import cherrypy
-import Queue
+import Queue, os
 import client_manager
 
 singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
@@ -19,27 +19,28 @@ singleton_task.subscribe()
 singleton_task.start()
         
 def upload_task(root_path):
-    global task_ongoing
-    client_manager.upload(root_path)
+    client_manager.exec_upload_task(root_path)
     cherrypy.log("Upload task finished.")
-    task_ongoing = False
 
-task_ongoing = False
 def start_upload(root_path):
     """
-    Return True if a task is added to the queue. False if queue is full.
+    Start the upload tasks and then return.
+    
+    :Return: True if a task is added to the queue. False if queue is full.
     """
-    global task_ongoing
-    if task_ongoing:
-        cherrypy.log("Task ongoing.")
-        return False
+    
+    # Initial checks before the task is added to the queue.
+    if not os.path.exists(root_path):
+        raise ValueError("Root directory does not exist.")
+    
     try:
-        singleton_task.put(upload_task, root_path)
-        task_ongoing = True
-        return True
+        return singleton_task.put(upload_task, root_path)
     except Queue.Full, ex:
         cherrypy.log("Task ongoing.")
         return False
 
 def check_progress():
     return client_manager.get_progress()
+
+def get_result():
+    return client_manager.get_result()
