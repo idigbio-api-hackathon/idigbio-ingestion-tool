@@ -10,15 +10,13 @@ This module implements the core logic that manages the upload process.
 """
 import os, logging, argparse, tempfile, atexit
 from datetime import datetime
-
-# From swift bin
 from Queue import Empty, Queue
 from threading import enumerate as threading_enumerate, Thread
 from time import sleep
-from sys import argv, exc_info, exit, stderr, stdout
-from os.path import basename, dirname, getmtime, getsize, isdir, join
+from sys import exc_info
+from os.path import isdir, join
 from traceback import format_exception
-from errno import EEXIST, ENOENT
+from errno import ENOENT
 from api_client import ClientException, Connection
 import model
 

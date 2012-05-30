@@ -11,17 +11,7 @@ import argparse, json, urllib2, logging
 import uuid
 from poster.encode import multipart_encode
 from poster.streaminghttp import register_openers
-
-import socket
-try:
-    from eventlet import sleep
-except ImportError:
-    from time import sleep
-
-try:
-    from eventlet.green.httplib import HTTPException, HTTPConnection
-except ImportError:
-    from httplib import HTTPException, HTTPConnection
+from time import sleep
 
 
 BASE_URL = 'http://dev.idigbio.org:9191/v1'

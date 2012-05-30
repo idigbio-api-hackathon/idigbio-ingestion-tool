@@ -7,7 +7,7 @@
 
 from idigbio.storage.dataingestion.services import ingest_service
 #from idigbio.storage.dataingestion.services import mock_ingest_svc as ingest_service
-import cherrypy, simplejson
+import cherrypy, json
 from idigbio.storage.dataingestion.services.client_manager import ClientManagerException
 from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
@@ -25,7 +25,7 @@ class IngestionResult(object):
     def GET(self):
         try:
             result = ingest_service.get_result()
-            return simplejson.dumps(result)
+            return json.dumps(result)
         except ClientManagerException as ex:
             raise cherrypy.HTTPError(409, str(ex))
 
@@ -44,7 +44,7 @@ class DataIngestionService(object):
         """
         try:
             total, remaining = ingest_service.check_progress()
-            return simplejson.dumps(dict(total=total, remaining=remaining))
+            return json.dumps(dict(total=total, remaining=remaining))
         except ClientManagerException as ex:
             raise cherrypy.HTTPError(409, str(ex))
     

@@ -8,10 +8,10 @@
 <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
 <path>/Library/Python/2.7/site-packages/CherryPy-3.2.2-py2.7.egg</path>
 <path>/Library/Python/2.7/site-packages/Jinja2-2.6-py2.7.egg</path>
-<path>/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/poster-0.8.1-py2.7.egg</path>
 </pydev_pathproperty>
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
 <path>/pyweb</path>
 <path>/pyweb/lib</path>
+<path>/pyweb/lib/poster-0.4-py2.6.egg</path>
 </pydev_pathproperty>
 </pydev_project>
