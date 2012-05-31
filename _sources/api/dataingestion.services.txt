@@ -1,0 +1,51 @@
+services Package
+================
+
+:mod:`api_client` Module
+------------------------
+
+.. automodule:: dataingestion.services.api_client
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`client_manager` Module
+----------------------------
+
+.. automodule:: dataingestion.services.client_manager
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`ingest_rest` Module
+-------------------------
+
+.. automodule:: dataingestion.services.ingest_rest
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`ingest_service` Module
+----------------------------
+
+.. automodule:: dataingestion.services.ingest_service
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`mock_ingest_svc` Module
+-----------------------------
+
+.. automodule:: dataingestion.services.mock_ingest_svc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`model` Module
+-------------------
+
+.. automodule:: dataingestion.services.model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

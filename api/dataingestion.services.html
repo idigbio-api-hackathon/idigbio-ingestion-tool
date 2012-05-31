@@ -1,0 +1,510 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>services Package &mdash; iDigBio Data Ingestion Tool 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="iDigBio Data Ingestion Tool 0.1 documentation" href="../index.html" />
+    <link rel="up" title="dataingestion Package" href="dataingestion.html" />
+    <link rel="next" title="ui Package" href="dataingestion.ui.html" />
+    <link rel="prev" title="dataingestion Package" href="dataingestion.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="dataingestion.ui.html" title="ui Package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="dataingestion.html" title="dataingestion Package"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">iDigBio Data Ingestion Tool 0.1 documentation</a> &raquo;</li>
+          <li><a href="modules.html" >&lt;no title&gt;</a> &raquo;</li>
+          <li><a href="dataingestion.html" accesskey="U">dataingestion Package</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="services-package">
+<h1>services Package<a class="headerlink" href="#services-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-dataingestion.services.api_client">
+<span id="api-client-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">api_client</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.api_client" title="Permalink to this headline">¶</a></h2>
+<p>This module encapulates the communication with iDigBio&#8217;s storage service API.</p>
+<dl class="exception">
+<dt id="dataingestion.services.api_client.ClientException">
+<em class="property">exception </em><tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">ClientException</tt><big>(</big><em>msg</em>, <em>url=''</em>, <em>http_status=0</em>, <em>reason=''</em>, <em>local_path=''</em>, <em>http_response_content=''</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#ClientException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.ClientException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="dataingestion.services.api_client.Connection">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">Connection</tt><big>(</big><em>authurl=None</em>, <em>user=None</em>, <em>key=None</em>, <em>retries=5</em>, <em>preauthurl=None</em>, <em>preauthtoken=None</em>, <em>snet=False</em>, <em>starting_backoff=1</em>, <em>auth_version='1'</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#Connection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.Connection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Convenience class to make requests that will also retry the request</p>
+<dl class="method">
+<dt id="dataingestion.services.api_client.Connection.post_media">
+<tt class="descname">post_media</tt><big>(</big><em>local_path</em>, <em>entity_uuid</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#Connection.post_media"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.Connection.post_media" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dataingestion.services.api_client.Connection.post_mediarecord">
+<tt class="descname">post_mediarecord</tt><big>(</big><em>recordset_uuid</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#Connection.post_mediarecord"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.Connection.post_mediarecord" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dataingestion.services.api_client.Connection.post_recordset">
+<tt class="descname">post_recordset</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#Connection.post_recordset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.Connection.post_recordset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.api_client.build_url">
+<tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">build_url</tt><big>(</big><em>collection</em>, <em>entity_uuid=None</em>, <em>subcollection=None</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#build_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.build_url" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.api_client.main">
+<tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">main</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.api_client.upload_image_primitive">
+<tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">upload_image_primitive</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#upload_image_primitive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.upload_image_primitive" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.api_client.upload_image_with_retries">
+<tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">upload_image_with_retries</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#upload_image_with_retries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.upload_image_with_retries" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-dataingestion.services.client_manager">
+<span id="client-manager-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">client_manager</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.client_manager" title="Permalink to this headline">¶</a></h2>
+<p>This module implements the core logic that manages the upload process.</p>
+<dl class="class">
+<dt id="dataingestion.services.client_manager.BatchUploadTask">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">BatchUploadTask</tt><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#BatchUploadTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.BatchUploadTask" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="dataingestion.services.client_manager.BatchUploadTask.STATUS_FINISHED">
+<tt class="descname">STATUS_FINISHED</tt><em class="property"> = 'finished'</em><a class="headerlink" href="#dataingestion.services.client_manager.BatchUploadTask.STATUS_FINISHED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.client_manager.BatchUploadTask.STATUS_RUNNING">
+<tt class="descname">STATUS_RUNNING</tt><em class="property"> = 'running'</em><a class="headerlink" href="#dataingestion.services.client_manager.BatchUploadTask.STATUS_RUNNING" title="Permalink to this definition">¶</a></dt>
+<dd><p>State about a single batch upload task.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="dataingestion.services.client_manager.ClientManagerException">
+<em class="property">exception </em><tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">ClientManagerException</tt><big>(</big><em>msg</em>, <em>reason=''</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#ClientManagerException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.ClientManagerException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="dataingestion.services.client_manager.QueueFunctionThread">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">QueueFunctionThread</tt><big>(</big><em>queue</em>, <em>func</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#QueueFunctionThread"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.QueueFunctionThread" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/threading.html#threading.Thread" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">threading.Thread</span></tt></a></p>
+<dl class="method">
+<dt id="dataingestion.services.client_manager.QueueFunctionThread.run">
+<tt class="descname">run</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#QueueFunctionThread.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.QueueFunctionThread.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.client_manager.exec_upload_task">
+<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">exec_upload_task</tt><big>(</big><em>root_path</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#exec_upload_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.exec_upload_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method returns true when all file upload tasks are executed and print and 
+error queues are emptied.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">False is the upload is not executed due to an existing ongoing task.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.client_manager.get_conn">
+<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">get_conn</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#get_conn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.get_conn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get connection.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.client_manager.get_progress">
+<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">get_progress</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#get_progress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.get_progress" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return (total items, remaining items).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.client_manager.get_result">
+<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">get_result</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#get_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.get_result" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.client_manager.main">
+<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">main</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="dataingestion.services.client_manager.ongoing_upload_task">
+<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">ongoing_upload_task</tt><em class="property"> = None</em><a class="headerlink" href="#dataingestion.services.client_manager.ongoing_upload_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Singleton upload task.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.client_manager.put_errors_from_threads">
+<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">put_errors_from_threads</tt><big>(</big><em>threads</em>, <em>error_queue</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#put_errors_from_threads"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.put_errors_from_threads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Places any errors from the threads into error_queue.
+:param threads: A list of QueueFunctionThread instances.
+:param error_queue: A queue to put error strings into.
+:returns: True if any errors were found.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-dataingestion.services.ingest_rest">
+<span id="ingest-rest-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">ingest_rest</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.ingest_rest" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="dataingestion.services.ingest_rest.DataIngestionService">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.ingest_rest.</tt><tt class="descname">DataIngestionService</tt><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#DataIngestionService"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.DataIngestionService" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>The RESTful web service exposed through CherryPy.</p>
+<dl class="method">
+<dt id="dataingestion.services.ingest_rest.DataIngestionService.GET">
+<tt class="descname">GET</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#DataIngestionService.GET"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.DataIngestionService.GET" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get ingestion status.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dataingestion.services.ingest_rest.DataIngestionService.POST">
+<tt class="descname">POST</tt><big>(</big><em>rootPath</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#DataIngestionService.POST"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.DataIngestionService.POST" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ingest data.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.ingest_rest.DataIngestionService.exposed">
+<tt class="descname">exposed</tt><em class="property"> = True</em><a class="headerlink" href="#dataingestion.services.ingest_rest.DataIngestionService.exposed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dataingestion.services.ingest_rest.IngestionResult">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.ingest_rest.</tt><tt class="descname">IngestionResult</tt><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#IngestionResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.IngestionResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="dataingestion.services.ingest_rest.IngestionResult.GET">
+<tt class="descname">GET</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#IngestionResult.GET"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.IngestionResult.GET" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.ingest_rest.IngestionResult.exposed">
+<tt class="descname">exposed</tt><em class="property"> = True</em><a class="headerlink" href="#dataingestion.services.ingest_rest.IngestionResult.exposed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="dataingestion.services.ingest_rest.JsonHTTPError">
+<em class="property">exception </em><tt class="descclassname">dataingestion.services.ingest_rest.</tt><tt class="descname">JsonHTTPError</tt><big>(</big><em>status=500</em>, <em>message=None</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#JsonHTTPError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.JsonHTTPError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">cherrypy._cperror.HTTPError</span></tt></p>
+<dl class="method">
+<dt id="dataingestion.services.ingest_rest.JsonHTTPError.set_response">
+<tt class="descname">set_response</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#JsonHTTPError.set_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.JsonHTTPError.set_response" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-dataingestion.services.ingest_service">
+<span id="ingest-service-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">ingest_service</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.ingest_service" title="Permalink to this headline">¶</a></h2>
+<p>This is the service module that the web service front-end calls to serve data
+upload requests.</p>
+<dl class="function">
+<dt id="dataingestion.services.ingest_service.check_progress">
+<tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">check_progress</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_service.html#check_progress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_service.check_progress" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingest_service.get_result">
+<tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">get_result</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_service.html#get_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_service.get_result" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingest_service.start_upload">
+<tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">start_upload</tt><big>(</big><em>root_path</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_service.html#start_upload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_service.start_upload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start the upload tasks and then return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return :</th><td class="field-body">True if a task is added to the queue. False if queue is full.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingest_service.upload_task">
+<tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">upload_task</tt><big>(</big><em>root_path</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_service.html#upload_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_service.upload_task" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-dataingestion.services.mock_ingest_svc">
+<span id="mock-ingest-svc-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">mock_ingest_svc</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.mock_ingest_svc" title="Permalink to this headline">¶</a></h2>
+<p>The mock upload service module for testing the UI work.</p>
+<dl class="function">
+<dt id="dataingestion.services.mock_ingest_svc.check_progress">
+<tt class="descclassname">dataingestion.services.mock_ingest_svc.</tt><tt class="descname">check_progress</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/mock_ingest_svc.html#check_progress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.mock_ingest_svc.check_progress" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.mock_ingest_svc.sleep_task">
+<tt class="descclassname">dataingestion.services.mock_ingest_svc.</tt><tt class="descname">sleep_task</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/mock_ingest_svc.html#sleep_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.mock_ingest_svc.sleep_task" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.mock_ingest_svc.start_upload">
+<tt class="descclassname">dataingestion.services.mock_ingest_svc.</tt><tt class="descname">start_upload</tt><big>(</big><em>root_path</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/mock_ingest_svc.html#start_upload"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.mock_ingest_svc.start_upload" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-dataingestion.services.model">
+<span id="model-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">model</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.model" title="Permalink to this headline">¶</a></h2>
+<p>This module implements the data model for the service.</p>
+<dl class="class">
+<dt id="dataingestion.services.model.ImageRecord">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">ImageRecord</tt><big>(</big><em>path</em>, <em>md5</em>, <em>batch</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#ImageRecord"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.ImageRecord" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">sqlalchemy.ext.declarative.Base</span></tt></p>
+<dl class="attribute">
+<dt id="dataingestion.services.model.ImageRecord.batch_id">
+<tt class="descname">batch_id</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.batch_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.ImageRecord.comments">
+<tt class="descname">comments</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.comments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.ImageRecord.id">
+<tt class="descname">id</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.ImageRecord.md5">
+<tt class="descname">md5</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.md5" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.ImageRecord.path">
+<tt class="descname">path</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.ImageRecord.upload_time">
+<tt class="descname">upload_time</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.upload_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.ImageRecord.url">
+<tt class="descname">url</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.url" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.ImageRecord.uuid">
+<tt class="descname">uuid</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.uuid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dataingestion.services.model.UploadBatch">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">UploadBatch</tt><big>(</big><em>root</em>, <em>recordset_uuid</em>, <em>start_time</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#UploadBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.UploadBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">sqlalchemy.ext.declarative.Base</span></tt></p>
+<dl class="attribute">
+<dt id="dataingestion.services.model.UploadBatch.finish_time">
+<tt class="descname">finish_time</tt><a class="headerlink" href="#dataingestion.services.model.UploadBatch.finish_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.UploadBatch.id">
+<tt class="descname">id</tt><a class="headerlink" href="#dataingestion.services.model.UploadBatch.id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.UploadBatch.images">
+<tt class="descname">images</tt><a class="headerlink" href="#dataingestion.services.model.UploadBatch.images" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.UploadBatch.recordset_uuid">
+<tt class="descname">recordset_uuid</tt><a class="headerlink" href="#dataingestion.services.model.UploadBatch.recordset_uuid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.UploadBatch.root">
+<tt class="descname">root</tt><a class="headerlink" href="#dataingestion.services.model.UploadBatch.root" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.model.UploadBatch.start_time">
+<tt class="descname">start_time</tt><a class="headerlink" href="#dataingestion.services.model.UploadBatch.start_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.add_image">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">add_image</tt><big>(</big><em>batch</em>, <em>path</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#add_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.add_image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.add_upload_batch">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">add_upload_batch</tt><big>(</big><em>root</em>, <em>recordset_uuid</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#add_upload_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.add_upload_batch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.commit">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">commit</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#commit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.commit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.count_batch_size">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">count_batch_size</tt><big>(</big><em>batch_id</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#count_batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.count_batch_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.get_batch_details">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">get_batch_details</tt><big>(</big><em>batch_id</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#get_batch_details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.get_batch_details" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.main">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">main</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.md5_file">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">md5_file</tt><big>(</big><em>f</em>, <em>block_size=1048576</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#md5_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.md5_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.setup">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">setup</tt><big>(</big><em>db_file</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.setup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">services Package</a><ul>
+<li><a class="reference internal" href="#module-dataingestion.services.api_client"><tt class="docutils literal"><span class="pre">api_client</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-dataingestion.services.client_manager"><tt class="docutils literal"><span class="pre">client_manager</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-dataingestion.services.ingest_rest"><tt class="docutils literal"><span class="pre">ingest_rest</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-dataingestion.services.ingest_service"><tt class="docutils literal"><span class="pre">ingest_service</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-dataingestion.services.mock_ingest_svc"><tt class="docutils literal"><span class="pre">mock_ingest_svc</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-dataingestion.services.model"><tt class="docutils literal"><span class="pre">model</span></tt> Module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="dataingestion.html"
+                        title="previous chapter">dataingestion Package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="dataingestion.ui.html"
+                        title="next chapter">ui Package</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/api/dataingestion.services.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="dataingestion.ui.html" title="ui Package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="dataingestion.html" title="dataingestion Package"
+             >previous</a> |</li>
+        <li><a href="../index.html">iDigBio Data Ingestion Tool 0.1 documentation</a> &raquo;</li>
+          <li><a href="modules.html" >&lt;no title&gt;</a> &raquo;</li>
+          <li><a href="dataingestion.html" >dataingestion Package</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, iDigBio.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

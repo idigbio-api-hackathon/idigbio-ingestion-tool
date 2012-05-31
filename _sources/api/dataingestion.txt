@@ -1,0 +1,19 @@
+dataingestion Package
+=====================
+
+:mod:`task_queue` Module
+------------------------
+
+.. automodule:: dataingestion.task_queue
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+
+    dataingestion.services
+    dataingestion.ui
+

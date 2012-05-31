@@ -1,0 +1,378 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>dataingestion.services.client_manager &mdash; iDigBio Data Ingestion Tool 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="iDigBio Data Ingestion Tool 0.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">iDigBio Data Ingestion Tool 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for dataingestion.services.client_manager</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c">#</span>
+<span class="c"># Copyright (c) 2012 Xu, Jiang Yan &lt;me@jxu.me&gt;, University of Florida</span>
+<span class="c">#</span>
+<span class="c"># This software may be used and distributed according to the terms of the</span>
+<span class="c"># MIT license: http://www.opensource.org/licenses/mit-license.php</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module implements the core logic that manages the upload process.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">logging</span><span class="o">,</span> <span class="nn">argparse</span><span class="o">,</span> <span class="nn">tempfile</span><span class="o">,</span> <span class="nn">atexit</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">Queue</span> <span class="kn">import</span> <span class="n">Empty</span><span class="p">,</span> <span class="n">Queue</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="nb">enumerate</span> <span class="k">as</span> <span class="n">threading_enumerate</span><span class="p">,</span> <span class="n">Thread</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+<span class="kn">from</span> <span class="nn">sys</span> <span class="kn">import</span> <span class="n">exc_info</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">isdir</span><span class="p">,</span> <span class="n">join</span>
+<span class="kn">from</span> <span class="nn">traceback</span> <span class="kn">import</span> <span class="n">format_exception</span>
+<span class="kn">from</span> <span class="nn">errno</span> <span class="kn">import</span> <span class="n">ENOENT</span>
+<span class="kn">from</span> <span class="nn">api_client</span> <span class="kn">import</span> <span class="n">ClientException</span><span class="p">,</span> <span class="n">Connection</span>
+<span class="kn">import</span> <span class="nn">model</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;iDigBioSvc.client_manager&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ClientManagerException"><a class="viewcode-back" href="../../../api/dataingestion.services.html#dataingestion.services.client_manager.ClientManagerException">[docs]</a><span class="k">class</span> <span class="nc">ClientManagerException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="ne">Exception</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reason</span> <span class="o">=</span> <span class="n">reason</span>
+</div>
+<div class="viewcode-block" id="get_conn"><a class="viewcode-back" href="../../../api/dataingestion.services.html#dataingestion.services.client_manager.get_conn">[docs]</a><span class="k">def</span> <span class="nf">get_conn</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get connection.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Connection</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="put_errors_from_threads"><a class="viewcode-back" href="../../../api/dataingestion.services.html#dataingestion.services.client_manager.put_errors_from_threads">[docs]</a><span class="k">def</span> <span class="nf">put_errors_from_threads</span><span class="p">(</span><span class="n">threads</span><span class="p">,</span> <span class="n">error_queue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Places any errors from the threads into error_queue.</span>
+<span class="sd">    :param threads: A list of QueueFunctionThread instances.</span>
+<span class="sd">    :param error_queue: A queue to put error strings into.</span>
+<span class="sd">    :returns: True if any errors were found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">was_error</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">thread</span><span class="o">.</span><span class="n">exc_infos</span><span class="p">:</span>
+            <span class="n">was_error</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ClientException</span><span class="p">):</span>
+                <span class="n">error_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">format_exception</span><span class="p">(</span><span class="o">*</span><span class="n">info</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">was_error</span>
+</div>
+<div class="viewcode-block" id="QueueFunctionThread"><a class="viewcode-back" href="../../../api/dataingestion.services.html#dataingestion.services.client_manager.QueueFunctionThread">[docs]</a><span class="k">class</span> <span class="nc">QueueFunctionThread</span><span class="p">(</span><span class="n">Thread</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queue</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calls func for each item in queue; func is called with a queued</span>
+<span class="sd">            item as the first arg followed by *args and **kwargs. Use the abort</span>
+<span class="sd">            attribute to have the thread empty the queue (without processing)</span>
+<span class="sd">            and exit. &quot;&quot;&quot;</span>
+        <span class="n">Thread</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abort</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span> <span class="o">=</span> <span class="n">queue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">func</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exc_infos</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="QueueFunctionThread.run"><a class="viewcode-back" href="../../../api/dataingestion.services.html#dataingestion.services.client_manager.QueueFunctionThread.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">get_nowait</span><span class="p">()</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">abort</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
+            <span class="k">except</span> <span class="n">Empty</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">abort</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Task failed in a worker thread.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">exc_infos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">exc_info</span><span class="p">())</span>
+</div></div>
+<span class="n">ongoing_upload_task</span> <span class="o">=</span> <span class="bp">None</span>
+<span class="sd">&quot;&quot;&quot; Singleton upload task. &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BatchUploadTask"><a class="viewcode-back" href="../../../api/dataingestion.services.html#dataingestion.services.client_manager.BatchUploadTask">[docs]</a><span class="k">class</span> <span class="nc">BatchUploadTask</span><span class="p">:</span>
+    <span class="n">STATUS_FINISHED</span> <span class="o">=</span> <span class="s">&quot;finished&quot;</span>
+    <span class="n">STATUS_RUNNING</span> <span class="o">=</span> <span class="s">&quot;running&quot;</span>
+    
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    State about a single batch upload task.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">object_queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_msg</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="get_progress"><a class="viewcode-back" href="../../../api/dataingestion.services.html#dataingestion.services.client_manager.get_progress">[docs]</a><span class="k">def</span> <span class="nf">get_progress</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return (total items, remaining items).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">ongoing_upload_task</span>
+    
+    <span class="k">if</span> <span class="n">task</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">task</span><span class="o">.</span><span class="n">object_queue</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ClientManagerException</span><span class="p">(</span><span class="s">&quot;No ongoing upload task.&quot;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">task</span><span class="o">.</span><span class="n">total_count</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">object_queue</span><span class="o">.</span><span class="n">qsize</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="get_result"><a class="viewcode-back" href="../../../api/dataingestion.services.html#dataingestion.services.client_manager.get_result">[docs]</a><span class="k">def</span> <span class="nf">get_result</span><span class="p">():</span>
+    <span class="k">while</span> <span class="n">ongoing_upload_task</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="n">BatchUploadTask</span><span class="o">.</span><span class="n">STATUS_FINISHED</span><span class="p">:</span>
+        <span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">get_batch_details</span><span class="p">(</span><span class="n">ongoing_upload_task</span><span class="o">.</span><span class="n">batch</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="exec_upload_task"><a class="viewcode-back" href="../../../api/dataingestion.services.html#dataingestion.services.client_manager.exec_upload_task">[docs]</a><span class="k">def</span> <span class="nf">exec_upload_task</span><span class="p">(</span><span class="n">root_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This method returns true when all file upload tasks are executed and print and </span>
+<span class="sd">    error queues are emptied.</span>
+<span class="sd">    </span>
+<span class="sd">    :return: False is the upload is not executed due to an existing ongoing task.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">ongoing_upload_task</span>
+    
+    <span class="k">if</span> <span class="n">ongoing_upload_task</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">ongoing_upload_task</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="n">BatchUploadTask</span><span class="o">.</span><span class="n">STATUS_FINISHED</span><span class="p">:</span>
+        <span class="c"># Ongoing task exists</span>
+        <span class="k">return</span> <span class="bp">False</span>
+    
+    <span class="n">ongoing_upload_task</span> <span class="o">=</span> <span class="n">BatchUploadTask</span><span class="p">()</span>
+    <span class="n">ongoing_upload_task</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">BatchUploadTask</span><span class="o">.</span><span class="n">STATUS_RUNNING</span>
+    
+    <span class="n">log_queue</span> <span class="o">=</span> <span class="n">ongoing_upload_task</span><span class="o">.</span><span class="n">log_queue</span>
+
+    <span class="k">def</span> <span class="nf">_print</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">unicode</span><span class="p">):</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf8&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+
+    <span class="n">print_thread</span> <span class="o">=</span> <span class="n">QueueFunctionThread</span><span class="p">(</span><span class="n">log_queue</span><span class="p">,</span> <span class="n">_print</span><span class="p">)</span>
+    <span class="n">print_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_error</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">unicode</span><span class="p">):</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf8&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+
+    <span class="n">error_queue</span> <span class="o">=</span> <span class="n">ongoing_upload_task</span><span class="o">.</span><span class="n">error_queue</span>
+    <span class="n">error_thread</span> <span class="o">=</span> <span class="n">QueueFunctionThread</span><span class="p">(</span><span class="n">error_queue</span><span class="p">,</span> <span class="n">_error</span><span class="p">)</span>
+    <span class="n">error_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_upload</span><span class="p">(</span><span class="n">ongoing_upload_task</span><span class="p">,</span> <span class="n">root_path</span><span class="p">,</span> <span class="n">log_queue</span><span class="p">,</span> <span class="n">error_queue</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">ClientException</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">error_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">log_queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+            <span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+        <span class="n">print_thread</span><span class="o">.</span><span class="n">abort</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">while</span> <span class="n">print_thread</span><span class="o">.</span><span class="n">isAlive</span><span class="p">():</span>
+            <span class="n">print_thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">error_queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+            <span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+        <span class="n">error_thread</span><span class="o">.</span><span class="n">abort</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">while</span> <span class="n">error_thread</span><span class="o">.</span><span class="n">isAlive</span><span class="p">():</span>
+            <span class="n">error_thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+            
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Upload task completed.&quot;</span><span class="p">)</span>
+        
+    <span class="k">except</span> <span class="p">(</span><span class="ne">SystemExit</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">threading_enumerate</span><span class="p">():</span>
+            <span class="n">thread</span><span class="o">.</span><span class="n">abort</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">raise</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="c"># Reset of singleton task in the module.</span>
+        <span class="n">ongoing_upload_task</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">BatchUploadTask</span><span class="o">.</span><span class="n">STATUS_FINISHED</span>
+    </div>
+<span class="k">def</span> <span class="nf">_upload</span><span class="p">(</span><span class="n">ongoing_upload_task</span><span class="p">,</span> <span class="n">root_path</span><span class="p">,</span> <span class="n">print_queue</span><span class="p">,</span> <span class="n">error_queue</span><span class="p">):</span>
+    <span class="n">object_queue</span> <span class="o">=</span> <span class="n">ongoing_upload_task</span><span class="o">.</span><span class="n">object_queue</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This method returns when all file upload tasks have been executed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">_object_job</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">conn</span><span class="p">):</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="s">&#39;path&#39;</span><span class="p">]</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">path</span>
+            <span class="n">image_record</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">add_image</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            
+            <span class="n">record_uuid</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">post_mediarecord</span><span class="p">(</span><span class="n">recordset_uuid</span><span class="p">)</span>
+            <span class="n">image_record</span><span class="o">.</span><span class="n">uuid</span> <span class="o">=</span> <span class="n">record_uuid</span>
+            
+            <span class="n">result_obj</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">post_media</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">record_uuid</span><span class="p">)</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="n">result_obj</span><span class="p">[</span><span class="s">&quot;idigbio:links&quot;</span><span class="p">][</span><span class="s">&quot;media&quot;</span><span class="p">]</span>
+            <span class="n">image_record</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+            <span class="n">image_record</span><span class="o">.</span><span class="n">upload_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+            
+            <span class="c"># Sleep a while after each upload to slow down the rate</span>
+            <span class="c"># for demo purpose.</span>
+<span class="c">#            sleep(4)</span>
+                    
+            <span class="k">if</span> <span class="n">conn</span><span class="o">.</span><span class="n">attempts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">print_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span>
+                    <span class="s">&#39;</span><span class="si">%s</span><span class="s"> [after </span><span class="si">%d</span><span class="s"> attempts]&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">conn</span><span class="o">.</span><span class="n">attempts</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">print_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">ENOENT</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="n">error_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s">&#39;Local file </span><span class="si">%s</span><span class="s"> not found&#39;</span> <span class="o">%</span> <span class="nb">repr</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_upload_dir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">dirpath</span><span class="p">,</span> <span class="n">_dirnames</span><span class="p">,</span> <span class="n">filenames</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+                <span class="n">subpath</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                <span class="n">object_queue</span><span class="o">.</span><span class="n">put</span><span class="p">({</span><span class="s">&#39;path&#39;</span><span class="p">:</span> <span class="n">subpath</span><span class="p">})</span>
+                <span class="n">ongoing_upload_task</span><span class="o">.</span><span class="n">total_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">object_threads</span> <span class="o">=</span> <span class="p">[</span><span class="n">QueueFunctionThread</span><span class="p">(</span><span class="n">object_queue</span><span class="p">,</span> <span class="n">_object_job</span><span class="p">,</span>
+        <span class="n">get_conn</span><span class="p">())</span> <span class="k">for</span> <span class="n">_junk</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">object_threads</span><span class="p">:</span>
+        <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&#39;Upload worker threads started.&#39;</span><span class="p">)</span>
+    
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">get_conn</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">recordset_uuid</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">post_recordset</span><span class="p">()</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">add_upload_batch</span><span class="p">(</span><span class="n">root_path</span><span class="p">,</span> <span class="n">recordset_uuid</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">ongoing_upload_task</span><span class="o">.</span><span class="n">batch</span> <span class="o">=</span> <span class="n">batch</span>
+        
+        <span class="k">if</span> <span class="n">isdir</span><span class="p">(</span><span class="n">root_path</span><span class="p">):</span>
+            <span class="n">_upload_dir</span><span class="p">(</span><span class="n">root_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c"># Single file.</span>
+            <span class="n">object_queue</span><span class="o">.</span><span class="n">put</span><span class="p">({</span><span class="s">&#39;path&#39;</span><span class="p">:</span> <span class="n">root_path</span><span class="p">})</span>
+        
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">object_queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+            <span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+            
+        <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">object_threads</span><span class="p">:</span>
+            <span class="n">thread</span><span class="o">.</span><span class="n">abort</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">while</span> <span class="n">thread</span><span class="o">.</span><span class="n">isAlive</span><span class="p">():</span>
+                <span class="n">thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+                
+        <span class="n">was_error</span> <span class="o">=</span> <span class="n">put_errors_from_threads</span><span class="p">(</span><span class="n">object_threads</span><span class="p">,</span> <span class="n">error_queue</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">was_error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Upload finishes with no error&quot;</span><span class="p">)</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">finish_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Upload finishes with errors.&quot;</span><span class="p">)</span>
+        
+    <span class="k">except</span> <span class="n">ClientException</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">http_status</span> <span class="o">!=</span> <span class="mi">404</span><span class="p">:</span>
+            <span class="k">raise</span>
+        <span class="n">error_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s">&#39;Upload failed.&#39;</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../api/dataingestion.services.html#dataingestion.services.client_manager.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;root_path&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;-v&quot;</span><span class="p">,</span> <span class="s">&quot;--verbose&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--db&quot;</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">db</span><span class="p">:</span>
+        <span class="n">db_file</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">db</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">db_file</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">gettempdir</span><span class="p">(),</span> <span class="s">&quot;idigbio.ingest.db&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;DB file: {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">db_file</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">db_file</span><span class="p">)</span>
+    <span class="n">atexit</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">commit</span><span class="p">)</span>
+    <span class="n">exec_upload_task</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">root_path</span><span class="p">)</span>
+    </div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">iDigBio Data Ingestion Tool 0.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, iDigBio.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
