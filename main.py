@@ -5,10 +5,11 @@
 # This software may be used and distributed according to the terms of the
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 from os.path import dirname, realpath, join, exists
-import sys, cherrypy, os, logging, site
+import sys, os, logging, site
 current_dir = dirname(realpath(__file__))
 site.addsitedir(join(current_dir, "lib"))
 import appdirs
+import cherrypy
 from cherrypy import engine
 from dataingestion.ui.ingestui import DataIngestionUI
 from dataingestion.services.ingest_rest import DataIngestionService
