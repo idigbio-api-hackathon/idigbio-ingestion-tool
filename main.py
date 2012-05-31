@@ -33,7 +33,7 @@ def main(argv):
     
     db_folder = appdirs.user_cache_dir(APP_NAME, APP_AUTHOR)
     if not exists(db_folder):
-        os.mkdir(db_folder)
+        os.makedirs(db_folder)
     db_file = join(db_folder, "idigbio.ingest.db")
     cherrypy.log.error("Use DB file: {0}".format(db_file), "main")
     dataingestion.services.model.setup(db_file)
