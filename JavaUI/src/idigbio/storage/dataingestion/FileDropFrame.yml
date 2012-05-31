@@ -1,9 +1,0 @@
-JFrame(name=frame, title=frame.title, size=packed, defaultCloseOperation=exitOnClose):
-    - JButton(name=upload, text=button.upload, onAction=[upload,done])
-    - JButton(name=cancel, text=button.cancel, onAction=[cancel])
-    - MigLayout: |
-          [pref]              [fill,grow,100]
-          "label.selectedPath"       txaSelectedPath+*+2
-          >upload+*=1,cancel=1
-bind:
-    - txaSelectedPath.text: userData.selectedPath
