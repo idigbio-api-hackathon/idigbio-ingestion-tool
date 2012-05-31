@@ -6,7 +6,7 @@
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 from os.path import dirname, realpath, join, exists
 import sys, os, logging, site
-current_dir = dirname(realpath(__file__))
+current_dir = os.path.abspath(os.getcwd())
 site.addsitedir(join(current_dir, "lib"))
 import appdirs
 import cherrypy
@@ -22,6 +22,7 @@ def main(argv):
     
 #    cherrypy.clientconf.update(join(current_dir, 'etc', 'http.conf'))
     engine_conf_path = os.path.join(current_dir, 'etc', 'engine.conf')
+    cherrypy.config.update({"tools.staticdir.root": current_dir + "/www"})
     
     cherrypy.tree.mount(DataIngestionUI(), '/', config=engine_conf_path)
     cherrypy.tree.mount(DataIngestionService(), '/services', config=engine_conf_path)
