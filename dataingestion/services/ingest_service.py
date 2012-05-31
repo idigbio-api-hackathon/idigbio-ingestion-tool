@@ -9,7 +9,7 @@
 This is the service module that the web service front-end calls to serve data
 upload requests.
 """ 
-from idigbio.storage.dataingestion.task_queue import BackgroundTaskQueue
+from dataingestion.task_queue import BackgroundTaskQueue
 import cherrypy
 import Queue, os
 import client_manager

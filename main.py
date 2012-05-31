@@ -10,9 +10,9 @@ current_dir = dirname(realpath(__file__))
 site.addsitedir(join(current_dir, "lib"))
 import appdirs
 from cherrypy import engine
-from idigbio.storage.dataingestion.ui.ingestui import DataIngestionUI
-from idigbio.storage.dataingestion.services.ingest_rest import DataIngestionService
-import idigbio.storage.dataingestion.services.model
+from dataingestion.ui.ingestui import DataIngestionUI
+from dataingestion.services.ingest_rest import DataIngestionService
+import dataingestion.services.model
 
 APP_NAME = 'iDigBioDataIngestion'
 APP_AUTHOR = 'iDigBio'
@@ -36,7 +36,7 @@ def main(argv):
         os.mkdir(db_folder)
     db_file = join(db_folder, "idigbio.ingest.db")
     cherrypy.log.error("Use DB file: {0}".format(db_file), "main")
-    idigbio.storage.dataingestion.services.model.setup(db_file)
+    dataingestion.services.model.setup(db_file)
     
     if hasattr(engine, "signal_handler"):
         engine.signal_handler.subscribe()

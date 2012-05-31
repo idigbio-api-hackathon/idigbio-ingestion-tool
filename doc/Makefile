@@ -5,9 +5,9 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
-BUILDDIR      = ../../../DataIngestion-doc
+BUILDDIR      = ../../DataIngestion-doc
 PDFBUILDDIR   = /tmp
-PDF           = ../../../DataIngestion-doc/manual.pdf
+PDF           = ../../DataIngestion-doc/manual.pdf
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4

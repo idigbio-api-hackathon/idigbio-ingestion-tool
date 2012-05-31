@@ -5,10 +5,10 @@
 # This software may be used and distributed according to the terms of the
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 
-from idigbio.storage.dataingestion.services import ingest_service
-#from idigbio.storage.dataingestion.services import mock_ingest_svc as ingest_service
+from dataingestion.services import ingest_service
+#from dataingestion.services import mock_ingest_svc as ingest_service
 import cherrypy, json
-from idigbio.storage.dataingestion.services.client_manager import ClientManagerException
+from dataingestion.services.client_manager import ClientManagerException
 from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
 
