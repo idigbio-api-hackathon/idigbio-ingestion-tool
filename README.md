@@ -1,4 +1,0 @@
-idigbio-appliance
-=================
-
-Appliance code
