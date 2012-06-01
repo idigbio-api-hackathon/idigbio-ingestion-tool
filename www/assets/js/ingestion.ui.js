@@ -43,6 +43,10 @@ $(function() {
                 $("#alert-text").html(errMsg);
             });
     });
+    
+    // Certain UI components will be disabled if JS is. This overrides the css
+    // that hides them (ingestion.ui.css), making sure they are shown.
+    $(".js-required").css("display", "inherit");
 });
 
 updateProgress = function() {
