@@ -17,22 +17,35 @@ import dataingestion.services.model
 
 APP_NAME = 'iDigBioDataIngestion'
 APP_AUTHOR = 'iDigBio'
+debug_mode = False
 
 def main(argv):
     
-#    cherrypy.clientconf.update(join(current_dir, 'etc', 'http.conf'))
+    # process configuration files:
     engine_conf_path = os.path.join(current_dir, 'etc', 'engine.conf')
     cherrypy.config.update({"tools.staticdir.root": current_dir + "/www"})
     
     cherrypy.tree.mount(DataIngestionUI(), '/', config=engine_conf_path)
     cherrypy.tree.mount(DataIngestionService(), '/services', config=engine_conf_path)
     
+    # process command-line arguments:
+    if "--debug" in argv or "-d" in argv:
+        debug_mode = True
+        log_level = logging.DEBUG
+    else:
+        debug_mode = False
+        log_level = logging.WARNING
+        cherrypy.config.update({"environment": "production"})
+    
+    # configure the logging mechanisms
+    logging.getLogger().setLevel(log_level)
+    logging.getLogger("cherrypy").setLevel(log_level) # cherrypy must be forced
     svc_log = logging.getLogger('iDigBioSvc')
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s - %(message)s'))
     svc_log.addHandler(handler)
-    svc_log.setLevel(logging.DEBUG)
     
+    # configure the local sqlite database
     db_folder = appdirs.user_cache_dir(APP_NAME, APP_AUTHOR)
     if not exists(db_folder):
         os.makedirs(db_folder)
@@ -47,6 +60,18 @@ def main(argv):
     cherrypy.log("Starting...")
     
     engine.start()
+    if not debug_mode:
+        # In a proper run, the text written here will be the only text output
+        # the end-user sees: Keep it short and simple.
+        print("Starting the iDigBio Data Ingestion Tool...")
+        try:
+            import webbrowser
+            webbrowser.open("http://127.0.0.1:8080")
+        except ImportError:
+            # Gracefully fall back
+            print("Open http://127.0.0.1:8080 in your webbrowser.")
+        print("Close this window or hit ctrl+c to stop the local iDigBio Data "
+              "Ingestion Tool.")
     engine.block()
 
 if __name__ == '__main__':

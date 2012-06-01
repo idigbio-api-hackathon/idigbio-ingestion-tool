@@ -50,16 +50,15 @@ elif sys.platform.startswith("win"): # Windows
         "build_exe": {
             "compressed": True,
             "includes": ["cherrypy.wsgiserver",
-                         "cherrypy.wsgiserver.wsgiserver3", "email.message"],
-            "packages": ["sqlite3", "sqlalchemy.dialects.sqlite", "email"],
+                         "cherrypy.wsgiserver.wsgiserver3", "webbrowser"],
+            "packages": ["sqlite3", "sqlalchemy.dialects.sqlite"],
             "excludes": ["tkinter", "Tkinter", "ttk", "Tix"],
             "icon": os.path.join("icons", "win_icon", "icon.ico"),
-            "include_files": RESOURCES,
-            #"path": SCRIPT_PATH
+            "include_files": RESOURCES
         }
     }
-    executable = Executable(os.path.join(SCRIPT_PATH, SCRIPT), compress=True, targetName=APP_NAME + ".exe")
-    setup(options=options, executables=[executable],
-          package_dir={"": SCRIPT_PATH, "cherrypy": os.path.join(LIB_PATH, "cherrypy")})
+    executable = Executable(os.path.join(SCRIPT_PATH, SCRIPT), compress=True,
+                            targetName=APP_NAME + ".exe")
+    setup(options=options, executables=[executable])
 else:
     raise Exception("Unsupported Platform '%s'." % sys.platform)
