@@ -19,9 +19,31 @@ class JsonHTTPError(HTTPError):
         cherrypy.response.headers.pop('Content-Length', None)
         cherrypy.response.body = ntob(self._message)
 
-class IngestionResult(object):
-    exposed = True
+class BatchInfo():
+    '''
+    REST resource that represents info of a batch upload.
+    '''
     
+    exposed = True
+
+    def GET(self):
+        '''
+        Currently only return info about the last batch.
+        
+        Will be extended to allow querying info about any previous batches. 
+        '''
+        try:
+            result = ingest_service.get_last_batch_info()
+            return json.dumps(result)
+        except ClientManagerException as ex:
+            raise cherrypy.HTTPError(409, str(ex))
+
+class IngestionResult(object):
+    '''
+    REST resource that represents the result of an upload batch. 
+    '''
+    exposed = True
+
     def GET(self):
         try:
             result = ingest_service.get_result()
@@ -34,10 +56,11 @@ class DataIngestionService(object):
     The RESTful web service exposed through CherryPy.
     """
     exposed = True
-    
+
     def __init__(self):
         self.result = IngestionResult()
-    
+        self.batch = BatchInfo()
+
     def GET(self):
         """
         Get ingestion status.
@@ -47,7 +70,7 @@ class DataIngestionService(object):
             return json.dumps(dict(total=total, remaining=remaining))
         except ClientManagerException as ex:
             raise cherrypy.HTTPError(409, str(ex))
-    
+
     def POST(self, rootPath):
         """
         Ingest data.

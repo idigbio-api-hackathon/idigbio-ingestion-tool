@@ -6,6 +6,7 @@
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 from os.path import dirname, realpath, join, exists
 import sys, cherrypy, os, logging, site
+import argparse
 current_dir = dirname(realpath(__file__))
 site.addsitedir(join(current_dir, "lib"))
 import appdirs
@@ -18,6 +19,10 @@ APP_NAME = 'iDigBioDataIngestion'
 APP_AUTHOR = 'iDigBio'
 
 def main(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--newdb", action="store_true")
+    parser.add_argument("-v", "--verbose", action="store_true")
+    args = parser.parse_args()
     
 #    cherrypy.clientconf.update(join(current_dir, 'etc', 'http.conf'))
     engine_conf_path = os.path.join(current_dir, 'etc', 'engine.conf')
@@ -29,12 +34,17 @@ def main(argv):
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s - %(message)s'))
     svc_log.addHandler(handler)
-    svc_log.setLevel(logging.DEBUG)
+    if args.verbose:
+        svc_log.setLevel(logging.DEBUG)
     
     db_folder = appdirs.user_cache_dir(APP_NAME, APP_AUTHOR)
     if not exists(db_folder):
         os.mkdir(db_folder)
+    
     db_file = join(db_folder, "idigbio.ingest.db")
+    if args.newdb and exists(db_file):
+        os.remove(db_file)
+        
     cherrypy.log.error("Use DB file: {0}".format(db_file), "main")
     dataingestion.services.model.setup(db_file)
     

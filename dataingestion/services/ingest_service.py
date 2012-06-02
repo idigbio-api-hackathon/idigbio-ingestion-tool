@@ -9,10 +9,10 @@
 This is the service module that the web service front-end calls to serve data
 upload requests.
 """ 
-from dataingestion.task_queue import BackgroundTaskQueue
 import cherrypy
 import Queue, os
-import client_manager
+from dataingestion.task_queue import BackgroundTaskQueue
+from dataingestion.services import model, client_manager
 
 singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
 singleton_task.subscribe()
@@ -44,3 +44,16 @@ def check_progress():
 
 def get_result():
     return client_manager.get_result()
+
+def get_last_batch_info():
+    '''
+    Returns info about the last batch.
+     
+    :rtype: dict
+    '''
+    batch = model.load_last_batch()
+    if batch:
+        return dict(root=batch.root, start_time=str(batch.start_time),
+                    finished=(batch.finish_time and True or False))
+    else:
+        return dict()

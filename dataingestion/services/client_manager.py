@@ -36,6 +36,7 @@ def get_conn():
 def put_errors_from_threads(threads, error_queue):
     """
     Places any errors from the threads into error_queue.
+    
     :param threads: A list of QueueFunctionThread instances.
     :param error_queue: A queue to put error strings into.
     :returns: True if any errors were found.
@@ -86,35 +87,35 @@ ongoing_upload_task = None
 class BatchUploadTask:
     STATUS_FINISHED = "finished"
     STATUS_RUNNING = "running"
-    
+
     """
     State about a single batch upload task.
     """
-    def __init__(self):
-        self.batch = None
+    def __init__(self, batch=None):
+        self.batch = batch
         self.total_count = 0
         self.object_queue = Queue(10000)
         self.status = None
         self.error_msg = None
         self.log_queue = Queue(10000)
         self.error_queue = Queue(10000)
-    
+
 def get_progress():
     """
     Return (total items, remaining items).
     """
     task = ongoing_upload_task
-    
+
     if task is None or task.object_queue is None:
         raise ClientManagerException("No ongoing upload task.")
-    
+
     return task.total_count, task.object_queue.qsize()
 
 def get_result():
     while ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED:
         sleep(0.1)
     return model.get_batch_details(ongoing_upload_task.batch.id)
-    
+
 def exec_upload_task(root_path):
     """
     This method returns true when all file upload tasks are executed and print and 
@@ -123,14 +124,14 @@ def exec_upload_task(root_path):
     :return: False is the upload is not executed due to an existing ongoing task.
     """
     global ongoing_upload_task
-    
+
     if ongoing_upload_task is not None and ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED:
         # Ongoing task exists
         return False
-    
+
     ongoing_upload_task = BatchUploadTask()
     ongoing_upload_task.status = BatchUploadTask.STATUS_RUNNING
-    
+
     log_queue = ongoing_upload_task.log_queue
 
     def _print(item):
@@ -165,9 +166,9 @@ def exec_upload_task(root_path):
         error_thread.abort = True
         while error_thread.isAlive():
             error_thread.join(0.01)
-            
+
         logger.info("Upload task completed.")
-        
+
     except (SystemExit, Exception):
         for thread in threading_enumerate():
             thread.abort = True
@@ -175,32 +176,32 @@ def exec_upload_task(root_path):
     finally:
         # Reset of singleton task in the module.
         ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
-    
+
 def _upload(ongoing_upload_task, root_path, print_queue, error_queue):
     object_queue = ongoing_upload_task.object_queue
     """
     This method returns when all file upload tasks have been executed.
     """
-    
+
     def _object_job(job, conn):
         path = job['path']
-        
+
         try:
             obj = path
             image_record = model.add_image(batch, path)
-            
+
             record_uuid = conn.post_mediarecord(recordset_uuid)
             image_record.uuid = record_uuid
-            
+
             result_obj = conn.post_media(obj, record_uuid)
             url = result_obj["idigbio:links"]["media"]
             image_record.url = url
             image_record.upload_time = datetime.utcnow()
-            
+
             # Sleep a while after each upload to slow down the rate
             # for demo purpose.
 #            sleep(4)
-                    
+
             if conn.attempts > 1:
                 print_queue.put(
                     '%s [after %d attempts]' % (obj, conn.attempts))
@@ -223,35 +224,35 @@ def _upload(ongoing_upload_task, root_path, print_queue, error_queue):
     for thread in object_threads:
         thread.start()
     logger.debug('Upload worker threads started.')
-    
+
     conn = get_conn()
     try:
         recordset_uuid = conn.post_recordset()
         batch = model.add_upload_batch(root_path, recordset_uuid)
         model.commit()
         ongoing_upload_task.batch = batch
-        
+
         if isdir(root_path):
             _upload_dir(root_path)
         else:
             # Single file.
             object_queue.put({'path': root_path})
-        
+
         while not object_queue.empty():
             sleep(0.01)
-            
+
         for thread in object_threads:
             thread.abort = True
             while thread.isAlive():
                 thread.join(0.01)
-                
+
         was_error = put_errors_from_threads(object_threads, error_queue)
         if not was_error:
             logger.info("Upload finishes with no error")
             batch.finish_time = datetime.utcnow()
         else:
             logger.error("Upload finishes with errors.")
-        
+
     except ClientException, err:
         if err.http_status != 404:
             raise
@@ -265,12 +266,12 @@ def main():
     parser.add_argument("-v", "--verbose", action='store_true')
     parser.add_argument("--db")
     args = parser.parse_args()
-    
+
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
-    
+
     if args.db:
         db_file = args.db
     else:
@@ -279,6 +280,6 @@ def main():
     model.setup(db_file)
     atexit.register(model.commit)
     exec_upload_task(args.root_path)
-    
+
 if __name__ == '__main__':
     main()
