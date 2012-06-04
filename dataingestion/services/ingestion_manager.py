@@ -17,12 +17,12 @@ from sys import exc_info
 from os.path import isdir, join
 from traceback import format_exception
 from errno import ENOENT
-from api_client import ClientException, Connection
-import model
+from dataingestion.services.api_client import ClientException, Connection
+from dataingestion.services import model
 
 logger = logging.getLogger('iDigBioSvc.client_manager')
 
-class ClientManagerException(Exception):
+class IngestServiceException(Exception):
     def __init__(self, msg, reason=''):
         Exception.__init__(self, msg)
         self.reason = reason
@@ -107,7 +107,7 @@ def get_progress():
     task = ongoing_upload_task
 
     if task is None or task.object_queue is None:
-        raise ClientManagerException("No ongoing upload task.")
+        raise IngestServiceException("No ongoing upload task.")
 
     return task.total_count, task.object_queue.qsize()
 

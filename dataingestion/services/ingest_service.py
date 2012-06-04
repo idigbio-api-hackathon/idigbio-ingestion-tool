@@ -12,14 +12,14 @@ upload requests.
 import cherrypy
 import Queue, os
 from dataingestion.task_queue import BackgroundTaskQueue
-from dataingestion.services import model, client_manager
+from dataingestion.services import model, ingestion_manager
 
 singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
 singleton_task.subscribe()
 singleton_task.start()
         
 def upload_task(root_path):
-    client_manager.exec_upload_task(root_path)
+    ingestion_manager.exec_upload_task(root_path)
     cherrypy.log("Upload task finished.")
 
 def start_upload(root_path):
@@ -40,10 +40,10 @@ def start_upload(root_path):
         return False
 
 def check_progress():
-    return client_manager.get_progress()
+    return ingestion_manager.get_progress()
 
 def get_result():
-    return client_manager.get_result()
+    return ingestion_manager.get_result()
 
 def get_last_batch_info():
     '''

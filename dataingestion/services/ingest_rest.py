@@ -8,7 +8,7 @@
 from dataingestion.services import ingest_service
 #from dataingestion.services import mock_ingest_svc as ingest_service
 import cherrypy, json
-from dataingestion.services.client_manager import ClientManagerException
+from dataingestion.services.ingestion_manager import IngestServiceException
 from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
 
@@ -35,7 +35,7 @@ class BatchInfo():
         try:
             result = ingest_service.get_last_batch_info()
             return json.dumps(result)
-        except ClientManagerException as ex:
+        except IngestServiceException as ex:
             raise cherrypy.HTTPError(409, str(ex))
 
 class IngestionResult(object):
@@ -48,7 +48,7 @@ class IngestionResult(object):
         try:
             result = ingest_service.get_result()
             return json.dumps(result)
-        except ClientManagerException as ex:
+        except IngestServiceException as ex:
             raise cherrypy.HTTPError(409, str(ex))
 
 class DataIngestionService(object):
@@ -68,7 +68,7 @@ class DataIngestionService(object):
         try:
             total, remaining = ingest_service.check_progress()
             return json.dumps(dict(total=total, remaining=remaining))
-        except ClientManagerException as ex:
+        except IngestServiceException as ex:
             raise cherrypy.HTTPError(409, str(ex))
 
     def POST(self, rootPath):
