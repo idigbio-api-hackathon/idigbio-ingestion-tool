@@ -44,7 +44,7 @@ def _post_recordset():
                               url=url, http_status=e.code, 
                               http_response_content=e.read(),
                               reason=providerid)
-    logger.debug("Response: {0}".format(response))
+#    logger.debug("Response: {0}".format(response))
     return response['idigbio:uuid']
 
 def _post_mediarecord(recordset_uuid):
@@ -59,7 +59,7 @@ def _post_mediarecord(recordset_uuid):
                               url=url, http_status=e.code, 
                               http_response_content=e.read(),
                               reason=recordset_uuid)
-    logger.debug("Response: {0}".format(response))
+#    logger.debug("Response: {0}".format(response))
     return response['idigbio:uuid']
 
 def _post_media(local_path, entity_uuid):
@@ -68,7 +68,7 @@ def _post_media(local_path, entity_uuid):
     try:
         request = urllib2.Request(url, datagen, headers)
         resp = urllib2.urlopen(request).read()
-        logger.debug("Response: {0}".format(resp))
+#        logger.debug("Response: {0}".format(resp))
         return json.loads(resp)
     except urllib2.HTTPError as e:
         raise ClientException("Failed to POST the JSON to server.",

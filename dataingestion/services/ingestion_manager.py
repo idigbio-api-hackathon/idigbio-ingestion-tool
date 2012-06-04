@@ -20,7 +20,7 @@ from errno import ENOENT
 from dataingestion.services.api_client import ClientException, Connection
 from dataingestion.services import model
 
-logger = logging.getLogger('iDigBioSvc.client_manager')
+logger = logging.getLogger('iDigBioSvc.ingestion_manager')
 
 class IngestServiceException(Exception):
     def __init__(self, msg, reason=''):
@@ -99,17 +99,18 @@ class BatchUploadTask:
         self.error_msg = None
         self.log_queue = Queue(10000)
         self.error_queue = Queue(10000)
+        self.skips = 0
 
 def get_progress():
     """
-    Return (total items, remaining items).
+    Return (total items, remaining items, skips).
     """
     task = ongoing_upload_task
 
     if task is None or task.object_queue is None:
         raise IngestServiceException("No ongoing upload task.")
 
-    return task.total_count, task.object_queue.qsize()
+    return task.total_count, task.object_queue.qsize(), task.skips
 
 def get_result():
     while ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED:
@@ -188,12 +189,21 @@ def _upload(ongoing_upload_task, root_path, print_queue, error_queue):
 
         try:
             obj = path
-            image_record = model.add_image(batch, path)
+            
+            # Get the image record
+            image_record = model.add_or_load_image(batch, path)
+            if image_record is None:
+                # Skip this one because it's already uploaded.
+                ongoing_upload_task.skips += 1
+                return
 
-            record_uuid = conn.post_mediarecord(recordset_uuid)
-            image_record.uuid = record_uuid
+            # Post mediarecord if necesssary.
+            if image_record.uuid is None:
+                record_uuid = conn.post_mediarecord(recordset_uuid)
+                image_record.uuid = record_uuid
 
-            result_obj = conn.post_media(obj, record_uuid)
+            # Post image to API.
+            result_obj = conn.post_media(obj, image_record.uuid)
             url = result_obj["idigbio:links"]["media"]
             image_record.url = url
             image_record.upload_time = datetime.utcnow()
@@ -249,7 +259,7 @@ def _upload(ongoing_upload_task, root_path, print_queue, error_queue):
         was_error = put_errors_from_threads(object_threads, error_queue)
         if not was_error:
             logger.info("Upload finishes with no error")
-            batch.finish_time = datetime.utcnow()
+            batch.finish_time = datetime.now()
         else:
             logger.error("Upload finishes with errors.")
 

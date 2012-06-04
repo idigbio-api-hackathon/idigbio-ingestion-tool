@@ -66,8 +66,8 @@ class DataIngestionService(object):
         Get ingestion status.
         """
         try:
-            total, remaining = ingest_service.check_progress()
-            return json.dumps(dict(total=total, remaining=remaining))
+            total, remaining, skips = ingest_service.check_progress()
+            return json.dumps(dict(total=total, remaining=remaining, skips=skips))
         except IngestServiceException as ex:
             raise cherrypy.HTTPError(409, str(ex))
 

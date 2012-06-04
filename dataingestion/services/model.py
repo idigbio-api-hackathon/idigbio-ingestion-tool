@@ -7,7 +7,7 @@
 """
 This module implements the data model for the service.
 """
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import ForeignKey
@@ -32,11 +32,22 @@ class ImageRecord(Base):
     __tablename__ = 'images'
 
     id = Column(Integer, primary_key=True)
-    path = Column(String, index=True, unique=True)
+    path = Column(String)
+    '''
+    Path does not have to be unique as there can be multiple 
+    unrelated */USBVolumne1/DCIM/Image1.JPG*s.
+    '''
     uuid = Column(String)
-    md5 = Column(String)
+    '''
+    The UUID of the *media record* for this image. 
+    '''
+    md5 = Column(String, index=True, unique=True)
     comments = Column(String)
     upload_time = Column(DateTime)
+    '''
+    The UTC time measured by the local machine. 
+    None if the image is not uploaded.
+    '''
     url = Column(String)
     batch_id = Column(Integer, ForeignKey('batches.id', onupdate="cascade"))
 
@@ -46,14 +57,35 @@ class ImageRecord(Base):
         self.batch = batch
 
 class UploadBatch(Base):
+    '''
+    Represents a batch which is the operation executed when the user clicks the 
+    "Upload" button. 
+    
+    .. note:: When a batch fails and is resumed, the same batch record and 
+       recordset id are reused.
+       
+    '''
     __tablename__ = 'batches'
 
     id = Column(Integer, primary_key=True)
     root = Column(String)
+    '''
+    The root path for the batch upload.
+    '''
     recordset_uuid = Column(String)
     start_time = Column(DateTime)
+    '''
+    The local time at which the batch task starts.
+    '''
     finish_time = Column(DateTime)
+    '''
+    The local time that the batch upload finishes. None if it is not successfully
+    finished.
+    '''
     images = relationship(ImageRecord, backref="batch")
+    '''
+    All images associated with this batch.
+    '''
 
     def __init__(self, root, recordset_uuid, start_time):
         self.root = root
@@ -84,6 +116,27 @@ def md5_file(f, block_size=2 ** 20):
     return md5.hexdigest()
 
 @check_session
+def add_or_load_image(batch, path):
+    '''
+    Return the image or None is the image should not be uploaded.
+    
+    :rtype: ImageRecord or None.
+    .. note:: Image identity is not determined by path but rather by its MD5.
+    '''
+    with open(path, 'rb') as f:
+        md5 = md5_file(f)
+    record = session.query(ImageRecord).filter_by(md5=md5).first()
+    if record is None:
+        return add_image(batch, path)
+        # What if the file at the same path is actually new?
+    elif record.upload_time:
+        # Already uploaded.
+        return None
+    else:
+        # Needs to be uplaoded.
+        return record
+
+@check_session
 def add_image(batch, path):
     with open(path, 'rb') as f:
         md5 = md5_file(f)
@@ -95,7 +148,7 @@ def add_image(batch, path):
 
 @check_session
 def add_upload_batch(root, recordset_uuid):
-    start_time = datetime.utcnow()
+    start_time = datetime.now()
     batch = UploadBatch(root, recordset_uuid, start_time)
     session.add(batch)
     return batch

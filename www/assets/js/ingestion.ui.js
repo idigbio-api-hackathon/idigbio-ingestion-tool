@@ -90,11 +90,13 @@ updateProgress = function() {
     $.getJSON(url, function(progressObj) {
         var total = progressObj.total;
         var remaining = progressObj.remaining;
-        var uploaded = total - remaining
+        var uploaded = total - remaining - progressObj.skips
+        var progress = Math.floor((total - remaining) / total * 100);
         
-        var progress = Math.floor(uploaded / total * 100);
-        
-        $("#progresstext").text("Finished " + uploaded + " out of " + total + " files.");
+        $("#progresstext").text(["Progress: (Uploaded:" + uploaded,
+             ", Skipped: " + progressObj.skips,
+             ", Total: " + total,
+             ")"].join(""));
         
         $("#upload-progressbar").width(progress + '%')
         
