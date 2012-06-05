@@ -20,6 +20,8 @@ logger = logging.getLogger("iDigBioSvc.api_client")
 
 register_openers()
 
+TIMEOUT = 3
+
 def build_url(collection, entity_uuid=None, subcollection=None):
     if entity_uuid is None:
         ret = "%s/%s/" % (BASE_URL, collection)
@@ -44,6 +46,8 @@ def _post_recordset():
                               url=url, http_status=e.code, 
                               http_response_content=e.read(),
                               reason=providerid)
+    except urllib2.URLError as e:
+        raise ClientException(str(e), url=url)
 #    logger.debug("Response: {0}".format(response))
     return response['idigbio:uuid']
 
@@ -59,6 +63,8 @@ def _post_mediarecord(recordset_uuid):
                               url=url, http_status=e.code, 
                               http_response_content=e.read(),
                               reason=recordset_uuid)
+    except urllib2.URLError as e:
+        raise ClientException(str(e), url=url)
 #    logger.debug("Response: {0}".format(response))
     return response['idigbio:uuid']
 
@@ -67,7 +73,7 @@ def _post_media(local_path, entity_uuid):
     datagen, headers = multipart_encode({"file": open(local_path, "rb")})
     try:
         request = urllib2.Request(url, datagen, headers)
-        resp = urllib2.urlopen(request).read()
+        resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
 #        logger.debug("Response: {0}".format(resp))
         return json.loads(resp)
     except urllib2.HTTPError as e:
@@ -75,6 +81,8 @@ def _post_media(local_path, entity_uuid):
                               url=request.get_full_url(), http_status=e.code,
                               http_response_content=e.read(),
                               reason=entity_uuid, local_path=local_path)
+    except urllib2.URLError as e:
+        raise ClientException(str(e), url=request.get_full_url())
 
 
 def _post_json(url, obj):
@@ -83,7 +91,7 @@ def _post_json(url, obj):
     """
     content = json.dumps(obj, separators=(',',':'))
     req = urllib2.Request(url, content, {'Content-Type': 'application/json'})
-    r = urllib2.urlopen(req)
+    r = urllib2.urlopen(req, timeout=TIMEOUT)
     resp = r.read()
     json_response = json.loads(resp)
     return json_response
@@ -112,7 +120,7 @@ def upload_image_with_retries(path):
         
 
 class ClientException(Exception):
-    def __init__(self, msg, url='', http_status=0, reason='', local_path='',
+    def __init__(self, msg, url='', http_status=None, reason='', local_path='',
                  http_response_content=''):
         Exception.__init__(self, msg)
         self.msg = msg
@@ -153,7 +161,7 @@ class ClientException(Exception):
 class Connection(object):
     """Convenience class to make requests that will also retry the request"""
 
-    def __init__(self, authurl=None, user=None, key=None, retries=5, preauthurl=None,
+    def __init__(self, authurl=None, user=None, key=None, retries=3, preauthurl=None,
                  preauthtoken=None, snet=False, starting_backoff=1,
                  auth_version="1"):
         """
@@ -194,6 +202,7 @@ class Connection(object):
                 
                 if self.attempts > self.retries:
                     raise
+                
                 if err.http_status == 401: # Unauthorized
                     if self.attempts > 1:
                         raise
@@ -201,13 +210,9 @@ class Connection(object):
                     pass
                 elif 500 <= err.http_status <= 599:
                     pass
+                elif err.http_status is None:
+                    pass
                 else:
-                    raise
-            except urllib2.URLError as err:
-                logger.debug("Exception caught: {0}".format(err.reason))
-                logger.debug("Current retry attempts: {0}".format(self.attempts))
-                logger.debug("Current backoff: {0}".format(backoff))
-                if self.attempts > self.retries:
                     raise
             
             sleep(backoff)

@@ -11,34 +11,46 @@ $(function() {
         // we want to submit the form using Ajax (prevent page refresh)
         event.preventDefault();
         
-        var rootPath = $('#root-path').val();
+        postUpload("new")
+    });
+});
+
+
+postUpload = function(action) {
+    
+    // Reset the elements
+    $("#result-table-container").removeClass('in');
+    $("#progressbar-container").removeClass('in');
+    
+    var callback = function(dataReceived){
+        // Disable inputs
+        $('#root-path').attr('disabled', true);
+        $("#upload-button").attr('disabled', true);
+        $("#upload-button").addClass('disabled');
         
-        // Reset the elements
-        $("#result-table-container").removeClass('in');
-        $("#progressbar-container").removeClass('in');
+        // Show progress bar in animation
+        $(".progress-primary").addClass('active');
+        $("#progressbar-container").addClass('in');
         
-        var callback = function(dataReceived){
-            // Disable inputs
-            $('#root-path').attr('disabled', true);
-            $("#upload-button").attr('disabled', true);
-            $("#upload-button").addClass('disabled');
-            
-            // Show progress bar in animation
-            $(".progress-primary").addClass('active');
-            $("#progressbar-container").addClass('in');
-            
-            setTimeout("updateProgress()", 1000)
-        };
-        
-        // now send the form and wait to hear back
+        setTimeout("updateProgress()", 1000)
+    };
+    
+    // now send the form and wait to hear back
+    if (action == "new") {
+    var rootPath = $('#root-path').val();
         $.post('/services', { rootPath: rootPath }, callback, 'json')
             .error(function(data) {
                 var errMsg = "<strong>Error! </strong>" + data.responseText;
                 showAlert(errMsg)
             });
-    });
-});
-
+    } else {
+        $.post('/services', callback, 'json')
+            .error(function(data) {
+                var errMsg = "<strong>Error! </strong>" + data.responseText;
+                showAlert(errMsg)
+            });
+    }
+}
 
 showLastBatchInfo = function() {
     $.getJSON('/services/batch', function(batch) {
@@ -51,8 +63,13 @@ showLastBatchInfo = function() {
             var errMsg = ["<p><strong>Warning!</strong> Your last upload from directory ",
             batch.root, " which started at ", start_time,
             ' was not entirely successful.</p>'].join("");
-            var extra = '<p><a href="#" class="btn btn-warning">Retry failed uploads</a></p>';
+            var extra = '<p><button id="retry-button" type="submit" class="btn btn-warning">Retry failed uploads</button></p>';
             showAlert(errMsg, extra, "alert-warning")
+            $("#retry-button").click(function(event) {
+                event.preventDefault();
+                $("#upload-alert").alert('close');
+                postUpload("retry");
+            });
         } else {
             var msg = "<strong>Welcome!</strong> BTW, you last upload was successful."
             showAlert(msg, "", "alert-success")
@@ -88,14 +105,14 @@ updateProgress = function() {
     var url = '/services';
     
     $.getJSON(url, function(progressObj) {
-        var total = progressObj.total;
-        var remaining = progressObj.remaining;
-        var uploaded = total - remaining - progressObj.skips
-        var progress = Math.floor((total - remaining) / total * 100);
         
-        $("#progresstext").text(["Progress: (Uploaded:" + uploaded,
+        var progress = Math.floor((progressObj.successes + progressObj.fails + 
+            progressObj.skips) / progressObj.total * 100);
+        
+        $("#progresstext").text(["Progress: (Successful:" + progressObj.successes,
              ", Skipped: " + progressObj.skips,
-             ", Total: " + total,
+             ", Failed: " + progressObj.fails,
+             ", Total to upload: " + progressObj.total,
              ")"].join(""));
         
         $("#upload-progressbar").width(progress + '%')
@@ -105,6 +122,17 @@ updateProgress = function() {
             $("#upload-button").attr('disabled', false);
             $("#upload-button").toggleClass('disabled');
             $('#root-path').attr('disabled', false);
+            
+            var errMsg = ["<p><strong>Warning!</strong> ",
+                "This upload was not entirely successful. ",
+                "You can retry it at a later time."].join("");
+            var extra = '<p><button id="retry-button" type="submit" class="btn btn-warning">Retry failed uploads</button></p>';
+            showAlert(errMsg, extra, "alert-warning")
+            $("#retry-button").click(function(event) {
+                event.preventDefault();
+                $("#upload-alert").alert('close');
+                postUpload("retry");
+            });
             
             $.getJSON('/services/result', renderResult);
             return;
@@ -124,8 +152,13 @@ renderResult = function(data) {
             { "sTitle": "Online",
               "fnRender": function(obj) {
                 var url = obj.aData[ obj.iDataColumn ];
-                url = '<a target="_blank" href="' + url + '">'+ url + '</a>';
-                return url;
+                var text;
+                if (url == null) {
+                    text = "<span class=\"label label-important\">This image is not successfully uploaded.</span>"
+                } else {
+                    text = '<a target="_blank" href="' + url + '">'+ url + '</a>';
+                }
+                return text;
               }
             }
         ],

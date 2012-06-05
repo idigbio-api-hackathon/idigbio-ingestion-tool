@@ -66,17 +66,30 @@ class DataIngestionService(object):
         Get ingestion status.
         """
         try:
-            total, remaining, skips = ingest_service.check_progress()
-            return json.dumps(dict(total=total, remaining=remaining, skips=skips))
+            total, skips, successes, fails = ingest_service.check_progress()
+            return json.dumps(dict(total=total, successes=successes, 
+                                   skips=skips, fails=fails))
         except IngestServiceException as ex:
             raise cherrypy.HTTPError(409, str(ex))
 
-    def POST(self, rootPath):
+    def POST(self, rootPath=None):
         """
         Ingest data.
         """
         cherrypy.log.error("POST request received.", self.__class__.__name__)
+        if rootPath is None:
+            return self._resume()
+        else:
+            return self._upload(rootPath)
+
+    def _upload(self, root_path):
         try:
-            ingest_service.start_upload(rootPath)
+            ingest_service.start_upload(root_path)
         except ValueError as ex:
             raise JsonHTTPError(409, str(ex))
+    
+    def _resume(self):
+        try:
+            ingest_service.start_resume()
+        except ValueError as ex:
+            raise JsonHTTPError(409, "Retry not supported.")

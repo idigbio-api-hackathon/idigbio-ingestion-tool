@@ -36,6 +36,9 @@ def main(argv):
     svc_log.addHandler(handler)
     if args.verbose:
         svc_log.setLevel(logging.DEBUG)
+    else:
+        svc_log.setLevel(logging.INFO)
+    
     
     db_folder = appdirs.user_cache_dir(APP_NAME, APP_AUTHOR)
     if not exists(db_folder):

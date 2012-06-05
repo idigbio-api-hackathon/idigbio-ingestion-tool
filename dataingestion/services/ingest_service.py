@@ -18,9 +18,13 @@ singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
 singleton_task.subscribe()
 singleton_task.start()
         
-def upload_task(root_path):
+def _upload_task(root_path):
     ingestion_manager.exec_upload_task(root_path)
     cherrypy.log("Upload task finished.")
+
+def _resume_task():
+    ingestion_manager.exec_upload_task(resume=True)
+    cherrypy.log("Resume task finished.")
 
 def start_upload(root_path):
     """
@@ -28,13 +32,17 @@ def start_upload(root_path):
     
     :Return: True if a task is added to the queue. False if queue is full.
     """
-    
     # Initial checks before the task is added to the queue.
     if not os.path.exists(root_path):
         raise ValueError("Root directory does not exist.")
+    _start(_upload_task, root_path)
     
+def start_resume():
+    _start(_resume_task)
+
+def _start(task, *args):
     try:
-        return singleton_task.put(upload_task, root_path)
+        return singleton_task.put(task, *args)
     except Queue.Full, ex:
         cherrypy.log("Task ongoing.")
         return False
