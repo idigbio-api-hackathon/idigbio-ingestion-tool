@@ -4,6 +4,15 @@
 # Note that icons should be built before running this script. (We don't do this
 # automatically because the icon-building script wouldn't work on Windows)
 
+# before running on OSX:
+# - Install Python 2.7 (we used 2.7.3) from python.org
+# curl http://pypi.python.org/packages/2.7/s/setuptools/ # don't break this line
+#      setuptools-0.6c11-py2.7.egg > setuptools-0.6c11-py2.7.egg
+# sudo sh setuptools-0.6c11-py2.7.egg
+# rm setuptools-0.6c11-py2.7.egg
+# sudo easy_install-2.7 py2app
+# python2.7 build.py
+
 import sys
 import os.path
 
@@ -26,19 +35,33 @@ if sys.platform == "darwin": # Mac OS X
     options = {
         "py2app":{
             "includes": ["cherrypy.wsgiserver",
-                         "cherrypy.wsgiserver.wsgiserver3"],
+                         "cherrypy.wsgiserver.wsgiserver3", "webbrowser",
+                         "sqlite3", "sqlalchemy.dialects.sqlite"],
+            "excludes": ["tkinter", "Tkinter", "ttk", "Tix"],
             "iconfile": os.path.join("icons", "osx_icon", "icon.icns"),
             "site_packages": True,
-            "resources": RESOURCES
+            "resources": [r[0] for r in RESOURCES],
+            "dist_dir": os.path.join("build", "osx")
         }
     }
-    setup(app=[SCRIPT], setup_requires=["py2app"], options=options)
+    setup(app=[os.path.join(SCRIPT_PATH, SCRIPT)], setup_requires=["py2app"],
+          options=options)
     print("Patching app file to open terminal window")
-    app_path = "dist/hworld_server.app/Contents/MacOS/"
-    shutil.move(app_path + "main",
-                app_path + "base_exec")
-    shutil.copy("osx_bin", app_path + "main")
-    subprocess.check_call(["chmod", "+x", app_path + "main"])
+    app_path = "build/osx/main.app/Contents/MacOS"
+    shutil.move(os.path.join(app_path, "main"),
+                os.path.join(app_path, "base_exec"))
+    shutil.copy("osx_bin", os.path.join(app_path, "main"))
+    subprocess.check_call(["chmod", "+x", os.path.join(app_path, "main")])
+    
+    print("Renaming application")
+    shutil.move(os.path.join("build", "osx", "main.app"),
+                os.path.join("build", "osx", "iDigBio Ingestion Tool.app"))
+    
+    print("Building DMG File")
+    subprocess.check_call(["hdiutil", "create",
+                           "./build/iDigBio_Ingestion_Tool.dmg", "-srcfolder",
+                           "./build/osx", "-ov", "-volname",
+                           "iDigBio Ingestion Tool"])
     
 elif sys.platform.startswith("win"): # Windows
     print("Building for Windows using cx_Freeze")
