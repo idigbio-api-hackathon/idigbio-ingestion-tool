@@ -123,16 +123,18 @@ updateProgress = function() {
             $("#upload-button").toggleClass('disabled');
             $('#root-path').attr('disabled', false);
             
-            var errMsg = ["<p><strong>Warning!</strong> ",
-                "This upload was not entirely successful. ",
-                "You can retry it at a later time."].join("");
-            var extra = '<p><button id="retry-button" type="submit" class="btn btn-warning">Retry failed uploads</button></p>';
-            showAlert(errMsg, extra, "alert-warning")
-            $("#retry-button").click(function(event) {
-                event.preventDefault();
-                $("#upload-alert").alert('close');
-                postUpload("retry");
-            });
+            if (progressObj.fails > 0) {
+                var errMsg = ["<p><strong>Warning!</strong> ",
+                    "This upload was not entirely successful. ",
+                    "You can retry it at a later time."].join("");
+                var extra = '<p><button id="retry-button" type="submit" class="btn btn-warning">Retry failed uploads</button></p>';
+                showAlert(errMsg, extra, "alert-warning")
+                $("#retry-button").click(function(event) {
+                    event.preventDefault();
+                    $("#upload-alert").alert('close');
+                    postUpload("retry");
+                });
+            }
             
             $.getJSON('/services/result', renderResult);
             return;
