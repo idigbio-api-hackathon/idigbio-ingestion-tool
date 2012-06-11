@@ -16,3 +16,7 @@
 .dropdown-menu a {
   display: inline;
 }
+
+.dropdown-menu a:nth-child(2) {
+  color: #08C
+}

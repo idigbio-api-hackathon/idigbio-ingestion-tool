@@ -43,7 +43,12 @@ initLicenseSelector = function() {
         var licenseName = $(e.target)[0].name;
         $.cookie("idigbiolicense", licenseName, { expires: 365 });
         $("#license-value").val(licenseName);
-        $("#license-selector").html(["License: ", licenses[licenseName][0], " <span class=\"caret\"></span> "].join(""));
+        var license = licenses[licenseName]
+        $("#license-selector").html(["License: ", license[0], " <span class=\"caret\"></span> "].join(""));
+        showAlert(["The pictures will be uploaded under the terms of the ", 
+                license[0], " ", license[1], " license (see <a href=\"", license[2], 
+                "\" target=\"_blank\">definition</a>)."].join(""), 
+            null, "alert-info");
     });
 }
 
@@ -69,7 +74,7 @@ postUpload = function(action) {
     
     // now send the form and wait to hear back
     if (action == "new") {
-    var rootPath = $('#root-path').val();
+        var rootPath = $('#root-path').val();
         $.post('/services', { rootPath: rootPath }, callback, 'json')
             .error(function(data) {
                 var errMsg = "<strong>Error! </strong>" + data.responseText;
@@ -117,6 +122,7 @@ showLastBatchInfo = function() {
  *   alert-error.
  */
 showAlert = function(message, additionalElement, alertType) {
+    additionalElement = additionalElement || "";
     alertType = alertType || "alert-error";
     
     var alert_html =
