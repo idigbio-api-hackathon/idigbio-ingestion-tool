@@ -5,6 +5,8 @@ $(function() {
     
     showLastBatchInfo()
     
+    initLicenseSelector()
+    
     $("#root-path").tooltip()
     
     $('#upload-form').submit(function(event) {
@@ -14,6 +16,36 @@ $(function() {
         postUpload("new")
     });
 });
+
+initLicenseSelector = function() {
+    var licenses = {
+      "cc0": ["CC0", "(Public Domain)", "http://creativecommons.org/publicdomain/zero/1.0/"],
+      "cc-by": ["CC BY", "(Attribution)", "http://creativecommons.org/licenses/by/3.0/"],
+      "cc-by-sa": ["CC BY-SA", "(Attribution-ShareAlike)", "http://creativecommons.org/licenses/by-sa/3.0/"],
+      "cc-by-nc": ["CC BY-NC", "(Attribution-Non-Commercial)", "http://creativecommons.org/licenses/by-nc/3.0/"],
+      "cc-by-nc-sa": ["CC BY-NC-SA", "(Attribution-NonCommercial-ShareAlike)", "http://creativecommons.org/licenses/by-nc-sa/3.0/"]
+    };
+
+    $.each(licenses, function(key, value) {
+        var li = ["<li><a name=\"", key, "\" href=\"#\">", value[0], " ", 
+            value[1], "</a><a href=\"", value[2], 
+            "\" target=\"_blank\">definition</a></li>"].join("");
+        $("ul.dropdown-menu").append(li);
+    });
+    
+    if ($.cookie("idigbiolicense")) {
+        var licenseName = $.cookie("idigbiolicense");
+        $("#license-selector").html(["License: ", licenses[licenseName][0], " <span class=\"caret\"></span> "].join(""));
+    }
+
+    $("ul.dropdown-menu li a[name]").click(function(e) {
+        e.preventDefault();
+        var licenseName = $(e.target)[0].name;
+        $.cookie("idigbiolicense", licenseName, { expires: 365 });
+        $("#license-value").val(licenseName);
+        $("#license-selector").html(["License: ", licenses[licenseName][0], " <span class=\"caret\"></span> "].join(""));
+    });
+}
 
 
 postUpload = function(action) {

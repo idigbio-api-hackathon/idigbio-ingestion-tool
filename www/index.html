@@ -54,7 +54,7 @@
     </div>
 
     <div class="container">
-
+      
       <!-- Main hero unit for a primary marketing message or call to action -->
       <div class="hero-unit text-centered">
         <div class="row-fluid">
@@ -71,16 +71,27 @@
       <!-- Main form used to post path to the service -->
       <form id="upload-form" class="form-inline">
         <div class="row">
-          <div class="span6 offset3">
+          <div class="span8 offset2">
             <!-- Input form-->
-            <div class="row">
-                <input type="text" data-provide="typeahead" class="span5" 
-                  id="root-path" placeholder="Copy & paste the root directory of the images you want to upload…"
+            <div class="row-fluid">
+              <div class='span6'>
+                <input type="text" data-provide="typeahead"
+                  id="root-path" placeholder="Copy & paste the images folder path…"
                   title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
-                <button id="upload-button" type="submit"  class="btn btn-primary pull-right">
+                </div>
+              <div class='span3'>
+                <input type="hidden" id="license-value" />
+                <div class="btn-group">
+                  <a class="btn dropdown-toggle" data-toggle="dropdown" href="#" id="license-selector">Select a License <span class="caret"></span> </a>
+                  <ul class="dropdown-menu"></ul>
+                </div>
+              </div>
+              <div class='span3'>
+                <button id="upload-button" type="submit"  class="btn btn-primary">
                   <i class="icon-upload icon-white"></i>
                   <span>Upload</span>
                 </button>
+              </div>
             </div>
             
             <!-- Alert -->
@@ -96,7 +107,6 @@
                 <div id="upload-progressbar" class="bar" style="width:0.1%;"></div>
               </div>
             </div>
-            
           </div>
         </div>
         <div class="row">
@@ -117,9 +127,9 @@
     
     <!-- Le javascript
     ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
     <script src="assets/js/jquery.js"></script>
-    <script src="assets/js/bootstrap.js"></script><br />
+    <script src="assets/js/bootstrap.js"></script>
+    <script type="text/javascript" charset="utf8" src="assets/js/jquery.cookie.js"></script>
     <!-- DataTables -->
     <script type="text/javascript" charset="utf8" src="assets/DataTables/js/jquery.dataTables.min.js"></script>
     <script type="text/javascript" charset="utf8" src="assets/TableTools/js/TableTools.min.js"></script>
