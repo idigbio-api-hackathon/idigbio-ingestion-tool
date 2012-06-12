@@ -35,11 +35,17 @@ initLicenseSelector = function() {
     
     if ($.cookie("idigbiolicense")) {
         var licenseName = $.cookie("idigbiolicense");
+        $("#license-value").val(licenseName);
         $("#license-selector").html(["License: ", licenses[licenseName][0], " <span class=\"caret\"></span> "].join(""));
     }
 
     $("ul.dropdown-menu li a[name]").click(function(e) {
         e.preventDefault();
+        if ($("#license-selector").hasClass("disabled")) {
+            // This dropdown could be temporarily disbled when an ongoing upload
+            // is in progress.
+            return;
+        }
         var licenseName = $(e.target)[0].name;
         $.cookie("idigbiolicense", licenseName, { expires: 365 });
         $("#license-value").val(licenseName);
@@ -62,8 +68,16 @@ postUpload = function(action) {
     var callback = function(dataReceived){
         // Disable inputs
         $('#root-path').attr('disabled', true);
+        $("#root-path").addClass('disabled');
+        
         $("#upload-button").attr('disabled', true);
         $("#upload-button").addClass('disabled');
+        
+        $("#license-selector").attr('disabled', true);
+        $("#license-selector").addClass('disabled');
+        
+        // Clear up UI.
+        $("#upload-alert").alert('close');
         
         // Show progress bar in animation
         $(".progress-primary").addClass('active');
@@ -75,7 +89,9 @@ postUpload = function(action) {
     // now send the form and wait to hear back
     if (action == "new") {
         var rootPath = $('#root-path').val();
-        $.post('/services', { rootPath: rootPath }, callback, 'json')
+        var license = $('#license-value').val();
+        $.post('/services', { rootPath: rootPath, license: license }, callback, 
+                'json')
             .error(function(data) {
                 var errMsg = "<strong>Error! </strong>" + data.responseText;
                 showAlert(errMsg)
@@ -157,9 +173,15 @@ updateProgress = function() {
         
         if (progress >= 100) {
             $(".progress-primary").toggleClass('active');
-            $("#upload-button").attr('disabled', false);
-            $("#upload-button").toggleClass('disabled');
+            
             $('#root-path').attr('disabled', false);
+            $("#root-path").removeClass('disabled');
+            
+            $("#upload-button").attr('disabled', false);
+            $("#upload-button").removeClass('disabled');
+            
+            $("#license-selector").attr('disabled', false);
+            $("#license-selector").removeClass('disabled');
             
             if (progressObj.fails > 0) {
                 var errMsg = ["<p><strong>Warning!</strong> ",

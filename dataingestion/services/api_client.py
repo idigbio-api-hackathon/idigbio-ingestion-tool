@@ -20,7 +20,7 @@ logger = logging.getLogger("iDigBioSvc.api_client")
 
 register_openers()
 
-TIMEOUT = 3
+TIMEOUT = 5
 
 def build_url(collection, entity_uuid=None, subcollection=None):
     if entity_uuid is None:
@@ -36,8 +36,8 @@ def build_url(collection, entity_uuid=None, subcollection=None):
 
 def _post_recordset():
     providerid = str(uuid.uuid4())
-    data = { "idigbio:data": { "ac:variant": "IngestionTool" },
-            "idigbio:providerId": providerid }
+    data = {"idigbio:data": {"ac:variant": "IngestionTool"},
+            "idigbio:providerId": providerid}
     url = build_url("recordsets")
     try:
         response = _post_json(url, data)
@@ -51,10 +51,11 @@ def _post_recordset():
 #    logger.debug("Response: {0}".format(response))
     return response['idigbio:uuid']
 
-def _post_mediarecord(recordset_uuid):
-    data = { "idigbio:data": { "ac:variant": "IngestionTool" },
+def _post_mediarecord(recordset_uuid, path, license_):
+    data = {"idigbio:data": {"ac:variant": "IngestionTool", 
+                             "dc:rights": license_, "localpath": path },
             "idigbio:providerId": str(uuid.uuid4()),
-            "idigbio:parentUuid": recordset_uuid }
+            "idigbio:parentUuid": recordset_uuid}
     url = build_url("mediarecords")
     try:
         response = _post_json(url, data)
@@ -223,8 +224,8 @@ class Connection(object):
     def post_recordset(self):
         return self._retry(None, _post_recordset)
     
-    def post_mediarecord(self, recordset_uuid):
-        return self._retry(None, _post_mediarecord, recordset_uuid)
+    def post_mediarecord(self, recordset_uuid, path, license_):
+        return self._retry(None, _post_mediarecord, recordset_uuid, path, license_)
     
     def post_media(self, local_path, entity_uuid):
         return self._retry(None, _post_media, local_path, entity_uuid)

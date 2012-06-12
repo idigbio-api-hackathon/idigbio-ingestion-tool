@@ -85,7 +85,7 @@ class QueueFunctionThread(Thread):
                     logger.error("Task failed in a worker thread.")
                     def _task():
                         ongoing_upload_task.fails += 1
-                    ongoing_upload_task.log_queue.put(_task)
+                    ongoing_upload_task.postprocess_queue.put(_task)
                     self.exc_infos.append(exc_info())
         except Exception:
             self.exc_infos.append(exc_info())
@@ -104,7 +104,7 @@ class BatchUploadTask:
         self.object_queue = Queue(10000)
         self.status = None
         self.error_msg = None
-        self.log_queue = Queue(10000)
+        self.postprocess_queue = Queue(10000)
         self.error_queue = Queue(10000)
         self.skips = 0
         self.fails = 0
@@ -126,10 +126,13 @@ def get_result():
         sleep(0.1)
     return model.get_batch_details(ongoing_upload_task.batch.id)
 
-def exec_upload_task(root_path=None, resume=False):
+def exec_upload_task(root_path=None, license_=None, resume=False):
     """
-    This method returns true when all file upload tasks are executed and print and 
-    error queues are emptied.
+    Execute either a new upload task or resume last unsuccessfuly upload task 
+    from the DB. 
+    
+    This method returns true when all file upload tasks are executed and 
+    postprocess and error queues are emptied.
     
     :return: False is the upload is not executed due to an existing ongoing task.
     """
@@ -142,13 +145,13 @@ def exec_upload_task(root_path=None, resume=False):
     ongoing_upload_task = BatchUploadTask()
     ongoing_upload_task.status = BatchUploadTask.STATUS_RUNNING
 
-    log_queue = ongoing_upload_task.log_queue
+    postprocess_queue = ongoing_upload_task.postprocess_queue
 
     def _post_process(func=None, *args):
         func and func(*args)
 
-    print_thread = QueueFunctionThread(log_queue, _post_process)
-    print_thread.start()
+    postprocess_thread = QueueFunctionThread(postprocess_queue, _post_process)
+    postprocess_thread.start()
 
     def _error(item):
         logger.error(item)
@@ -159,14 +162,14 @@ def exec_upload_task(root_path=None, resume=False):
 
     try:
         try:
-            _upload(ongoing_upload_task, log_queue, error_queue, root_path, resume)
+            _upload(ongoing_upload_task, root_path, license_, resume)
         except ClientException, err:
             error_queue.put(str(err))
-        while not log_queue.empty():
+        while not postprocess_queue.empty():
             sleep(0.01)
-        print_thread.abort = True
-        while print_thread.isAlive():
-            print_thread.join(0.01)
+        postprocess_thread.abort = True
+        while postprocess_thread.isAlive():
+            postprocess_thread.join(0.01)
         while not error_queue.empty():
             sleep(0.01)
         error_thread.abort = True
@@ -183,35 +186,39 @@ def exec_upload_task(root_path=None, resume=False):
         # Reset of singleton task in the module.
         ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
 
-def _upload(ongoing_upload_task, postprocess_queue, error_queue, root_path=None, resume=False):
-    object_queue = ongoing_upload_task.object_queue
+def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
     """
     This method returns when all file upload tasks have been executed.
     """
 
+    object_queue = ongoing_upload_task.object_queue
+    postprocess_queue = ongoing_upload_task.postprocess_queue 
+    error_queue = ongoing_upload_task.error_queue
+
     def _object_job(job, conn):
+        '''
+        The job that uploads a single object (file). 
+        '''
         path = job['path']
 
         try:
-            obj = path
-            
             # Get the image record
             image_record = model.add_or_load_image(batch, path)
             if image_record is None:
                 # Skip this one because it's already uploaded.
                 def _task():
                     ongoing_upload_task.skips += 1
-                    logger.debug('Skipped file {0}.'.format(obj))
+                    logger.debug('Skipped file {0}.'.format(path))
                 postprocess_queue.put(_task)
                 return
 
             # Post mediarecord if necesssary.
             if image_record.uuid is None:
-                record_uuid = conn.post_mediarecord(recordset_uuid)
+                record_uuid = conn.post_mediarecord(recordset_uuid, path, license_)
                 image_record.uuid = record_uuid
 
             # Post image to API.
-            result_obj = conn.post_media(obj, image_record.uuid)
+            result_obj = conn.post_media(path, image_record.uuid)
             url = result_obj["idigbio:links"]["media"]
             image_record.url = url
             image_record.upload_time = datetime.utcnow()
@@ -222,12 +229,12 @@ def _upload(ongoing_upload_task, postprocess_queue, error_queue, root_path=None,
 
             if conn.attempts > 1:
                 def _task():
-                    logger.debug('%s [after %d attempts]' % (obj, conn.attempts))
+                    logger.debug('%s [after %d attempts]' % (path, conn.attempts))
                     ongoing_upload_task.success_count += 1
                 postprocess_queue.put(_task)
             else:
                 def _task():
-                    logger.debug('%s [after %d attempts]' % (obj, conn.attempts))
+                    logger.debug('%s [after %d attempts]' % (path, conn.attempts))
                     ongoing_upload_task.success_count += 1
                 postprocess_queue.put(_task)
         except OSError, err:
@@ -235,8 +242,8 @@ def _upload(ongoing_upload_task, postprocess_queue, error_queue, root_path=None,
                 raise
             error_queue.put('Local file %s not found' % repr(path))
 
-    def _upload_dir(path):
-        for dirpath, _dirnames, filenames in os.walk(path):
+    def _upload_dir(dir_path):
+        for dirpath, _dirnames, filenames in os.walk(dir_path):
             for filename in filenames:
                 subpath = join(dirpath, filename)
                 object_queue.put({'path': subpath})
@@ -256,16 +263,16 @@ def _upload(ongoing_upload_task, postprocess_queue, error_queue, root_path=None,
             batch = model.load_last_batch()
             if batch.finish_time:
                 raise IngestServiceException("Last batch already finished, why resume?")
+            # Assign local variables with values in DB. 
             root_path = batch.root
+            license_ = batch.copyright_license
             recordset_uuid = batch.recordset_uuid
-        else:
+        elif root_path and license_:
             recordset_uuid = conn.post_recordset()
-            batch = model.add_upload_batch(root_path, recordset_uuid)
+            batch = model.add_upload_batch(root_path, recordset_uuid, license_)
             model.commit()
-        
-        if root_path is None:
-            # At this point if the root path is still None, something is wrong
-            raise IngestServiceException("Root path shouldn't be None.")
+        else:
+            raise IngestServiceException("Root path or copyright license not specified.")
         
         ongoing_upload_task.batch = batch
 

@@ -73,6 +73,7 @@ class UploadBatch(Base):
     The root path for the batch upload.
     '''
     recordset_uuid = Column(String)
+    copyright_license = Column(String)
     start_time = Column(DateTime)
     '''
     The local time at which the batch task starts.
@@ -87,10 +88,11 @@ class UploadBatch(Base):
     All images associated with this batch.
     '''
 
-    def __init__(self, root, recordset_uuid, start_time):
+    def __init__(self, root, recordset_uuid, start_time, license_):
         self.root = root
         self.recordset_uuid = recordset_uuid
         self.start_time = start_time
+        self.copyright_license = license_
 
 session = None
 
@@ -147,9 +149,9 @@ def add_image(batch, path):
     return record
 
 @check_session
-def add_upload_batch(root, recordset_uuid):
+def add_upload_batch(root, recordset_uuid, license_):
     start_time = datetime.now()
-    batch = UploadBatch(root, recordset_uuid, start_time)
+    batch = UploadBatch(root, recordset_uuid, start_time, license_)
     session.add(batch)
     return batch
 

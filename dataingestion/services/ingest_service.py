@@ -7,7 +7,7 @@
 
 """
 This is the service module that the web service front-end calls to serve data
-upload requests.
+upload requests. 
 """ 
 import cherrypy
 import Queue, os
@@ -18,15 +18,15 @@ singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
 singleton_task.subscribe()
 singleton_task.start()
         
-def _upload_task(root_path):
-    ingestion_manager.exec_upload_task(root_path)
+def _upload_task(root_path, license_):
+    ingestion_manager.exec_upload_task(root_path, license_)
     cherrypy.log("Upload task finished.")
 
 def _resume_task():
     ingestion_manager.exec_upload_task(resume=True)
     cherrypy.log("Resume task finished.")
 
-def start_upload(root_path):
+def start_upload(root_path, license_):
     """
     Start the upload tasks and then return.
     
@@ -35,7 +35,7 @@ def start_upload(root_path):
     # Initial checks before the task is added to the queue.
     if not os.path.exists(root_path):
         raise ValueError("Root directory does not exist.")
-    _start(_upload_task, root_path)
+    _start(_upload_task, root_path, license_)
     
 def start_resume():
     _start(_resume_task)
