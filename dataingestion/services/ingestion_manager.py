@@ -9,6 +9,7 @@
 This module implements the core logic that manages the upload process.
 """
 import os, logging, argparse, tempfile, atexit
+from functools import partial
 from datetime import datetime
 from Queue import Empty, Queue
 from threading import enumerate as threading_enumerate, Thread
@@ -36,12 +37,11 @@ def get_conn():
     """
     return Connection()
 
-def put_errors_from_threads(threads, error_queue):
+def put_errors_from_threads(threads):
     """
     Places any errors from the threads into error_queue.
     
     :param threads: A list of QueueFunctionThread instances.
-    :param error_queue: A queue to put error strings into.
     :returns: True if any errors were found.
     """
     was_error = False
@@ -49,9 +49,11 @@ def put_errors_from_threads(threads, error_queue):
         for info in thread.exc_infos:
             was_error = True
             if isinstance(info[1], ClientException):
-                error_queue.put(str(info[1]))
+                logger.error("ClientException: " + str(info[1]))
             else:
-                error_queue.put(''.join(format_exception(*info)))
+                logger.error("Non-ClientException: " + 
+                                ''.join(format_exception(*info)))
+                raise IngestServiceException("Task failed for unkown reason.")
     return was_error
 
 class QueueFunctionThread(Thread):
@@ -83,13 +85,12 @@ class QueueFunctionThread(Thread):
                     sleep(0.01)
                 except ClientException:
                     logger.error("Task failed in a worker thread.")
-                    def _task():
-                        ongoing_upload_task.fails += 1
-                    ongoing_upload_task.postprocess_queue.put(_task)
+                    fn = partial(ongoing_upload_task.increment, 'fails')
+                    ongoing_upload_task.postprocess_queue.put(fn)
                     self.exc_infos.append(exc_info())
         except Exception:
+            logger.error("Unkown exception caught in the worker thread.")
             self.exc_infos.append(exc_info())
-            
 
 class BatchUploadTask:
     STATUS_FINISHED = "finished"
@@ -109,6 +110,14 @@ class BatchUploadTask:
         self.skips = 0
         self.fails = 0
         self.success_count = 0
+        self.continuous_fails = 0
+        
+    def increment(self, field_name):
+        if hasattr(self, field_name) and type(getattr(self, field_name)) == int:
+            setattr(self, field_name, getattr(self, field_name) + 1)
+        else:
+            raise ValueError("BatchUploadTask object doesn't have this field or " + 
+                             "has has a field that cannot be incremented.")
 
 def get_progress():
     """
@@ -116,8 +125,12 @@ def get_progress():
     """
     task = ongoing_upload_task
 
-    if task is None or task.object_queue is None:
+    if task is None:
         raise IngestServiceException("No ongoing upload task.")
+    
+    while task.total_count == 0 and task.status != BatchUploadTask.STATUS_FINISHED:
+        # Things are yet to be added.
+        sleep(0.1)
 
     return task.total_count, task.skips, task.success_count, task.fails
 
@@ -147,10 +160,10 @@ def exec_upload_task(root_path=None, license_=None, resume=False):
 
     postprocess_queue = ongoing_upload_task.postprocess_queue
 
-    def _post_process(func=None, *args):
+    def _postprocess(func=None, *args):
         func and func(*args)
 
-    postprocess_thread = QueueFunctionThread(postprocess_queue, _post_process)
+    postprocess_thread = QueueFunctionThread(postprocess_queue, _postprocess)
     postprocess_thread.start()
 
     def _error(item):
@@ -206,10 +219,9 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
             image_record = model.add_or_load_image(batch, path)
             if image_record is None:
                 # Skip this one because it's already uploaded.
-                def _task():
-                    ongoing_upload_task.skips += 1
-                    logger.debug('Skipped file {0}.'.format(path))
-                postprocess_queue.put(_task)
+                logger.debug('Skipped file {0}.'.format(path))
+                fn = partial(ongoing_upload_task.increment, 'skips')
+                postprocess_queue.put(fn)
                 return
 
             # Post mediarecord if necesssary.
@@ -228,15 +240,11 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
 #            sleep(4)
 
             if conn.attempts > 1:
-                def _task():
-                    logger.debug('%s [after %d attempts]' % (path, conn.attempts))
-                    ongoing_upload_task.success_count += 1
-                postprocess_queue.put(_task)
+                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
             else:
-                def _task():
-                    logger.debug('%s [after %d attempts]' % (path, conn.attempts))
-                    ongoing_upload_task.success_count += 1
-                postprocess_queue.put(_task)
+                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
+            fn = partial(ongoing_upload_task.increment, 'success_count')
+            postprocess_queue.put(fn)
         except OSError, err:
             if err.errno != ENOENT:
                 raise
@@ -247,9 +255,9 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
             for filename in filenames:
                 subpath = join(dirpath, filename)
                 object_queue.put({'path': subpath})
-                def _task():
-                    ongoing_upload_task.total_count += 1
-                postprocess_queue.put(_task)
+                fn = partial(ongoing_upload_task.increment, 'total_count')
+                postprocess_queue.put(fn)
+        logger.info("All jobs to uplaod individual files are added to the job queue.")
 
     object_threads = [QueueFunctionThread(object_queue, _object_job,
         get_conn()) for _junk in xrange(5)]
@@ -290,7 +298,7 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
             while thread.isAlive():
                 thread.join(0.01)
 
-        was_error = put_errors_from_threads(object_threads, error_queue)
+        was_error = put_errors_from_threads(object_threads)
         if not was_error:
             logger.info("Upload finishes with no error")
             batch.finish_time = datetime.now()

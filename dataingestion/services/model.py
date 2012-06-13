@@ -174,7 +174,7 @@ def load_last_batch():
 
 @check_session
 def commit():
-    logger.info("Log is being committed to DB.")
+    logger.debug("Committing session to DB.")
     session.commit()
 
 

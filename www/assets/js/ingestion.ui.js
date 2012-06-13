@@ -163,6 +163,8 @@ updateProgress = function() {
         var progress = Math.floor((progressObj.successes + progressObj.fails + 
             progressObj.skips) / progressObj.total * 100);
         
+        if (progressObj.total == 0) { return; }
+        
         $("#progresstext").text(["Progress: (Successful:" + progressObj.successes,
              ", Skipped: " + progressObj.skips,
              ", Failed: " + progressObj.fails,
