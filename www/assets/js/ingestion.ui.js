@@ -160,10 +160,10 @@ updateProgress = function() {
     
     $.getJSON(url, function(progressObj) {
         
-        var progress = Math.floor((progressObj.successes + progressObj.fails + 
-            progressObj.skips) / progressObj.total * 100);
+        var progress = progressObj.total == 0 ? 100 : 
+            Math.floor((progressObj.successes + progressObj.fails + 
+                progressObj.skips) / progressObj.total * 100);
         
-        if (progressObj.total == 0) { return; }
         
         $("#progresstext").text(["Progress: (Successful:" + progressObj.successes,
              ", Skipped: " + progressObj.skips,
@@ -173,7 +173,7 @@ updateProgress = function() {
         
         $("#upload-progressbar").width(progress + '%')
         
-        if (progress >= 100) {
+        if (progressObj.finished) {
             $(".progress-primary").toggleClass('active');
             
             $('#root-path').attr('disabled', false);
@@ -185,11 +185,23 @@ updateProgress = function() {
             $("#license-selector").attr('disabled', false);
             $("#license-selector").removeClass('disabled');
             
-            if (progressObj.fails > 0) {
-                var errMsg = ["<p><strong>Warning!</strong> ",
-                    "This upload was not entirely successful. ",
-                    "You can retry it at a later time."].join("");
-                var extra = '<p><button id="retry-button" type="submit" class="btn btn-warning">Retry failed uploads</button></p>';
+            if (progressObj.fails > 0 || progressObj.total == 0) {
+                if (progressObj.fails > 0) {
+                    var errMsg = ["<p><strong>Warning!</strong> ",
+                        "This upload was not entirely successful. ",
+                        "You can retry it at a later time."].join("");
+                    if (progress < 100) {
+                        errMsg += [' Upload aborted before all images are tried ', 
+                            'due to continuing erroneous network conditions.'].join('');
+                    }
+                    var extra = ['<p><button id="retry-button" type="submit"',
+                        'class="btn btn-warning">Retry failed uploads</button></p>'].join("");
+                } else {
+                    var errMsg = ["<p><strong>Warning!</strong> ",
+                        "Nothing is uploaded. Maybe the folder is empty or the network is down? ",
+                        "Please check the folder and network connection and ",
+                        "retry it by clicking the 'Upload' button."].join("");
+                }
                 showAlert(errMsg, extra, "alert-warning")
                 $("#retry-button").click(function(event) {
                     event.preventDefault();
@@ -198,7 +210,11 @@ updateProgress = function() {
                 });
             }
             
-            $.getJSON('/services/result', renderResult);
+            if (progressObj.total > 0) {
+                // If we haven't tried one file, no need to get results.
+                $.getJSON('/services/result', renderResult);
+            }
+            
             return;
         }
         

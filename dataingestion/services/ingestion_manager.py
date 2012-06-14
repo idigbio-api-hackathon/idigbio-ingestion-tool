@@ -72,34 +72,32 @@ class QueueFunctionThread(Thread):
         self.exc_infos = []
 
     def run(self):
-        try:
-            while True:
-                try:
-                    item = self.queue.get_nowait()
-                    if not self.abort:
-                        self.func(item, *self.args, **self.kwargs)
-                    self.queue.task_done()
-                except Empty:
-                    if self.abort:
-                        break
-                    sleep(0.01)
-                except ClientException:
-                    logger.error("Task failed in a worker thread.")
-                    fn = partial(ongoing_upload_task.increment, 'fails')
-                    ongoing_upload_task.postprocess_queue.put(fn)
-                    self.exc_infos.append(exc_info())
-        except Exception:
-            logger.error("Unkown exception caught in the worker thread.")
-            self.exc_infos.append(exc_info())
+        while True:
+            try:
+                item = self.queue.get_nowait()
+                if not self.abort:
+                    self.func(item, *self.args, **self.kwargs)
+                self.queue.task_done()
+            except Empty:
+                if self.abort:
+                    break
+                sleep(0.01)
+            except Exception:
+                logger.error("Unkown exception caught in a QueueFunctionThread.")
+                self.exc_infos.append(exc_info())
+                logger.debug("Thread exiting...")
 
+    def abort_thread(self):
+        self.abort = True
+    
 class BatchUploadTask:
-    STATUS_FINISHED = "finished"
-    STATUS_RUNNING = "running"
-
     """
     State about a single batch upload task.
     """
-    def __init__(self, batch=None):
+    STATUS_FINISHED = "finished"
+    STATUS_RUNNING = "running"
+
+    def __init__(self, batch=None, max_continuous_fails=2):
         self.batch = batch
         self.total_count = 0
         self.object_queue = Queue(10000)
@@ -111,6 +109,7 @@ class BatchUploadTask:
         self.fails = 0
         self.success_count = 0
         self.continuous_fails = 0
+        self.max_continuous_fails = max_continuous_fails
         
     def increment(self, field_name):
         if hasattr(self, field_name) and type(getattr(self, field_name)) == int:
@@ -118,6 +117,23 @@ class BatchUploadTask:
         else:
             raise ValueError("BatchUploadTask object doesn't have this field or " + 
                              "has has a field that cannot be incremented.")
+    
+    def check_continuous_fails(self, succ_this_time):
+        '''
+        :return: Whether this upload should be aborted.
+        '''
+        if succ_this_time:
+            if self.continuous_fails != 0:
+                logger.debug('Continuous fails is going to be reset due to a success.')
+            self.continuous_fails = 0
+            return False
+        else:
+            self.continuous_fails += 1
+        
+        if self.continuous_fails <= self.max_continuous_fails:
+            return False
+        else:
+            return True
 
 def get_progress():
     """
@@ -132,12 +148,19 @@ def get_progress():
         # Things are yet to be added.
         sleep(0.1)
 
-    return task.total_count, task.skips, task.success_count, task.fails
+    return (task.total_count, task.skips, task.success_count, task.fails, 
+        True if task.status == BatchUploadTask.STATUS_FINISHED else False)
 
 def get_result():
     while ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED:
         sleep(0.1)
-    return model.get_batch_details(ongoing_upload_task.batch.id)
+    
+    if ongoing_upload_task.batch:
+        return model.get_batch_details(ongoing_upload_task.batch.id)
+    else:
+        # If the task fails before the batch is created (e.g. fail to post a 
+        # record set), then the batch could be None.
+        raise IngestServiceException("No batch is found.")
 
 def exec_upload_task(root_path=None, license_=None, resume=False):
     """
@@ -189,9 +212,10 @@ def exec_upload_task(root_path=None, license_=None, resume=False):
         while error_thread.isAlive():
             error_thread.join(0.01)
 
-        logger.info("Upload task completed.")
+        logger.info("Upload task execution completed.")
 
     except (SystemExit, Exception):
+        logger.error("Aborting all threads...")
         for thread in threading_enumerate():
             thread.abort = True
         raise
@@ -243,8 +267,25 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
                 logger.debug('%s [after %d attempts]' % (path, conn.attempts))
             else:
                 logger.debug('%s [after %d attempts]' % (path, conn.attempts))
+            
             fn = partial(ongoing_upload_task.increment, 'success_count')
             postprocess_queue.put(fn)
+            
+            fn = partial(ongoing_upload_task.check_continuous_fails, True)
+            postprocess_queue.put(fn)
+            
+        except ClientException:
+            logger.error("An object job failed.")
+            fn = partial(ongoing_upload_task.increment, 'fails')
+            ongoing_upload_task.postprocess_queue.put(fn)
+            
+            def _abort_if_necessary():
+                if ongoing_upload_task.check_continuous_fails(False):
+                    logger.info("Aborting threads because continuous failures exceed the threshold.")
+                    map(lambda x: x.abort_thread(), ongoing_upload_task.object_threads)
+            ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
+            
+            raise
         except OSError, err:
             if err.errno != ENOENT:
                 raise
@@ -258,12 +299,6 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
                 fn = partial(ongoing_upload_task.increment, 'total_count')
                 postprocess_queue.put(fn)
         logger.info("All jobs to uplaod individual files are added to the job queue.")
-
-    object_threads = [QueueFunctionThread(object_queue, _object_job,
-        get_conn()) for _junk in xrange(5)]
-    for thread in object_threads:
-        thread.start()
-    logger.debug('Upload worker threads started.')
 
     conn = get_conn()
     try:
@@ -283,6 +318,15 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
             raise IngestServiceException("Root path or copyright license not specified.")
         
         ongoing_upload_task.batch = batch
+        
+        worker_thread_count = 5
+        object_threads = [QueueFunctionThread(object_queue, _object_job,
+            get_conn()) for _junk in xrange(worker_thread_count)]
+        ongoing_upload_task.object_threads = object_threads
+        
+        for thread in object_threads:
+            thread.start()
+        logger.debug('{0} upload worker threads started.'.format(worker_thread_count))
 
         if isdir(root_path):
             _upload_dir(root_path)
@@ -305,10 +349,9 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
         else:
             logger.error("Upload finishes with errors.")
 
-    except ClientException, err:
-        if err.http_status != 404:
-            raise
-        error_queue.put('Upload failed.')
+    except ClientException:
+        error_queue.put('Upload failed outside of the worker thread.')
+        
     finally:
         model.commit()
 

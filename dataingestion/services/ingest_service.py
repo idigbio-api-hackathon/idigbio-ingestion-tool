@@ -20,11 +20,11 @@ singleton_task.start()
         
 def _upload_task(root_path, license_):
     ingestion_manager.exec_upload_task(root_path, license_)
-    cherrypy.log("Upload task finished.")
+    cherrypy.log("Upload task finished.",  __name__)
 
 def _resume_task():
     ingestion_manager.exec_upload_task(resume=True)
-    cherrypy.log("Resume task finished.")
+    cherrypy.log("Resume task finished.", __name__)
 
 def start_upload(root_path, license_):
     """

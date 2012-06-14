@@ -50,7 +50,6 @@ def _post_recordset():
     except (urllib2.URLError, socket.timeout) as e:
         raise ClientException("URLError caught while POSTing the recordset.", 
                               reason=str(e), url=url)
-#    logger.debug("Response: {0}".format(response))
     return response['idigbio:uuid']
 
 def _post_mediarecord(recordset_uuid, path, license_):
@@ -69,8 +68,6 @@ def _post_mediarecord(recordset_uuid, path, license_):
     except (urllib2.URLError, socket.timeout) as e:
         raise ClientException("URLError caught while POSTing the mediarecord.", 
                               reason=str(e), url=url)
-        
-#    logger.debug("Response: {0}".format(response))
     return response['idigbio:uuid']
 
 def _post_media(local_path, entity_uuid):
@@ -79,7 +76,6 @@ def _post_media(local_path, entity_uuid):
     try:
         request = urllib2.Request(url, datagen, headers)
         resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
-#        logger.debug("Response: {0}".format(resp))
         return json.loads(resp)
     except urllib2.HTTPError as e:
         raise ClientException("Failed to POST the JSON to server.",
@@ -200,12 +196,13 @@ class Connection(object):
             try:
                 rv = func(*args, **kwargs)
                 return rv
-            except ClientException, err:
+            except ClientException as err:
                 logger.debug("Exception caught: {0}".format(err))
                 logger.debug("Current retry attempts: {0}".format(self.attempts))
                 logger.debug("Current backoff: {0}".format(backoff))
                 
                 if self.attempts > self.retries:
+                    logger.debug("Retries exhausted.")
                     raise
                 
                 if err.http_status == 401: # Unauthorized
