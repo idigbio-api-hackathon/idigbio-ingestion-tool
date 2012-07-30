@@ -18,6 +18,7 @@ import dataingestion.services.model
 APP_NAME = 'iDigBioDataIngestion'
 APP_AUTHOR = 'iDigBio'
 debug_mode = False
+quiet_mode = False
 
 def main(argv):
     
@@ -36,7 +37,14 @@ def main(argv):
         debug_mode = False
         log_level = logging.WARNING
         cherrypy.config.update({"environment": "production"})
-    
+    if "--quiet" in argv or "-q" in argv:
+        quiet_mode = True
+        if debug_mode:
+            raise Exception("The --quiet or -q flags are not indended to be "
+                            "used with the --debug or -d flags.")
+    else:
+        quiet_mode = False
+
     # configure the logging mechanisms
     logging.getLogger().setLevel(log_level)
     logging.getLogger("cherrypy").setLevel(log_level) # cherrypy must be forced
@@ -60,7 +68,7 @@ def main(argv):
     cherrypy.log("Starting...")
     
     engine.start()
-    if not debug_mode:
+    if not debug_mode and not quiet_mode:
         # In a proper run, the text written here will be the only text output
         # the end-user sees: Keep it short and simple.
         print("Starting the iDigBio Data Ingestion Tool...")
