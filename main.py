@@ -24,10 +24,12 @@ def main(argv):
     
     # process configuration files:
     engine_conf_path = os.path.join(current_dir, 'etc', 'engine.conf')
+    cherrypy.config.update(engine_conf_path)
     cherrypy.config.update({"tools.staticdir.root": current_dir + "/www"})
     
     cherrypy.tree.mount(DataIngestionUI(), '/', config=engine_conf_path)
-    cherrypy.tree.mount(DataIngestionService(), '/services', config=engine_conf_path)
+    cherrypy.tree.mount(DataIngestionService(), '/services',
+                        config=engine_conf_path)
     
     # process command-line arguments:
     if "--debug" in argv or "-d" in argv:
