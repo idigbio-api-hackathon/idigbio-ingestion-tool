@@ -15,7 +15,7 @@ from poster.streaminghttp import register_openers
 from time import sleep
 
 
-BASE_URL = 'http://dev.idigbio.org:8191/v1'
+BASE_URL = 'http://idb-websrv1-dev.acis.ufl.edu:9197/v0'
 
 logger = logging.getLogger("iDigBioSvc.api_client")
 
@@ -54,7 +54,7 @@ def _post_recordset():
 
 def _post_mediarecord(recordset_uuid, path, license_):
     data = {"idigbio:data": {"ac:variant": "IngestionTool", 
-                             "dc:rights": license_, "localpath": path },
+                             "dc:rights": license_, "idigbio:localpath": path },
             "idigbio:providerId": str(uuid.uuid4()),
             "idigbio:parentUuid": recordset_uuid}
     url = build_url("mediarecords")
@@ -76,9 +76,10 @@ def _post_media(local_path, entity_uuid):
     try:
         request = urllib2.Request(url, datagen, headers)
         resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
+        logger.debug("API response" + resp)
         return json.loads(resp)
     except urllib2.HTTPError as e:
-        raise ClientException("Failed to POST the JSON to server.",
+        raise ClientException("Failed to POST the media to server.",
                               url=request.get_full_url(), http_status=e.code,
                               http_response_content=e.read(),
                               reason=entity_uuid, local_path=local_path)
