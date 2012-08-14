@@ -1,5 +1,5 @@
 ================
-Litter Packaging
+iDigBio Data Ingestion Tool Packaging
 ================
 
 The build script is currently only for Mac OS X and Windows. To execute it, just
