@@ -1,2 +1,7 @@
 *.py[cod]
-*.class
+packaging/build
+.metadata
+.settings
+.project
+.pydevproject
+

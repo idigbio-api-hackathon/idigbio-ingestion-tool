@@ -68,14 +68,14 @@
       </div>
 
       <!-- Main form used to post path to the service -->
-      <form id="upload-form" class="form-inline">
+      <form id="upload-form" class="form-inline js-required">
         <div class="row">
           <div class="span8 offset2">
             <!-- Input form-->
             <div class="row-fluid">
               <div class='span6'>
                 <input type="text" data-provide="typeahead"
-                  id="root-path" placeholder="Copy & paste the images folder path…"
+                  id="root-path" placeholder="Paste the image folder path&hellip;"
                   title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
                 </div>
               <div class='span3'>
@@ -116,6 +116,12 @@
         </div>
       </form>
       
+      <noscript>
+        <p class="text-centered">
+          This software makes heavy use of JavaScript. You must enable
+          JavaScript to use this tool.
+        </p>
+      </noscript>
       <hr>
 
       <footer class="text-centered">

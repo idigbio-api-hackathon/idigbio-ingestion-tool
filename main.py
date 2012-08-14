@@ -4,14 +4,15 @@
 #
 # This software may be used and distributed according to the terms of the
 # MIT license: http://www.opensource.org/licenses/mit-license.php
-from os.path import dirname, realpath, join, exists
-import sys, cherrypy, os, logging, site
+from os.path import join, exists
+import sys, os, logging, site
 from datetime import datetime
 import argparse
 import shutil
-current_dir = dirname(realpath(__file__))
+current_dir = os.path.abspath(os.getcwd())
 site.addsitedir(join(current_dir, "lib"))
 import appdirs
+import cherrypy
 import ConfigParser
 from cherrypy import engine
 from dataingestion.ui.ingestui import DataIngestionUI
@@ -20,25 +21,52 @@ import dataingestion.services.model
 
 APP_NAME = 'iDigBio.DataIngestion'
 APP_AUTHOR = 'iDigBio'
+debug_mode = False
+quiet_mode = False
 
-def main(argv):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--newdb", action="store_true", help='create a new db file')
-    parser.add_argument("-v", "--verbose", action="store_true", help='log debug information')
-    args = parser.parse_args()
-    
-    # Configure modules.
+def main(argv):    
+    # Process configuration files and configure modules.
     idigbio_conf_path = join(current_dir, 'etc', 'idigbio.conf')
     config = ConfigParser.ConfigParser()
     config.read(idigbio_conf_path)
     api_endpoint = config.get('iDigBio', 'idigbio.api_endpoint')
+    
     dataingestion.services.api_client.init(api_endpoint)
     cherrypy.config.update(join(current_dir, 'etc', 'http.conf'))
-    engine_conf_path = join(current_dir, 'etc', 'engine.conf')
-    cherrypy.tree.mount(DataIngestionUI(), '/', config=engine_conf_path)
-    cherrypy.tree.mount(DataIngestionService(), '/services', config=engine_conf_path)
     
-    # Set up logging
+    engine_conf_path = join(current_dir, 'etc', 'engine.conf')
+    cherrypy.config.update(engine_conf_path)
+    cherrypy.config.update({"tools.staticdir.root": current_dir + "/www"})
+    cherrypy.tree.mount(DataIngestionUI(), '/', config=engine_conf_path)
+    cherrypy.tree.mount(DataIngestionService(), '/services',
+                        config=engine_conf_path)
+    
+    # Process command-line arguments:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--newdb", action="store_true", help='create a new db file')
+    parser.add_argument("-d", "--debug", action="store_true")
+    parser.add_argument("-q", "--quiet", action="store_true")
+    args = parser.parse_args()
+
+    if args.debug:
+        debug_mode = True
+        log_level = logging.DEBUG
+    else:
+        debug_mode = False
+        log_level = logging.INFO
+        cherrypy.config.update({"environment": "production"})
+    
+    if args.quiet:
+        quiet_mode = True
+        if debug_mode:
+            raise Exception("The --quiet or -q flags are not indended to be "
+                            "used with the --debug or -d flags.")
+    else:
+        quiet_mode = False
+
+    # Configure the logging mechanisms
+    logging.getLogger().setLevel(log_level)
+    logging.getLogger("cherrypy").setLevel(log_level) # cherrypy must be forced
     svc_log = logging.getLogger('iDigBioSvc')
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter('%(asctime)s %(thread)d %(name)s %(levelname)s - %(message)s'))
@@ -50,12 +78,8 @@ def main(argv):
     handler = logging.FileHandler(log_file)
     handler.setFormatter(logging.Formatter('%(asctime)s %(thread)d %(name)s %(levelname)s - %(message)s'))
     svc_log.addHandler(handler)
-    if args.verbose:
-        svc_log.setLevel(logging.DEBUG)
-    else:
-        svc_log.setLevel(logging.INFO)
-    
-    # Set up DB.
+        
+    # Set up the DB.
     data_folder = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
     if not exists(data_folder):
         os.makedirs(data_folder)
@@ -64,6 +88,7 @@ def main(argv):
         move_to = join(data_folder, "idigbio.ingest." + datetime.now().strftime("%Y-%b-%d_%H-%M-%S") + ".db")
         shutil.move(db_file, move_to)
         cherrypy.log.error("Creating a new db. Moved the old DB to {0}".format(move_to), "main")
+
     cherrypy.log.error("Use DB file: {0}".format(db_file), "main")
     dataingestion.services.model.setup(db_file)
     
@@ -74,6 +99,18 @@ def main(argv):
         engine.console_control_handler.subscribe()
     cherrypy.log("Starting...", "main")
     engine.start()
+    if not debug_mode and not quiet_mode:
+        # In a proper run, the text written here will be the only text output
+        # the end-user sees: Keep it short and simple.
+        print("Starting the iDigBio Data Ingestion Tool...")
+        try:
+            import webbrowser
+            webbrowser.open("http://127.0.0.1:8080")
+        except ImportError:
+            # Gracefully fall back
+            print("Open http://127.0.0.1:8080 in your webbrowser.")
+        print("Close this window or hit ctrl+c to stop the local iDigBio Data "
+              "Ingestion Tool.")
     engine.block()
 
 if __name__ == '__main__':

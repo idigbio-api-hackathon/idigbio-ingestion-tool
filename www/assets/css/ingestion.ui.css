@@ -1,5 +1,5 @@
 .text-centered {
-  text-align: center
+    text-align: center
 }
 
 #root-path,
@@ -19,4 +19,9 @@
 
 .dropdown-menu a:nth-child(2) {
   color: #08C
+}
+
+.js-required {
+    /* This content made visible through ingestion.ui.js */
+    display: none;
 }
