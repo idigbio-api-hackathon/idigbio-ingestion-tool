@@ -249,12 +249,12 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
                 return
 
             # Post mediarecord if necesssary.
-            if image_record.uuid is None:
+            if image_record.mr_uuid is None:
                 record_uuid = conn.post_mediarecord(recordset_uuid, path, license_)
-                image_record.uuid = record_uuid
+                image_record.mr_uuid = record_uuid
 
             # Post image to API.
-            result_obj = conn.post_media(path, image_record.uuid)
+            result_obj = conn.post_media(path, image_record.mr_uuid)
             url = result_obj["idigbio:links"]["media"]
             image_record.url = url
             image_record.upload_time = datetime.utcnow()

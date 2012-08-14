@@ -14,24 +14,26 @@ from poster.encode import multipart_encode
 from poster.streaminghttp import register_openers
 from time import sleep
 
-
-BASE_URL = 'http://idb-websrv1-dev.acis.ufl.edu:9197/v0'
-
 logger = logging.getLogger("iDigBioSvc.api_client")
-
 register_openers()
+
+api_endpoint = None
+
+def init(api_ep):
+    global api_endpoint
+    api_endpoint = api_ep
 
 TIMEOUT = 5
 
 def build_url(collection, entity_uuid=None, subcollection=None):
-    if entity_uuid is None:
-        ret = "%s/%s/" % (BASE_URL, collection)
-    elif subcollection is None:
-        ret = "%s/%s/%s/" % (BASE_URL, collection, entity_uuid)
-    else:
-        ret = "%s/%s/%s/%s/" % (BASE_URL, collection, entity_uuid, subcollection)
+    assert api_endpoint
     
-    logger.debug("URL built: %s" % ret)
+    if entity_uuid is None:
+        ret = "%s/%s/" % (api_endpoint, collection)
+    elif subcollection is None:
+        ret = "%s/%s/%s/" % (api_endpoint, collection, entity_uuid)
+    else:
+        ret = "%s/%s/%s/%s/" % (api_endpoint, collection, entity_uuid, subcollection)
     return ret
 
 
@@ -40,6 +42,7 @@ def _post_recordset():
     data = {"idigbio:data": {"ac:variant": "IngestionTool"},
             "idigbio:providerId": providerid}
     url = build_url("recordsets")
+    logger.debug("POSTing recordset. POST URL: %s" % url)
     try:
         response = _post_json(url, data)
     except urllib2.HTTPError as e:
@@ -58,6 +61,7 @@ def _post_mediarecord(recordset_uuid, path, license_):
             "idigbio:providerId": str(uuid.uuid4()),
             "idigbio:parentUuid": recordset_uuid}
     url = build_url("mediarecords")
+    logger.debug("POSTing mediarecord. URL: %s" % url)
     try:
         response = _post_json(url, data)
     except urllib2.HTTPError as e:
@@ -72,6 +76,7 @@ def _post_mediarecord(recordset_uuid, path, license_):
 
 def _post_media(local_path, entity_uuid):
     url = build_url("mediarecords", entity_uuid, "media")
+    logger.debug("POSTing media. URL: %s" % url)
     datagen, headers = multipart_encode({"file": open(local_path, "rb")})
     try:
         request = urllib2.Request(url, datagen, headers)
@@ -198,7 +203,7 @@ class Connection(object):
                 rv = func(*args, **kwargs)
                 return rv
             except ClientException as err:
-                logger.debug("Exception caught: {0}".format(err))
+                logger.debug("ClientException caught: {0}".format(err))
                 logger.debug("Current retry attempts: {0}".format(self.attempts))
                 logger.debug("Current backoff: {0}".format(backoff))
                 

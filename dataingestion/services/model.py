@@ -37,10 +37,16 @@ class ImageRecord(Base):
     Path does not have to be unique as there can be multiple 
     unrelated */USBVolumne1/DCIM/Image1.JPG*s.
     '''
-    uuid = Column(String)
+    mr_uuid = Column(String)
     '''
     The UUID of the *media record* for this image. 
     '''
+    
+    ma_uuid = Column(String)
+    '''
+    The UUID of the *media AP* for this image.
+    '''
+    
     md5 = Column(String, index=True, unique=True)
     comments = Column(String)
     upload_time = Column(DateTime)
