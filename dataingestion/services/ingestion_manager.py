@@ -298,7 +298,7 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
                 object_queue.put({'path': subpath})
                 fn = partial(ongoing_upload_task.increment, 'total_count')
                 postprocess_queue.put(fn)
-        logger.info("All jobs to uplaod individual files are added to the job queue.")
+        logger.info("All jobs to upload individual files are added to the job queue.")
 
     conn = get_conn()
     try:

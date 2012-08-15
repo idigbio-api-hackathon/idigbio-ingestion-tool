@@ -6,6 +6,7 @@
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 from os.path import join, exists
 import sys, os, logging, site
+import logging.handlers
 from datetime import datetime
 import argparse
 import shutil
@@ -19,7 +20,7 @@ from dataingestion.ui.ingestui import DataIngestionUI
 from dataingestion.services.ingest_rest import DataIngestionService
 import dataingestion.services.model
 
-APP_NAME = 'iDigBio.DataIngestion'
+APP_NAME = 'iDigBio Data Ingestion Tool'
 APP_AUTHOR = 'iDigBio'
 debug_mode = False
 quiet_mode = False
@@ -53,7 +54,7 @@ def main(argv):
         log_level = logging.DEBUG
     else:
         debug_mode = False
-        log_level = logging.INFO
+        log_level = logging.WARNING
         cherrypy.config.update({"environment": "production"})
     
     if args.quiet:
@@ -65,18 +66,23 @@ def main(argv):
         quiet_mode = False
 
     # Configure the logging mechanisms
-    logging.getLogger().setLevel(log_level)
-    logging.getLogger("cherrypy").setLevel(log_level) # cherrypy must be forced
+    # Default log level to DEBUG and filter the logs for console output.
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger("cherrypy").setLevel(logging.INFO) # cherrypy must be forced
     svc_log = logging.getLogger('iDigBioSvc')
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter('%(asctime)s %(thread)d %(name)s %(levelname)s - %(message)s'))
+    # User-specified log level only controls console output.
+    handler.setLevel(log_level)
     svc_log.addHandler(handler)
     log_folder = appdirs.user_log_dir(APP_NAME, APP_AUTHOR)
     if not exists(log_folder):
         os.makedirs(log_folder)
-    log_file = join(log_folder, "idigbio.ingest.{0}.log".format(datetime.now().strftime("%Y-%b-%d_%H-%M-%S")))
-    handler = logging.FileHandler(log_file)
+    log_file = join(log_folder, "idigbio.ingest.log")
+    handler = logging.handlers.RotatingFileHandler(log_file, backupCount=10)
     handler.setFormatter(logging.Formatter('%(asctime)s %(thread)d %(name)s %(levelname)s - %(message)s'))
+    handler.setLevel(logging.DEBUG)
+    handler.doRollover()
     svc_log.addHandler(handler)
         
     # Set up the DB.

@@ -81,7 +81,7 @@ def _post_media(local_path, entity_uuid):
     try:
         request = urllib2.Request(url, datagen, headers)
         resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
-        logger.debug("API response" + resp)
+        logger.debug("API response for {0}: {1}".format(url, resp))
         return json.loads(resp)
     except urllib2.HTTPError as e:
         raise ClientException("Failed to POST the media to server.",
