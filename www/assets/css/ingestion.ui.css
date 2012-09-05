@@ -1,16 +1,5 @@
 .text-centered {
-    text-align: center
-}
-
-#root-path,
-#license-selector,
-#upload-button {
-  width: 100%;
-}
-
-#license-selector,
-#upload-button {
-  max-width: 200px;
+  text-align: center
 }
 
 .dropdown-menu a {
@@ -22,6 +11,7 @@
 }
 
 .js-required {
-    /* This content made visible through ingestion.ui.js */
-    display: none;
+  /* This content made visible through ingestion.ui.js */
+  display: none;
 }
+

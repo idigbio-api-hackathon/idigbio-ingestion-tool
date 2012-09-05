@@ -8,6 +8,7 @@ $(function() {
     initLicenseSelector()
     
     $("#root-path").tooltip()
+    $("#id-prefix").tooltip()
     
     $('#upload-form').submit(function(event) {
         // we want to submit the form using Ajax (prevent page refresh)

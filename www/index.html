@@ -72,30 +72,32 @@
       </div>
 
       <!-- Main form used to post path to the service -->
-      <form id="upload-form" class="form-inline js-required">
+      <form id="upload-form" class="js-required">
         <div class="row">
-          <div class="span8 offset2">
-            <!-- Input form-->
-            <div class="row-fluid">
-              <div class='span6'>
-                <input type="text" data-provide="typeahead"
+              <div class='span4'>
+                <input type="text" data-provide="typeahead" class="input-block-level"
                   id="root-path" placeholder="Paste the image folder path&hellip;"
                   title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
-                </div>
+              </div>
+              <div class='span3'>
+                <input type="text" data-provide="typeahead" class="input-block-level"
+                  id="id-prefix" placeholder="Prefix for ID."
+                  title='e.g. Univ. of Florida'>
+              </div>
               <div class='span3'>
                 <input type="hidden" id="license-value" />
                 <div class="btn-group">
-                  <a class="btn dropdown-toggle" data-toggle="dropdown" href="#" id="license-selector">Select a License <span class="caret"></span> </a>
+                  <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="license-selector">Select a License <span class="caret"></span></a>
                   <ul class="dropdown-menu"></ul>
                 </div>
               </div>
-              <div class='span3'>
-                <button id="upload-button" type="submit"  class="btn btn-primary">
+              <div class='span2'>
+                <button id="upload-button" type="submit"  class="btn btn-primary btn-block">
                   <i class="icon-upload icon-white"></i>
                   <span>Upload</span>
                 </button>
               </div>
-            </div>
+        </div>
             
             <!-- Alert -->
             <div class="row-fluid" id="alert-container"></div>
@@ -110,7 +112,6 @@
                 <div id="upload-progressbar" class="bar" style="width:0.1%;"></div>
               </div>
             </div>
-          </div>
         </div>
         <div class="row">
           <!-- Results table -->
