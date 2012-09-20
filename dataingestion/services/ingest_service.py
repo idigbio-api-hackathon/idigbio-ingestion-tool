@@ -13,6 +13,8 @@ import cherrypy
 import Queue, os
 from dataingestion.task_queue import BackgroundTaskQueue
 from dataingestion.services import model, ingestion_manager
+from dataingestion.services import user_config
+from dataingestion.services import api_client
 
 singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
 singleton_task.subscribe()
@@ -65,3 +67,26 @@ def get_last_batch_info():
                     finished=(batch.finish_time and True or False))
     else:
         return dict()
+
+def authenticate(accountuuid, apikey):
+    if api_client.authenticate(accountuuid, apikey):
+        set_user_config('accountuuid', accountuuid)
+        set_user_config('apikey', apikey)
+        set_user_config('authenticated', True)
+    else:
+        raise ValueError()
+
+def authenticated():
+    try:
+        authenticated_str = get_user_config('authenticated')
+        print authenticated_str, '!!!!'
+        return bool(authenticated_str)
+    except AttributeError:
+        return False
+
+def get_user_config(name):
+    # TODO: check whether the name is in the allowed list.
+    return getattr(user_config.config, name)
+
+def set_user_config(name, value):
+    setattr(user_config.config, name, value)

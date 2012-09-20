@@ -44,19 +44,32 @@
           <div class="nav-collapse">
             <ul class="nav">
               <li class="active"><a href="/">Home</a></li>
-              <li><a href="http://www.idigbio.org">About</a></li>
+              <li><a target="_blank" href="http://www.idigbio.org">About</a></li>
             </ul>
-            <form class="navbar-form pull-right">
-              <input class="span2" type="text" placeholder="Account">
-              <input class="span2" type="password" placeholder="API Key">
-              <button type="submit" class="btn">Sign in</button>
-            </form>
           </div><!--/.nav-collapse -->
         </div>
       </div>
     </div>
 
     <div class="container">
+    
+      <div class="modal hide fade" id="initialModal" data-backdrop="static" style="display: none; ">
+        <div class="modal-header">
+          <h3>Please Sign In</h3>
+        </div>
+        <div class="modal-body">
+          <p>Before you can use this application, you first need to sign in using the iDigBio API account UUID and API key. After you sign in, this combination will be saved by the application for your future use.</p>
+          <div id="login-form" class="control-group">
+            <input id="account-uuid" class="input-large" type="text" placeholder="Account UUID">
+            <input id="api-key" class="input-large" type="password" placeholder="API Key">
+            <span id="login-error" class="help-block hide">Wrong Account UUID and API Key combination..</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          By clicking the button, you agree to the terms.&nbsp;
+          <a id="login-button" href="#" class="btn btn-primary">Sign in</a>
+        </div>
+      </div>
       
       <!-- Main hero unit for a primary marketing message or call to action -->
       <div class="hero-unit text-centered">
@@ -74,48 +87,65 @@
       <!-- Main form used to post path to the service -->
       <form id="upload-form" class="js-required">
         <div class="row">
-              <div class='span4'>
+          <div class='span9'>
+            <div class="row">
+              <div class='span5'>
                 <input type="text" data-provide="typeahead" class="input-block-level"
                   id="root-path" placeholder="Paste the image folder path&hellip;"
                   title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
               </div>
-              <div class='span3'>
-                <input type="text" data-provide="typeahead" class="input-block-level"
-                  id="id-prefix" placeholder="Prefix for ID."
-                  title='e.g. Univ. of Florida'>
-              </div>
-              <div class='span3'>
+              <div class='span4'>
                 <input type="hidden" id="license-value" />
                 <div class="btn-group">
                   <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="license-selector">Select a License <span class="caret"></span></a>
-                  <ul class="dropdown-menu"></ul>
+                  <ul id="license-dropdown" class="dropdown-menu"></ul>
                 </div>
               </div>
-              <div class='span2'>
-                <button id="upload-button" type="submit"  class="btn btn-primary btn-block">
-                  <i class="icon-upload icon-white"></i>
-                  <span>Upload</span>
-                </button>
+            </div>
+            
+            <div class="row">
+              <div class='span5'>
+                <input type="text" data-provide="typeahead" class="input-block-level"
+                  id="id-prefix" placeholder="Your prefix for the ID."
+                  title='e.g. http://ids.flmnh.ufl.edu/herb/'>
               </div>
-        </div>
-            
-            <!-- Alert -->
-            <div class="row-fluid" id="alert-container"></div>
-            
-            <!-- Progress bar -->
-            <div class="row-fluid fade" id="progressbar-container">
-              <!-- The global progress information -->
-              <!-- The extended global progress information -->
-              <div id="progresstext">&nbsp;</div>
-              <!-- The global progress bar -->
-              <div class="progress progress-primary progress-striped">
-                <div id="upload-progressbar" class="bar" style="width:0.1%;"></div>
+              <div class='span4'>
+                <input type="hidden" id="id-format-value" />
+                <div class="btn-group">
+                  <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="id-format-selector">ID Format <span class="caret"></span></a>
+                  <ul class="dropdown-menu">
+                    <li><a name="" href="#">{ID Prefix}/{File Name}</a></li>
+                    <li><a name="" href="#">{ID Prefix}/{Full Path}</a></li>
+                  </ul>
+                </div>
               </div>
             </div>
+          </div> <!-- /div span9 the nested row. -->
+          
+          <div class='span3'>
+            <button id="upload-button" type="submit"  class="btn btn-primary btn-block">
+              <i class="icon-upload icon-white"></i>
+              <span>Upload</span>
+            </button>
+          </div>
+        </div>
+            
+        <!-- Alert -->
+        <div class="row-fluid" id="alert-container"></div>
+        
+        <!-- Progress bar -->
+        <div class="row-fluid fade hide" id="progressbar-container">
+          <!-- The global progress information -->
+          <!-- The extended global progress information -->
+          <div id="progresstext">&nbsp;</div>
+          <!-- The global progress bar -->
+          <div class="progress progress-primary progress-striped">
+            <div id="upload-progressbar" class="bar" style="width:0.1%;"></div>
+          </div>
         </div>
         <div class="row">
           <!-- Results table -->
-          <div class="span12 fade" id="result-table-container">
+          <div class="span12 fade hide" id="result-table-container">
             <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="result-table"></table>
           </div>
         </div>

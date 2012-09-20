@@ -51,6 +51,39 @@ class IngestionResult(object):
         except IngestServiceException as ex:
             raise cherrypy.HTTPError(409, str(ex))
 
+class UserConfig(object):
+    '''
+    REST resource that represents the user config.
+    '''
+    exposed = True
+    
+    def GET(self, name):
+        try:
+            ingest_service.get_user_config(name)
+        except AttributeError:
+            raise cherrypy.HTTPError(404, 'Not such config option is found.')
+
+    def POST(self, name, value):
+        ingest_service.set_user_config(name, value)
+
+
+class Authentication(object):
+    '''
+    REST resource that signs in the user.
+    '''
+    exposed = True
+    
+    def GET(self):
+        ret = ingest_service.authenticated()
+        return json.dumps(ret)
+
+    def POST(self, user, password):
+        try:
+            ingest_service.authenticate(user, password)
+        except ValueError:
+            raise cherrypy.HTTPError(409, 'Authentication combination incorrect.')
+        
+
 class DataIngestionService(object):
     """
     The RESTful web service exposed through CherryPy.
@@ -60,6 +93,8 @@ class DataIngestionService(object):
     def __init__(self):
         self.result = IngestionResult()
         self.batch = BatchInfo()
+        self.config = UserConfig()
+        self.auth = Authentication()
 
     def GET(self):
         """

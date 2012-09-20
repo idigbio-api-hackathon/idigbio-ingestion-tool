@@ -1,26 +1,62 @@
 $(function() {
     
-    // For testing UI.
-    // renderResult([['google', 'http://google.com']])
-    
-    showLastBatchInfo()
-    
-    initLicenseSelector()
-    
-    $("#root-path").tooltip()
-    $("#id-prefix").tooltip()
-    
-    $('#upload-form').submit(function(event) {
-        // we want to submit the form using Ajax (prevent page refresh)
-        event.preventDefault();
-        
-        postUpload("new")
-    });
+
+    checkAuthentication();
     
     // Certain UI components will be disabled if JS is. This overrides the css
     // that hides them (ingestion.ui.css), making sure they are shown.
     $(".js-required").css("display", "inherit");
 });
+
+
+initMainUI = function() {
+    showLastBatchInfo();
+    
+    initLicenseSelector();
+    
+    $("#root-path").tooltip();
+    $("#id-prefix").tooltip();
+    
+    $('#upload-form').submit(function(event) {
+        // we want to submit the form using Ajax (prevent page refresh)
+        event.preventDefault();
+        postUpload("new")
+    });
+}
+
+
+checkAuthentication = function() {
+    $.getJSON('/services/auth', function(data) {
+        if (!data) {
+            initLoginModal();
+        } else {
+            initMainUI();
+        }
+    }, 'json')
+}
+
+initLoginModal = function() {
+    $('#initialModal').modal();
+    
+    $('#login-button').click(function(event) {
+        event.preventDefault();
+        
+        var accountuuid = $("#account-uuid").val();
+        var apikey = $("#api-key").val();
+        
+        $.post('/services/auth', { user: accountuuid, password: apikey }, function() {
+            $('#login-form').removeClass('error');
+            $('#login-error').addClass('hide');
+
+            $('#initialModal').modal('hide');
+            initMainUI();
+        }, 'json')
+        .error(function() {
+            $('#login-form').addClass('error');
+            $('#login-error').removeClass('hide');
+        });
+    });
+}
 
 initLicenseSelector = function() {
     var licenses = {
@@ -35,7 +71,7 @@ initLicenseSelector = function() {
         var li = ["<li><a name=\"", key, "\" href=\"#\">", value[0], " ", 
             value[1], "</a><a href=\"", value[2], 
             "\" target=\"_blank\">definition</a></li>"].join("");
-        $("ul.dropdown-menu").append(li);
+        $("#license-dropdown").append(li);
     });
     
     if ($.cookie("idigbiolicense")) {
@@ -44,7 +80,7 @@ initLicenseSelector = function() {
         $("#license-selector").html(["License: ", licenses[licenseName][0], " <span class=\"caret\"></span> "].join(""));
     }
 
-    $("ul.dropdown-menu li a[name]").click(function(e) {
+    $("#license-dropdown li a[name]").click(function(e) {
         e.preventDefault();
         if ($("#license-selector").hasClass("disabled")) {
             // This dropdown could be temporarily disbled when an ongoing upload

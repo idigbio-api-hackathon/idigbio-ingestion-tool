@@ -10,6 +10,7 @@ This module encapulates the communication with iDigBio's storage service API.
 import socket
 import argparse, json, urllib2, logging
 import uuid
+import base64
 from poster.encode import multipart_encode
 from poster.streaminghttp import register_openers
 from time import sleep
@@ -124,7 +125,22 @@ def upload_image_with_retries(path):
         return img_url
     except ClientException as err:
         logger.error("Upload failed after retries: {0}.".format(err))
-        
+
+auth_string = None
+
+def authenticate(user, key):
+    global auth_string
+    url = build_url('check')
+    try:
+        req = urllib2.Request(url, '{ "idigbio:data": { } }', {'Content-Type': 'application/json'})
+        base64string = base64.encodestring('%s:%s' % (user, key)).replace('\n', '')
+        req.add_header("Authorization", "Basic %s" % base64string)   
+        urllib2.urlopen(req)
+        auth_string = base64string
+        return True
+    except urllib2.HTTPError as err:
+        logger.error(str(err))
+        return False
 
 class ClientException(Exception):
     def __init__(self, msg, url='', http_status=None, reason='', local_path='',
@@ -243,8 +259,19 @@ def main():
     parser.add_argument("image_path")
     parser.add_argument("-r", "--retry", action='store_true')
     parser.add_argument("-b", "--browser", action='store_true')
+    parser.add_argument("-a", "--authenticate", action='store_true')
+    parser.add_argument("-u", "--user")
+    parser.add_argument("-p", "--password")
+    parser.add_argument("-t", "--endpoint")
     args = parser.parse_args()
     
+    if args.endpoint:
+        init(args.endpoint)
+
+    if args.authenticate:
+        print authenticate(args.user, args.password)
+        return
+
     if args.retry:
         img_url = upload_image_with_retries(args.image_path)
     else:

@@ -19,11 +19,14 @@ from cherrypy import engine
 from dataingestion.ui.ingestui import DataIngestionUI
 from dataingestion.services.ingest_rest import DataIngestionService
 import dataingestion.services.model
+import dataingestion.services.user_config
 
 APP_NAME = 'iDigBio Data Ingestion Tool'
 APP_AUTHOR = 'iDigBio'
 debug_mode = False
 quiet_mode = False
+
+USER_CONFIG_FILENAME = 'user.conf'
 
 def main(argv):    
     # Process configuration files and configure modules.
@@ -60,7 +63,7 @@ def main(argv):
     if args.quiet:
         quiet_mode = True
         if debug_mode:
-            raise Exception("The --quiet or -q flags are not indended to be "
+            raise Exception("The --quiet or -q flags are not intended to be "
                             "used with the --debug or -d flags.")
     else:
         quiet_mode = False
@@ -97,6 +100,10 @@ def main(argv):
 
     cherrypy.log.error("Use DB file: {0}".format(db_file), "main")
     dataingestion.services.model.setup(db_file)
+    
+    # Set up the user config.
+    user_config_path = join(data_folder, USER_CONFIG_FILENAME)
+    dataingestion.services.user_config.setup(user_config_path)
     
     # Set up/start server.
     if hasattr(engine, "signal_handler"):
