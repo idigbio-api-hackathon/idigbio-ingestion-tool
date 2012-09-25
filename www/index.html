@@ -58,7 +58,7 @@
           <h3>Please Sign In</h3>
         </div>
         <div class="modal-body">
-          <p>Before you can use this application, you first need to sign in using the iDigBio API account UUID and API key. 
+          <p>Before you can use this application, you first need to sign in using the iDigBio API Account UUID and the API key. 
             After you sign in, this combination will be saved by the application for your future use.
           </p>
           <div id="login-form" class="control-group">
@@ -68,7 +68,9 @@
           </div>
         </div>
         <div class="modal-footer">
-          By clicking the button, you agree to the terms.&nbsp;
+          By clicking the button, you agree to our
+          <a href="http://www.idigbio.org">terms</a>.
+          &nbsp;
           <a id="login-button" href="#" class="btn btn-primary">Sign in</a>
         </div>
       </div>
@@ -88,53 +90,91 @@
 
       <!-- Main form used to post path to the service -->
       <form id="upload-form" class="js-required">
-        <div class="row">
-          <div class='span9'>
-            <div class="row">
-              <div class='span5'>
-                <input type="text" data-provide="typeahead" class="input-block-level"
-                  id="root-path" placeholder="Paste the image folder path&hellip;"
-                  title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
-              </div>
-              <div class='span4'>
-                <input type="hidden" id="license-value" />
-                <div class="btn-group">
-                  <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="license-selector">
-                    Select a License <span class="caret"></span>
-                  </a>
-                  <ul id="license-dropdown" class="dropdown-menu"></ul>
+
+        <!-- Row 1. The control panel. -->
+        <div class="accordion row" id="accordion2">
+          <!-- Settings panel. -->
+          <div class="accordion-group span12">
+            <div class="accordion-heading">
+              <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" href="#collapseOne">
+                Set Your Upload Preferences
+              </a>
+            </div>
+            <div id="collapseOne" class="accordion-body collapse in">
+              <div class="accordion-inner">
+                <!-- Row 1 of settings. -->
+                <div class="row-fluid">
+                  <div class='span6'>
+                    <input type="hidden" id="license-value" />
+                    <div class="btn-group">
+                      <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="license-selector">
+                        Image License 
+                        <span class="caret"></span>
+                      </a>
+                      <ul id="license-dropdown" class="dropdown-menu"></ul>
+                    </div>
+                  </div>
+                  <div class='span6'>
+                    <input type="text" data-provide="typeahead" class="input-block-level"
+                      id="owner-uuid" placeholder="Organization UUID (optional)" rel="tooltip"
+                      title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
+                  </div>
+                </div>
+
+                <!-- Row 2 of settings. -->
+                <div class="row-fluid">
+                  <div class='span6'>
+                    <input type="hidden" id="id-format-value" />
+                    <div class="btn-group">
+                      <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="id-format-selector">
+                        GUID Construction Syntax
+                        <span class="caret"></span>
+                      </a>
+                      <ul class="dropdown-menu">
+                        <li><a name="" href="#">{GUID Prefix}/{File Name}</a></li>
+                        <li><a name="" href="#">{GUID Prefix}/{Full Path}</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div class='span6'>
+                    <input type="text" data-provide="typeahead" class="input-block-level"
+                      id="id-prefix" placeholder="GUID Prefix"
+                      rel="tooltip" title='e.g. http://ids.flmnh.ufl.edu/herb/'>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div class="row">
-              <div class='span5'>
-                <input type="text" data-provide="typeahead" class="input-block-level"
-                  id="id-prefix" placeholder="Your prefix for the ID."
-                  title='e.g. http://ids.flmnh.ufl.edu/herb/'>
-              </div>
-              <div class='span4'>
-                <input type="hidden" id="id-format-value" />
-                <div class="btn-group">
-                  <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="id-format-selector">
-                    ID Format <span class="caret"></span>
-                  </a>
-                  <ul class="dropdown-menu">
-                    <li><a name="" href="#">{ID Prefix}/{File Name}</a></li>
-                    <li><a name="" href="#">{ID Prefix}/{Full Path}</a></li>
-                  </ul>
+          </div> <!-- accordion-group 1. Settings panel. -->
+
+          <!-- Uploader panel. -->
+          <div class="accordion-group span12">
+            <div class="accordion-heading">
+              <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" href="#collapseTwo">
+                Specify the Directory to Upload
+              </a>
+            </div>
+            <div id="collapseTwo" class="accordion-body collapse">
+              <div class="accordion-inner">
+                <div class="row-fluid">
+                  <div class='span9'>
+                      <input type="text" data-provide="typeahead" class="input-block-level"
+                        id="root-path" placeholder="Paste the image folder path&hellip;"
+                        rel="tooltip"
+                        title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
+                  </div>
+                  <div class='span3'>
+                    <button id="upload-button" type="submit"  class="btn btn-primary btn-block">
+                      <i class="icon-upload icon-white"></i>
+                      <span>Upload</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div> <!-- /div span9 the nested row. -->
-          
-          <div class='span3'>
-            <button id="upload-button" type="submit"  class="btn btn-primary btn-block">
-              <i class="icon-upload icon-white"></i>
-              <span>Upload</span>
-            </button>
-          </div>
-        </div>
+          </div> <!-- accordion-group 2. Uploader box. -->
+
+        </div> <!-- / Accordion row -->
             
         <!-- Alert -->
         <div class="row-fluid" id="alert-container"></div>
