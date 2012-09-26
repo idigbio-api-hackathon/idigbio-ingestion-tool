@@ -36,7 +36,7 @@ class BatchInfo():
             result = ingest_service.get_last_batch_info()
             return json.dumps(result)
         except IngestServiceException as ex:
-            raise cherrypy.HTTPError(409, str(ex))
+            raise JsonHTTPError(409, str(ex))
 
 class IngestionResult(object):
     '''
@@ -49,7 +49,7 @@ class IngestionResult(object):
             result = ingest_service.get_result()
             return json.dumps(result)
         except IngestServiceException as ex:
-            raise cherrypy.HTTPError(409, str(ex))
+            raise JsonHTTPError(409, str(ex))
 
 class UserConfig(object):
     '''
@@ -59,9 +59,9 @@ class UserConfig(object):
     
     def GET(self, name):
         try:
-            ingest_service.get_user_config(name)
+            return json.dumps(ingest_service.get_user_config(name))
         except AttributeError:
-            raise cherrypy.HTTPError(404, 'Not such config option is found.')
+            raise JsonHTTPError(404, 'Not such config option is found.')
 
     def POST(self, name, value):
         ingest_service.set_user_config(name, value)
@@ -81,7 +81,7 @@ class Authentication(object):
         try:
             ingest_service.authenticate(user, password)
         except ValueError:
-            raise cherrypy.HTTPError(409, 'Authentication combination incorrect.')
+            raise JsonHTTPError(409, 'Authentication combination incorrect.')
         
 
 class DataIngestionService(object):
@@ -105,7 +105,7 @@ class DataIngestionService(object):
             return json.dumps(dict(total=total, successes=successes, 
                                    skips=skips, fails=fails, finished=finished))
         except IngestServiceException as ex:
-            raise cherrypy.HTTPError(409, str(ex))
+            raise JsonHTTPError(409, str(ex))
 
     def POST(self, rootPath=None, license=None): #@ReservedAssignment
         """
@@ -117,8 +117,7 @@ class DataIngestionService(object):
         elif license:
             return self._upload(rootPath, license)
         else:
-            raise cherrypy.HTTPError(400, 
-                                     "The copyright license is not specified.")
+            raise JsonHTTPError(400, "The copyright license is not specified.")
 
     def _upload(self, root_path, license_):
         try:

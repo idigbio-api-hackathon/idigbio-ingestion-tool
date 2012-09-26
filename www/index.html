@@ -105,7 +105,7 @@
                 <!-- Row 1 of settings. -->
                 <div class="row-fluid">
                   <div class='span6'>
-                    <input type="hidden" id="license-value" />
+                    <input type="hidden" id="imagelicense" />
                     <div class="btn-group">
                       <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="license-selector">
                         Image License 
@@ -116,7 +116,7 @@
                   </div>
                   <div class='span6'>
                     <input type="text" data-provide="typeahead" class="input-block-level"
-                      id="owner-uuid" placeholder="Organization UUID (optional)" rel="tooltip"
+                      id="owneruuid" placeholder="Organization UUID (optional)" rel="tooltip"
                       title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
                   </div>
                 </div>
@@ -124,22 +124,19 @@
                 <!-- Row 2 of settings. -->
                 <div class="row-fluid">
                   <div class='span6'>
-                    <input type="hidden" id="id-format-value" />
+                    <input type="hidden" id="idsyntax" />
                     <div class="btn-group">
-                      <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="id-format-selector">
+                      <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="idsyntax-selector">
                         GUID Construction Syntax
                         <span class="caret"></span>
                       </a>
-                      <ul class="dropdown-menu">
-                        <li><a name="" href="#">{GUID Prefix}/{File Name}</a></li>
-                        <li><a name="" href="#">{GUID Prefix}/{Full Path}</a></li>
-                      </ul>
+                      <ul id="idsyntax-dropdown" class="dropdown-menu"></ul>
                     </div>
                   </div>
                   
                   <div class='span6'>
                     <input type="text" data-provide="typeahead" class="input-block-level"
-                      id="id-prefix" placeholder="GUID Prefix"
+                      id="idprefix" placeholder="GUID Prefix"
                       rel="tooltip" title='e.g. http://ids.flmnh.ufl.edu/herb/'>
                   </div>
                 </div>
@@ -189,7 +186,7 @@
             <div id="upload-progressbar" class="bar" style="width:0.1%;"></div>
           </div>
         </div>
-        
+
         <!-- Results table, row 4. -->
         <div class="row">
           <div class="span12 fade hide" id="result-table-container">

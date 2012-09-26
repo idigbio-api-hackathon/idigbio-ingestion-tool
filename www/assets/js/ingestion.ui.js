@@ -8,11 +8,22 @@ $(function() {
     $(".js-required").css("display", "inherit");
 });
 
+var IMAGE_LICENSES = {
+    "cc0": ["CC0", "(Public Domain)", "http://creativecommons.org/publicdomain/zero/1.0/"],
+    "cc-by": ["CC BY", "(Attribution)", "http://creativecommons.org/licenses/by/3.0/"],
+    "cc-by-sa": ["CC BY-SA", "(Attribution-ShareAlike)", "http://creativecommons.org/licenses/by-sa/3.0/"],
+    "cc-by-nc": ["CC BY-NC", "(Attribution-Non-Commercial)", "http://creativecommons.org/licenses/by-nc/3.0/"],
+    "cc-by-nc-sa": ["CC BY-NC-SA", "(Attribution-NonCommercial-ShareAlike)", "http://creativecommons.org/licenses/by-nc-sa/3.0/"]
+};
+
+var GUID_SYNTAXES = {
+    "full-path": "{GUID Prefix}/{File Name}",
+    "filename": "{GUID Prefix}/{Full Path}"
+}
 
 initMainUI = function() {
     showLastBatchInfo();
-    
-    initLicenseSelector();
+    initPreferencePane();
     
     $("body").tooltip({
         selector: '[rel=tooltip]'
@@ -22,6 +33,40 @@ initMainUI = function() {
         // we want to submit the form using Ajax (prevent page refresh)
         event.preventDefault();
         postUpload("new")
+    });
+}
+
+initPreferencePane = function() {
+    initLicenseSelector();
+    initIDSyntaxSelector();
+    $('#idprefix').focusout(function(e) {
+        setPreference('idprefix', $(this).val());
+    });
+    $('#owneruuid').focusout(function(e) {
+        setPreference('owneruuid', $(this).val());
+    });
+
+    getPreference('imagelicense', function(val) {
+        if (val) {
+            $('#imagelicense').val(val);
+            $("#license-selector").html(["License: ", IMAGE_LICENSES[val][0], " <span class=\"caret\"></span> "].join(""));
+        }
+    });
+    
+
+    getPreference('idsyntax', function(val) {
+        if (val) {
+            $('#idsyntax').val(val);
+            $("#idsyntax-selector").html(["Use: ", GUID_SYNTAXES[val], " <span class=\"caret\"></span> "].join(""));
+        }
+    });
+
+    getPreference('idprefix', function(val) {
+        if (val) $('#idprefix').val(val);
+    });
+
+    val = getPreference('owneruuid', function(val) {
+        if (val) $('#owneruuid').val(val);
     });
 }
 
@@ -60,27 +105,13 @@ initLoginModal = function() {
 }
 
 initLicenseSelector = function() {
-    var licenses = {
-      "cc0": ["CC0", "(Public Domain)", "http://creativecommons.org/publicdomain/zero/1.0/"],
-      "cc-by": ["CC BY", "(Attribution)", "http://creativecommons.org/licenses/by/3.0/"],
-      "cc-by-sa": ["CC BY-SA", "(Attribution-ShareAlike)", "http://creativecommons.org/licenses/by-sa/3.0/"],
-      "cc-by-nc": ["CC BY-NC", "(Attribution-Non-Commercial)", "http://creativecommons.org/licenses/by-nc/3.0/"],
-      "cc-by-nc-sa": ["CC BY-NC-SA", "(Attribution-NonCommercial-ShareAlike)", "http://creativecommons.org/licenses/by-nc-sa/3.0/"]
-    };
-
-    $.each(licenses, function(key, value) {
+    $.each(IMAGE_LICENSES, function(key, value) {
         var li = ["<li><a name=\"", key, "\" href=\"#\">", value[0], " ", 
             value[1], "</a><a href=\"", value[2], 
             "\" target=\"_blank\">definition</a></li>"].join("");
         $("#license-dropdown").append(li);
     });
     
-    if ($.cookie("idigbiolicense")) {
-        var licenseName = $.cookie("idigbiolicense");
-        $("#license-value").val(licenseName);
-        $("#license-selector").html(["License: ", licenses[licenseName][0], " <span class=\"caret\"></span> "].join(""));
-    }
-
     $("#license-dropdown li a[name]").click(function(e) {
         e.preventDefault();
         if ($("#license-selector").hasClass("disabled")) {
@@ -89,23 +120,45 @@ initLicenseSelector = function() {
             return;
         }
         var licenseName = $(e.target)[0].name;
-        $.cookie("idigbiolicense", licenseName, { expires: 365 });
-        $("#license-value").val(licenseName);
-        var license = licenses[licenseName]
+        $("#imagelicense").val(licenseName);
+        var license = IMAGE_LICENSES[licenseName]
         $("#license-selector").html(["License: ", license[0], " <span class=\"caret\"></span> "].join(""));
         showAlert(["The pictures will be uploaded under the terms of the ", 
                 license[0], " ", license[1], " license (see <a href=\"", license[2], 
                 "\" target=\"_blank\">definition</a>)."].join(""), 
             null, "alert-info");
+        setPreference('imagelicense', licenseName);
     });
 }
 
-// This method handles both new uploads and resumes. 
-// Here the `action` can be 'new' or 'retry'.
-// In the case of new upload, the progress bar and result table are initially 
-// hidden and needs to be made visible.
-// In the case of retrying, they need to be 'cleared' before being updated with
-// new progress information.
+initIDSyntaxSelector = function() {
+    $.each(GUID_SYNTAXES, function(key, value) {
+        var li = ["<li><a name=\"", key, "\" href=\"#\">", value, "</a></li>"].join("");
+        $("#idsyntax-dropdown").append(li);
+    });
+    
+    $("#idsyntax-dropdown li a[name]").click(function(e) {
+        e.preventDefault();
+        if ($("#idsyntax-selector").hasClass("disabled")) {
+            // This dropdown could be temporarily disbled when an ongoing upload
+            // is in progress.
+            return;
+        }
+        var syntaxName = $(e.target)[0].name;
+        $("#idsyntax").val(syntaxName);
+        $("#idsyntax-selector").html(["Use: ", GUID_SYNTAXES[syntaxName], " <span class=\"caret\"></span> "].join(""));
+        setPreference('idsyntax', syntaxName);
+    });
+}
+
+/** 
+* This method handles both new uploads and resumes. 
+* Here the `action` can be 'new' or 'retry'.
+* In the case of new upload, the progress bar and result table are initially 
+* hidden and needs to be made visible.
+* In the case of retrying, they need to be 'cleared' before being updated with
+* new progress information.
+*/
 postUpload = function(action) {
     // Reset the elements
     $("#result-table-container").removeClass('in');
@@ -137,7 +190,7 @@ postUpload = function(action) {
     // now send the form and wait to hear back
     if (action == "new") {
         var rootPath = $('#root-path').val();
-        var license = $('#license-value').val();
+        var license = $('#imagelicense').val();
         $.post('/services', { rootPath: rootPath, license: license }, callback, 
                 'json')
             .error(function(data) {
@@ -307,4 +360,14 @@ renderResult = function(data) {
         "bDestroy" : true,
         "sPaginationType": "bootstrap"
     });
+}
+
+getPreference = function(name, callback) {
+    $.getJSON('/services/config', { name: name }, function(data) {
+        callback(data);
+    }, 'json');
+}
+
+setPreference = function(name, val) {
+    $.post('/services/config', { name: name, value: val }, function() { }, 'json');
 }
