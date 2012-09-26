@@ -130,4 +130,4 @@ class DataIngestionService(object):
         try:
             ingest_service.start_resume()
         except ValueError as ex:
-            raise JsonHTTPError(409, "Retry not supported.")
+            raise JsonHTTPError(409, str(ex))

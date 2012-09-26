@@ -14,6 +14,7 @@ import base64
 from poster.encode import multipart_encode
 from poster.streaminghttp import register_openers
 from time import sleep
+import httplib
 
 logger = logging.getLogger("iDigBioSvc.api_client")
 register_openers()
@@ -41,7 +42,7 @@ def build_url(collection, entity_uuid=None, subcollection=None):
 def _post_recordset():
     providerid = str(uuid.uuid4())
     data = {"idigbio:data": {"ac:variant": "IngestionTool"},
-            "idigbio:providerId": providerid}
+            "idigbio:providerID": providerid}
     url = build_url("recordsets")
     logger.debug("POSTing recordset. POST URL: %s" % url)
     try:
@@ -59,7 +60,7 @@ def _post_recordset():
 def _post_mediarecord(recordset_uuid, path, license_):
     data = {"idigbio:data": {"ac:variant": "IngestionTool", 
                              "dc:rights": license_, "idigbio:localpath": path },
-            "idigbio:providerId": str(uuid.uuid4()),
+            "idigbio:providerID": str(uuid.uuid4()),
             "idigbio:parentUuid": recordset_uuid}
     url = build_url("mediarecords")
     logger.debug("POSTing mediarecord. URL: %s" % url)
@@ -81,6 +82,7 @@ def _post_media(local_path, entity_uuid):
     datagen, headers = multipart_encode({"file": open(local_path, "rb")})
     try:
         request = urllib2.Request(url, datagen, headers)
+        request.add_header("Authorization", "Basic %s" % auth_string)
         resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
         logger.debug("API response for {0}: {1}".format(url, resp))
         return json.loads(resp)
@@ -99,8 +101,10 @@ def _post_json(url, obj):
     """
     content = json.dumps(obj, separators=(',',':'))
     req = urllib2.Request(url, content, {'Content-Type': 'application/json'})
+    req.add_header("Authorization", "Basic %s" % auth_string)
     r = urllib2.urlopen(req, timeout=TIMEOUT)
     resp = r.read()
+    logger.debug("API response for {0}: {1}".format(url, resp))
     json_response = json.loads(resp)
     return json_response
 
@@ -130,12 +134,15 @@ auth_string = None
 
 def authenticate(user, key):
     global auth_string
+    if auth_string:
+        return True
     url = build_url('check')
     try:
         req = urllib2.Request(url, '{ "idigbio:data": { } }', {'Content-Type': 'application/json'})
         base64string = base64.encodestring('%s:%s' % (user, key)).replace('\n', '')
-        req.add_header("Authorization", "Basic %s" % base64string)   
+        req.add_header("Authorization", "Basic %s" % base64string)
         urllib2.urlopen(req)
+        logger.debug("Successfully logged in.")
         auth_string = base64string
         return True
     except urllib2.HTTPError as err:

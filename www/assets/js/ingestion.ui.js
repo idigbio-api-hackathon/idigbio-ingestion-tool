@@ -100,12 +100,18 @@ initLicenseSelector = function() {
     });
 }
 
-
+// This method handles both new uploads and resumes. 
+// Here the `action` can be 'new' or 'retry'.
+// In the case of new upload, the progress bar and result table are initially 
+// hidden and needs to be made visible.
+// In the case of retrying, they need to be 'cleared' before being updated with
+// new progress information.
 postUpload = function(action) {
-    
     // Reset the elements
     $("#result-table-container").removeClass('in');
+    $("#result-table-container").removeClass('hide');
     $("#progressbar-container").removeClass('in');
+    $("#progressbar-container").removeClass('hide');
     
     var callback = function(dataReceived){
         // Disable inputs

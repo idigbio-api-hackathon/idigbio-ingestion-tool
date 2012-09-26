@@ -21,10 +21,12 @@ singleton_task.subscribe()
 singleton_task.start()
         
 def _upload_task(root_path, license_):
+    authenticate(get_user_config('accountuuid'), get_user_config('apikey'))
     ingestion_manager.exec_upload_task(root_path, license_)
     cherrypy.log("Upload task finished.",  __name__)
 
 def _resume_task():
+    authenticate(get_user_config('accountuuid'), get_user_config('apikey'))
     ingestion_manager.exec_upload_task(resume=True)
     cherrypy.log("Resume task finished.", __name__)
 
@@ -74,7 +76,7 @@ def authenticate(accountuuid, apikey):
         set_user_config('apikey', apikey)
         set_user_config('authenticated', True)
     else:
-        raise ValueError()
+        raise ValueError('Wrong authentication combination.')
 
 def authenticated():
     try:
