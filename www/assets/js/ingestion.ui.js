@@ -298,7 +298,11 @@ renderResult = function(data) {
         "bInfo": true,
         "bAutoWidth": true,
         "oTableTools": {
-            "sSwfPath": "assets/TableTools/swf/copy_csv_xls_pdf.swf"
+            "sSwfPath": "assets/TableTools/swf/copy_csv_xls_pdf.swf",
+            "aButtons": [
+                "csv",
+                "pdf"
+            ]
         },
         "bDestroy" : true,
         "sPaginationType": "bootstrap"
