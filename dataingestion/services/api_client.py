@@ -59,9 +59,9 @@ def _post_recordset():
 
 def _post_mediarecord(recordset_uuid, path, license_):
     data = {"idigbio:data": {"ac:variant": "IngestionTool", 
-                             "dc:rights": license_, "idigbio:localpath": path },
+                             "dc:rights": license_, "idigbio:localpath": path},
             "idigbio:providerID": str(uuid.uuid4()),
-            "idigbio:parentUuid": recordset_uuid}
+            "idigbio:relationships": {"recordset": recordset_uuid}}
     url = build_url("mediarecords")
     logger.debug("POSTing mediarecord. URL: %s" % url)
     try:
