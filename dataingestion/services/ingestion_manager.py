@@ -20,6 +20,7 @@ from traceback import format_exception
 from errno import ENOENT
 from dataingestion.services.api_client import ClientException, Connection
 from dataingestion.services import model
+from dataingestion.services import user_config
 
 logger = logging.getLogger('iDigBioSvc.ingestion_manager')
 
@@ -162,7 +163,7 @@ def get_result():
         # record set), then the batch could be None.
         raise IngestServiceException("No batch is found.")
 
-def exec_upload_task(root_path=None, license_=None, resume=False):
+def exec_upload_task(root_path=None, resume=False):
     """
     Execute either a new upload task or resume last unsuccessfuly upload task 
     from the DB. 
@@ -198,7 +199,7 @@ def exec_upload_task(root_path=None, license_=None, resume=False):
 
     try:
         try:
-            _upload(ongoing_upload_task, root_path, license_, resume)
+            _upload(ongoing_upload_task, root_path, resume)
         except ClientException, err:
             error_queue.put(str(err))
         while not postprocess_queue.empty():
@@ -223,11 +224,11 @@ def exec_upload_task(root_path=None, license_=None, resume=False):
         # Reset of singleton task in the module.
         ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
 
-def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
+def _upload(ongoing_upload_task, root_path=None, resume=False):
     """
     This method returns when all file upload tasks have been executed.
     """
-
+    
     object_queue = ongoing_upload_task.object_queue
     postprocess_queue = ongoing_upload_task.postprocess_queue 
     error_queue = ongoing_upload_task.error_queue
@@ -250,18 +251,30 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
 
             # Post mediarecord if necesssary.
             if image_record.mr_uuid is None:
-                record_uuid = conn.post_mediarecord(recordset_uuid, path, license_)
+                idsyntax = user_config.get_user_config('idsyntax')
+                idprefix = user_config.get_user_config('idprefix')
+                idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]
+                provider_id = join(idprefix, idsuffix)
+                license_ = user_config.get_user_config('license')
+                owner_uuid = user_config.try_get_user_config('owneruuid')
+                
+                record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, license_, owner_uuid)
                 image_record.mr_uuid = record_uuid
 
             # Post image to API.
             result_obj = conn.post_media(path, image_record.mr_uuid)
             url = result_obj["idigbio:links"]["media"]
-            image_record.url = url
-            image_record.upload_time = datetime.utcnow()
+            ma_uuid = result_obj['idigbio:uuid']
 
-            # Sleep a while after each upload to slow down the rate
-            # for demo purpose.
-#            sleep(4)
+            image_record.url = url
+            image_record.ma_uuid = ma_uuid
+
+            img_etag = result_obj['idigbio:data']['idigbio:imageEtag']
+
+            if image_record.md5 == img_etag:
+                image_record.upload_time = datetime.utcnow()
+            else:
+                raise ClientException('Upload failed because local MD5 does not match the eTag.')
 
             if conn.attempts > 1:
                 logger.debug('%s [after %d attempts]' % (path, conn.attempts))
@@ -308,14 +321,13 @@ def _upload(ongoing_upload_task, root_path=None, license_=None, resume=False):
                 raise IngestServiceException("Last batch already finished, why resume?")
             # Assign local variables with values in DB. 
             root_path = batch.root
-            license_ = batch.copyright_license
             recordset_uuid = batch.recordset_uuid
-        elif root_path and license_:
+        elif root_path:
             recordset_uuid = conn.post_recordset()
-            batch = model.add_upload_batch(root_path, recordset_uuid, license_)
+            batch = model.add_upload_batch(root_path, recordset_uuid)
             model.commit()
         else:
-            raise IngestServiceException("Root path or copyright license not specified.")
+            raise IngestServiceException("Root path not specified.")
         
         ongoing_upload_task.batch = batch
         

@@ -57,12 +57,16 @@ def _post_recordset():
                               reason=str(e), url=url)
     return response['idigbio:uuid']
 
-def _post_mediarecord(recordset_uuid, path, license_):
+def _post_mediarecord(recordset_uuid, path, provider_id, license_, owner_uuid=None):
     data = {"idigbio:data": {"ac:variant": "IngestionTool", 
                              "dc:rights": license_, 
                              "idigbio:localpath": path,
                              "idigbio:relationships": {"recordset": recordset_uuid}},
-            "idigbio:providerID": str(uuid.uuid4())}
+            "idigbio:providerID": provider_id }
+    
+    if owner_uuid:
+        data["idigbio:data"]["idigbio:relationships"]["owner"] = owner_uuid
+    
     url = build_url("mediarecords")
     logger.debug("POSTing mediarecord. URL: %s" % url)
     try:
@@ -255,8 +259,10 @@ class Connection(object):
     def post_recordset(self):
         return self._retry(None, _post_recordset)
     
-    def post_mediarecord(self, recordset_uuid, path, license_):
-        return self._retry(None, _post_mediarecord, recordset_uuid, path, license_)
+    def post_mediarecord(self, recordset_uuid, path, provider_id, license_, 
+                         owner_uuid=None):
+        return self._retry(None, _post_mediarecord, recordset_uuid, path, 
+                           provider_id, license_, owner_uuid)
     
     def post_media(self, local_path, entity_uuid):
         return self._retry(None, _post_media, local_path, entity_uuid)

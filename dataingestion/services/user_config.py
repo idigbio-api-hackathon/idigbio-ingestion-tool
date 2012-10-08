@@ -9,6 +9,18 @@ def setup(config_file):
     global config
     config = UserConfig(config_file)
 
+def get_user_config(name):
+    # TODO: check whether the name is in the allowed list.
+    return getattr(config, name)
+
+def set_user_config(name, value):
+    setattr(config, name, value)
+
+def try_get_user_config(name):
+    try:
+        return getattr(config, name)
+    except AttributeError:
+        return None
 
 class UserConfig(object):
     """

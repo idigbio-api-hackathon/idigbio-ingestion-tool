@@ -13,16 +13,16 @@ import cherrypy
 import Queue, os
 from dataingestion.task_queue import BackgroundTaskQueue
 from dataingestion.services import model, ingestion_manager
-from dataingestion.services import user_config
+from dataingestion.services.user_config import get_user_config, set_user_config 
 from dataingestion.services import api_client
 
 singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
 singleton_task.subscribe()
 singleton_task.start()
         
-def _upload_task(root_path, license_):
+def _upload_task(root_path):
     authenticate(get_user_config('accountuuid'), get_user_config('apikey'))
-    ingestion_manager.exec_upload_task(root_path, license_)
+    ingestion_manager.exec_upload_task(root_path)
     cherrypy.log("Upload task finished.",  __name__)
 
 def _resume_task():
@@ -30,7 +30,7 @@ def _resume_task():
     ingestion_manager.exec_upload_task(resume=True)
     cherrypy.log("Resume task finished.", __name__)
 
-def start_upload(root_path, license_):
+def start_upload(root_path):
     """
     Start the upload tasks and then return.
     
@@ -39,7 +39,7 @@ def start_upload(root_path, license_):
     # Initial checks before the task is added to the queue.
     if not os.path.exists(root_path):
         raise ValueError("Root directory does not exist.")
-    _start(_upload_task, root_path, license_)
+    _start(_upload_task, root_path)
     
 def start_resume():
     _start(_resume_task)
@@ -47,7 +47,7 @@ def start_resume():
 def _start(task, *args):
     try:
         return singleton_task.put(task, *args)
-    except Queue.Full, ex:
+    except Queue.Full:
         cherrypy.log("Task ongoing.")
         return False
 
@@ -81,14 +81,6 @@ def authenticate(accountuuid, apikey):
 def authenticated():
     try:
         authenticated_str = get_user_config('authenticated')
-        print authenticated_str, '!!!!'
         return bool(authenticated_str)
     except AttributeError:
         return False
-
-def get_user_config(name):
-    # TODO: check whether the name is in the allowed list.
-    return getattr(user_config.config, name)
-
-def set_user_config(name, value):
-    setattr(user_config.config, name, value)

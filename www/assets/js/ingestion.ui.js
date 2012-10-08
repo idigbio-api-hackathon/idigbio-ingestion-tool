@@ -191,7 +191,7 @@ postUpload = function(action) {
     if (action == "new") {
         var rootPath = $('#root-path').val();
         var license = $('#imagelicense').val();
-        $.post('/services', { rootPath: rootPath, license: license }, callback, 
+        $.post('/services', { rootPath: rootPath }, callback, 
                 'json')
             .error(function(data) {
                 var errMsg = "<strong>Error! </strong>" + data.responseText;

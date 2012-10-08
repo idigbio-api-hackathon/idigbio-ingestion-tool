@@ -107,21 +107,19 @@ class DataIngestionService(object):
         except IngestServiceException as ex:
             raise JsonHTTPError(409, str(ex))
 
-    def POST(self, rootPath=None, license=None): #@ReservedAssignment
+    def POST(self, rootPath=None):
         """
         Ingest data.
         """
         cherrypy.log.error("POST request received.", self.__class__.__name__)
         if rootPath is None:
             return self._resume()
-        elif license:
-            return self._upload(rootPath, license)
         else:
-            raise JsonHTTPError(400, "The copyright license is not specified.")
+            return self._upload(rootPath)
 
-    def _upload(self, root_path, license_):
+    def _upload(self, root_path):
         try:
-            ingest_service.start_upload(root_path, license_)
+            ingest_service.start_upload(root_path)
         except ValueError as ex:
             raise JsonHTTPError(409, str(ex))
     
