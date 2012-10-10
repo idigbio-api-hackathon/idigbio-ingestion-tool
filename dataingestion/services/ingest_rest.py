@@ -74,14 +74,21 @@ class Authentication(object):
     exposed = True
     
     def GET(self):
-        ret = ingest_service.authenticated()
-        return json.dumps(ret)
+        try:
+            ret = ingest_service.authenticated()
+            return json.dumps(ret)
+        except Exception as ex:
+            cherrypy.log.error(str(ex), __name__)
+            raise JsonHTTPError(503, 'iDigBio Service Currently Unavailable.')
 
     def POST(self, user, password):
         try:
             ingest_service.authenticate(user, password)
         except ValueError:
             raise JsonHTTPError(409, 'Authentication combination incorrect.')
+        except Exception as ex:
+            cherrypy.log.error(str(ex), __name__)
+            raise JsonHTTPError(503, 'iDigBio Service Currently Unavailable.')
         
 
 class DataIngestionService(object):

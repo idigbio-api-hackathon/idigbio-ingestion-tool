@@ -53,7 +53,7 @@
 
     <div class="container">
     
-      <div class="modal hide fade" id="initialModal" data-backdrop="static" style="display: none; ">
+      <div class="modal hide fade" id="loginModal" data-backdrop="static" style="display: none; ">
         <div class="modal-header">
           <h3>Please Sign In</h3>
         </div>
@@ -64,17 +64,32 @@
           <div id="login-form" class="control-group">
             <input id="account-uuid" class="input-large" type="text" placeholder="Account UUID">
             <input id="api-key" class="input-large" type="password" placeholder="API Key">
-            <span id="login-error" class="help-block hide">Wrong Account UUID and API Key combination..</span>
+            <span id="login-error" class="help-block hide"></span>
           </div>
         </div>
         <div class="modal-footer">
           By clicking the button, you agree to our
-          <a href="http://www.idigbio.org">terms</a>.
+          <a href="http://www.idigbio.org" target="_blank">terms</a>.
           &nbsp;
           <a id="login-button" href="#" class="btn btn-primary">Sign in</a>
         </div>
       </div>
-      
+
+      <div class="modal hide fade" id="serviceErrorModal" data-backdrop="static" style="display: none; ">
+        <div class="modal-header">
+          <h3>iDigBio Service Unavailable</h3>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-block alert-error">
+            <p>As a result, the iDigBio Data Ingestion Tool cannot be used right now.
+              Please check your network connection or come back later.
+              You may also inform iDigBio about the unavailability.
+            </p>
+          </div>
+        </div>
+      </div>
+
+
       <!-- Main hero unit for a primary marketing message or call to action -->
       <div class="hero-unit text-centered">
         <div class="row-fluid">
@@ -89,7 +104,7 @@
       </div>
 
       <!-- Main form used to post path to the service -->
-      <form id="upload-form" class="js-required">
+      <div id="upload-dashboard" class="js-required">
 
         <!-- Row 1. The control panel. -->
         <div class="accordion row" id="accordion2">
@@ -100,8 +115,9 @@
                 Set Your Upload Preferences
               </a>
             </div>
-            <div id="collapseOne" class="accordion-body collapse in">
+            <div id="collapseOne" class="accordion-body collapse">
               <div class="accordion-inner">
+                <form id="settings-form">
                 <!-- Row 1 of settings. -->
                 <div class="row-fluid">
                   <div class='span6'>
@@ -117,7 +133,7 @@
                   <div class='span6'>
                     <input type="text" data-provide="typeahead" class="input-block-level"
                       id="owneruuid" placeholder="Organization UUID (optional)" rel="tooltip"
-                      title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
+                      data-title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
                   </div>
                 </div>
 
@@ -135,13 +151,16 @@
                   </div>
                   
                   <div class='span6'>
-                    <input type="text" data-provide="typeahead" class="input-block-level"
-                      id="idprefix" placeholder="GUID Prefix"
-                      rel="tooltip" title='e.g. http://ids.flmnh.ufl.edu/herb/'>
+                    <div class="control-group">
+                      <input type="text" data-provide="typeahead" class="input-block-level"
+                        id="idprefix" name="idprefix" placeholder="GUID Prefix"
+                        rel="tooltip" data-title='e.g. http://ids.flmnh.ufl.edu/herb/'>
+                    </div>
                   </div>
                 </div>
+                </form>
               </div>
-            </div>
+            </div> <!-- / collapseOne -->
           </div> <!-- accordion-group 1. Settings panel. -->
 
           <!-- Uploader panel. -->
@@ -153,20 +172,22 @@
             </div>
             <div id="collapseTwo" class="accordion-body collapse">
               <div class="accordion-inner">
-                <div class="row-fluid">
-                  <div class='span9'>
-                      <input type="text" data-provide="typeahead" class="input-block-level"
-                        id="root-path" placeholder="Paste the image folder path&hellip;"
-                        rel="tooltip"
-                        title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
+                <form id='upload-form'>
+                  <div class="row-fluid">
+                    <div class='span9'>
+                        <input type="text" data-provide="typeahead" class="input-block-level"
+                          id="root-path" placeholder="Paste the image folder path&hellip;"
+                          rel="tooltip"
+                          data-title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
+                    </div>
+                    <div class='span3'>
+                      <button id="upload-button" type="submit"  class="btn btn-primary btn-block">
+                        <i class="icon-upload icon-white"></i>
+                        <span>Upload</span>
+                      </button>
+                    </div>
                   </div>
-                  <div class='span3'>
-                    <button id="upload-button" type="submit"  class="btn btn-primary btn-block">
-                      <i class="icon-upload icon-white"></i>
-                      <span>Upload</span>
-                    </button>
-                  </div>
-                </div>
+                </form>
               </div>
             </div>
           </div> <!-- accordion-group 2. Uploader box. -->
@@ -193,7 +214,7 @@
             <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="result-table"></table>
           </div>
         </div>
-      </form>
+      </div>
       
       <noscript>
         <p class="text-centered">
@@ -212,6 +233,7 @@
     <!-- Le javascript
     ================================================== -->
     <script src="assets/js/jquery.js"></script>
+    <script src="assets/js/jquery.validate.js"></script>
     <script src="assets/js/bootstrap.min.js"></script>
     <script type="text/javascript" charset="utf8" src="assets/js/jquery.cookie.js"></script>
     <!-- DataTables -->

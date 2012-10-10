@@ -151,8 +151,12 @@ def authenticate(user, key):
         auth_string = base64string
         return True
     except urllib2.HTTPError as err:
-        logger.error(str(err))
-        return False
+        if err.code == 403:
+            return False
+            logger.error(str(err))
+        else:
+            raise
+
 
 class ClientException(Exception):
     def __init__(self, msg, url='', http_status=None, reason='', local_path='',

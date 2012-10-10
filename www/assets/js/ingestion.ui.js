@@ -46,11 +46,60 @@ initPreferencePane = function() {
         setPreference('owneruuid', $(this).val());
     });
 
+    $('#settings-form').validate({
+        ignore: "",
+        onfocusout: false,
+        onkeyup: false,
+        onsubmit: false,
+        errorPlacement: function(error, element) {},
+        highlight: function(label) {
+            //$(label).closest('.control-group').addClass('error');
+        },
+        rules: {
+            idprefix: {
+                minlength: 3,
+                required: true
+            },
+            idsyntax: {
+                required: true
+            },
+            imagelicense: {
+                required: true
+            }
+        }
+    });
+
+    $('#collapseOne').on('hidden', function (e) {
+        if (!$('#settings-form').valid()) {
+            $('#collapseOne').collapse('show');
+
+            showAlert('You must set all non-optional preferences to continue.');
+        }
+    });
+
+    $('#collapseTwo').on('shown', function (e) {
+        if (!$('#settings-form').valid()) {
+            $('#collapseTwo').collapse('hide');
+            $('#collapseOne').collapse('show');
+        }
+    });
+
+    hideAndShowPanes = function() {
+        if ($('#settings-form').valid()) {
+            $('#collapseTwo').addClass('in');
+            $('#collapseOne').removeClass('in');
+        } else {
+            $('#collapseOne').addClass('in');
+            $('#collapseTwo').removeClass('in');
+        }
+    }
+
     getPreference('imagelicense', function(val) {
         if (val) {
             $('#imagelicense').val(val);
             $("#license-selector").html(["License: ", IMAGE_LICENSES[val][0], " <span class=\"caret\"></span> "].join(""));
         }
+        hideAndShowPanes();
     });
     
 
@@ -59,14 +108,17 @@ initPreferencePane = function() {
             $('#idsyntax').val(val);
             $("#idsyntax-selector").html(["Use: ", GUID_SYNTAXES[val], " <span class=\"caret\"></span> "].join(""));
         }
+        hideAndShowPanes();
     });
 
     getPreference('idprefix', function(val) {
         if (val) $('#idprefix').val(val);
+        hideAndShowPanes();
     });
 
     val = getPreference('owneruuid', function(val) {
         if (val) $('#owneruuid').val(val);
+        hideAndShowPanes();
     });
 }
 
@@ -78,11 +130,14 @@ checkAuthentication = function() {
         } else {
             initMainUI();
         }
-    }, 'json')
+    })
+    .error(function(data) {
+       $('#serviceErrorModal').modal();
+    });
 }
 
 initLoginModal = function() {
-    $('#initialModal').modal();
+    $('#loginModal').modal();
     
     $('#login-button').click(function(event) {
         event.preventDefault();
@@ -90,14 +145,19 @@ initLoginModal = function() {
         var accountuuid = $("#account-uuid").val();
         var apikey = $("#api-key").val();
         
-        $.post('/services/auth', { user: accountuuid, password: apikey }, function() {
+        $.post('/services/auth', { user: accountuuid, password: apikey }, function(data) {
             $('#login-form').removeClass('error');
             $('#login-error').addClass('hide');
 
-            $('#initialModal').modal('hide');
+            $('#loginModal').modal('hide');
             initMainUI();
         }, 'json')
-        .error(function() {
+        .error(function(err) {
+            if (err.status == 409) {
+                $('#login-error').html('Wrong Account UUID and API Key combination..');
+            } else {
+                $('#login-error').html('iDigBio service unavailable. Please come back later.');
+            }
             $('#login-form').addClass('error');
             $('#login-error').removeClass('hide');
         });
@@ -151,14 +211,13 @@ initIDSyntaxSelector = function() {
     });
 }
 
-/** 
-* This method handles both new uploads and resumes. 
-* Here the `action` can be 'new' or 'retry'.
-* In the case of new upload, the progress bar and result table are initially 
-* hidden and needs to be made visible.
-* In the case of retrying, they need to be 'cleared' before being updated with
-* new progress information.
-*/
+
+// This method handles both new uploads and resumes. 
+// Here the `action` can be `new` or `retry`.
+// In the case of new upload, the progress bar and result table are initially 
+// hidden and needs to be made visible.
+// In the case of retrying, they need to be 'cleaned' before being updated with
+// new progress information.
 postUpload = function(action) {
     // Reset the elements
     $("#result-table-container").removeClass('in');
@@ -177,7 +236,7 @@ postUpload = function(action) {
         $("#license-selector").attr('disabled', true);
         $("#license-selector").addClass('disabled');
         
-        // Clear up UI.
+        // Clean up UI.
         $("#upload-alert").alert('close');
         
         // Show progress bar in animation
@@ -238,9 +297,10 @@ showLastBatchInfo = function() {
  * @param {String} [alertType] The alert type, i.e. Bootstrap class, default to 
  *   alert-error.
  */
-showAlert = function(message, additionalElement, alertType) {
+showAlert = function(message, additionalElement, alertType, container) {
     additionalElement = additionalElement || "";
     alertType = alertType || "alert-error";
+    container = container || "#alert-container";
     
     var alert_html =
         ['<div class="alert alert-block fade" id="upload-alert">',
@@ -248,7 +308,7 @@ showAlert = function(message, additionalElement, alertType) {
         '<p id="alert-text">',
         '<div id="alert-extra">',
         '</div>'].join('\n');
-    $("#alert-container").html(alert_html);
+    $(container).html(alert_html);
     $("#upload-alert").show();
     $("#upload-alert").addClass('in');
     $("#upload-alert").addClass(alertType)
@@ -365,7 +425,10 @@ renderResult = function(data) {
 getPreference = function(name, callback) {
     $.getJSON('/services/config', { name: name }, function(data) {
         callback(data);
-    }, 'json');
+    })
+    .error(function(data) {
+        callback(null);
+    });
 }
 
 setPreference = function(name, val) {

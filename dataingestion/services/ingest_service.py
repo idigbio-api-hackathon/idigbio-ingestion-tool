@@ -74,13 +74,12 @@ def authenticate(accountuuid, apikey):
     if api_client.authenticate(accountuuid, apikey):
         set_user_config('accountuuid', accountuuid)
         set_user_config('apikey', apikey)
-        set_user_config('authenticated', True)
     else:
         raise ValueError('Wrong authentication combination.')
 
 def authenticated():
     try:
-        authenticated_str = get_user_config('authenticated')
-        return bool(authenticated_str)
-    except AttributeError:
+        authenticate(get_user_config('accountuuid'), get_user_config('apikey'))
+        return True
+    except AttributeError, ValueError:
         return False
