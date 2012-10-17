@@ -14,7 +14,7 @@ import base64
 from poster.encode import multipart_encode
 from poster.streaminghttp import register_openers
 from time import sleep
-import httplib
+from httplib import HTTPException
 
 logger = logging.getLogger("iDigBioSvc.api_client")
 register_openers()
@@ -52,8 +52,8 @@ def _post_recordset():
                               url=url, http_status=e.code, 
                               http_response_content=e.read(),
                               reason=providerid)
-    except (urllib2.URLError, socket.timeout) as e:
-        raise ClientException("URLError caught while POSTing the recordset.", 
+    except (urllib2.URLError, socket.error, HTTPException) as e:
+        raise ClientException("{0} caught while POSTing the recordset.".format(type(e)),
                               reason=str(e), url=url)
     return response['idigbio:uuid']
 
@@ -62,7 +62,7 @@ def _post_mediarecord(recordset_uuid, path, provider_id, license_, owner_uuid=No
                              "dc:rights": license_, 
                              "idigbio:localpath": path,
                              "idigbio:relationships": {"recordset": recordset_uuid}},
-            "idigbio:providerID": provider_id }
+            "idigbio:providerId": provider_id }
     
     if owner_uuid:
         data["idigbio:data"]["idigbio:relationships"]["owner"] = owner_uuid
@@ -76,8 +76,8 @@ def _post_mediarecord(recordset_uuid, path, provider_id, license_, owner_uuid=No
                               url=url, http_status=e.code, 
                               http_response_content=e.read(),
                               reason=recordset_uuid)
-    except (urllib2.URLError, socket.timeout) as e:
-        raise ClientException("URLError caught while POSTing the mediarecord.", 
+    except (urllib2.URLError, socket.error, HTTPException) as e:
+        raise ClientException("{0} caught while POSTing the mediarecord.".format(type(e)),
                               reason=str(e), url=url)
     return response['idigbio:uuid']
 
@@ -96,8 +96,8 @@ def _post_media(local_path, entity_uuid):
                               url=request.get_full_url(), http_status=e.code,
                               http_response_content=e.read(),
                               reason=entity_uuid, local_path=local_path)
-    except (urllib2.URLError, socket.timeout) as e:
-        raise ClientException("URLError caught while POSTing the media.", 
+    except (urllib2.URLError, socket.error, HTTPException) as e:
+        raise ClientException("{0} caught while POSTing the media.".format(type(e)),
                               reason=str(e), url=url)
 
 def _post_json(url, obj):

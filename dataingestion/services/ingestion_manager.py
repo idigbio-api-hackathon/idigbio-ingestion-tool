@@ -254,8 +254,8 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
                 idsyntax = user_config.get_user_config('idsyntax')
                 idprefix = user_config.get_user_config('idprefix')
                 idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]
-                provider_id = join(idprefix, idsuffix)
-                license_ = user_config.get_user_config('license')
+                provider_id = idprefix + idsuffix
+                license_ = user_config.get_user_config('imagelicense')
                 owner_uuid = user_config.try_get_user_config('owneruuid')
                 
                 record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, license_, owner_uuid)
