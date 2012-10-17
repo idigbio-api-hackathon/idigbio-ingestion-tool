@@ -249,19 +249,19 @@ postUpload = function(action) {
     // now send the form and wait to hear back
     if (action == "new") {
         var rootPath = $('#root-path').val();
-        var license = $('#imagelicense').val();
+
         $.post('/services', { rootPath: rootPath }, callback, 
                 'json')
-            .error(function(data) {
-                var errMsg = "<strong>Error! </strong>" + data.responseText;
-                showAlert(errMsg)
-            });
+        .error(function(data) {
+            var errMsg = "<strong>Error! </strong>" + data.responseText;
+            showAlert(errMsg)
+        });
     } else {
         $.post('/services', callback, 'json')
-            .error(function(data) {
-                var errMsg = "<strong>Error! </strong>" + data.responseText;
-                showAlert(errMsg)
-            });
+        .error(function(data) {
+            var errMsg = "<strong>Error! </strong>" + data.responseText;
+            showAlert(errMsg)
+        });
     }
 }
 
