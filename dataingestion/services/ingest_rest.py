@@ -90,6 +90,19 @@ class Authentication(object):
             cherrypy.log.error(str(ex), __name__)
             raise JsonHTTPError(503, 'iDigBio Service Currently Unavailable.')
         
+class ProgressStatus(object):
+    exposed = True
+    def GET(self):
+        """
+        Get ingestion status.
+        """
+        try:
+            total, skips, successes, fails, finished = ingest_service.check_progress()
+            return json.dumps(dict(total=total, successes=successes, 
+                                   skips=skips, fails=fails, finished=finished))
+        except IngestServiceException as ex:
+            raise JsonHTTPError(409, str(ex))
+
 
 class DataIngestionService(object):
     """
@@ -102,17 +115,10 @@ class DataIngestionService(object):
         self.batch = BatchInfo()
         self.config = UserConfig()
         self.auth = Authentication()
+        self.progress = ProgressStatus()
 
     def GET(self):
-        """
-        Get ingestion status.
-        """
-        try:
-            total, skips, successes, fails, finished = ingest_service.check_progress()
-            return json.dumps(dict(total=total, successes=successes, 
-                                   skips=skips, fails=fails, finished=finished))
-        except IngestServiceException as ex:
-            raise JsonHTTPError(409, str(ex))
+        return '<html><body>Ingestion Service is running.</body></html>'
 
     def POST(self, rootPath=None):
         """

@@ -21,6 +21,7 @@ from errno import ENOENT
 from dataingestion.services.api_client import ClientException, Connection
 from dataingestion.services import model
 from dataingestion.services import user_config
+from dataingestion.services import idigbio_metadata
 
 logger = logging.getLogger('iDigBioSvc.ingestion_manager')
 
@@ -255,7 +256,8 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
                 idprefix = user_config.get_user_config('idprefix')
                 idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]
                 provider_id = idprefix + idsuffix
-                license_ = user_config.get_user_config('imagelicense')
+                license_key = user_config.get_user_config('imagelicense')
+                license_ = idigbio_metadata.IMAGE_LICENSES[license_key]
                 owner_uuid = user_config.try_get_user_config('owneruuid')
                 
                 record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, license_, owner_uuid)
@@ -263,18 +265,18 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
 
             # Post image to API.
             result_obj = conn.post_media(path, image_record.mr_uuid)
-            url = result_obj["idigbio:links"]["media"]
+            url = result_obj["idigbio:links"]["media"][0]
             ma_uuid = result_obj['idigbio:uuid']
 
-            image_record.url = url
             image_record.ma_uuid = ma_uuid
 
-            img_etag = result_obj['idigbio:data']['idigbio:imageEtag']
+            img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
 
-            if image_record.md5 == img_etag:
+            if img_etag and image_record.md5 == img_etag:
                 image_record.upload_time = datetime.utcnow()
+                image_record.url = url
             else:
-                raise ClientException('Upload failed because local MD5 does not match the eTag.')
+                raise ClientException('Upload failed because local MD5 does not match the eTag or no eTag is returned.')
 
             if conn.attempts > 1:
                 logger.debug('%s [after %d attempts]' % (path, conn.attempts))
@@ -331,7 +333,7 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
         
         ongoing_upload_task.batch = batch
         
-        worker_thread_count = 5
+        worker_thread_count = 1
         object_threads = [QueueFunctionThread(object_queue, _object_job,
             get_conn()) for _junk in xrange(worker_thread_count)]
         ongoing_upload_task.object_threads = object_threads

@@ -9,11 +9,11 @@ $(function() {
 });
 
 var IMAGE_LICENSES = {
-    "cc0": ["CC0", "(Public Domain)", "http://creativecommons.org/publicdomain/zero/1.0/"],
-    "cc-by": ["CC BY", "(Attribution)", "http://creativecommons.org/licenses/by/3.0/"],
-    "cc-by-sa": ["CC BY-SA", "(Attribution-ShareAlike)", "http://creativecommons.org/licenses/by-sa/3.0/"],
-    "cc-by-nc": ["CC BY-NC", "(Attribution-Non-Commercial)", "http://creativecommons.org/licenses/by-nc/3.0/"],
-    "cc-by-nc-sa": ["CC BY-NC-SA", "(Attribution-NonCommercial-ShareAlike)", "http://creativecommons.org/licenses/by-nc-sa/3.0/"]
+    "CC0": ["CC0", "(Public Domain)", "http://creativecommons.org/publicdomain/zero/1.0/"],
+    "CC BY": ["CC BY", "(Attribution)", "http://creativecommons.org/licenses/by/3.0/"],
+    "CC BY-SA": ["CC BY-SA", "(Attribution-ShareAlike)", "http://creativecommons.org/licenses/by-sa/3.0/"],
+    "CC BY-NC": ["CC BY-NC", "(Attribution-Non-Commercial)", "http://creativecommons.org/licenses/by-nc/3.0/"],
+    "CC BY-NC-SA": ["CC BY-NC-SA", "(Attribution-NonCommercial-ShareAlike)", "http://creativecommons.org/licenses/by-nc-sa/3.0/"]
 };
 
 var GUID_SYNTAXES = {
@@ -174,14 +174,9 @@ initLicenseSelector = function() {
     
     $("#license-dropdown li a[name]").click(function(e) {
         e.preventDefault();
-        if ($("#license-selector").hasClass("disabled")) {
-            // This dropdown could be temporarily disbled when an ongoing upload
-            // is in progress.
-            return;
-        }
         var licenseName = $(e.target)[0].name;
         $("#imagelicense").val(licenseName);
-        var license = IMAGE_LICENSES[licenseName]
+        var license = IMAGE_LICENSES[licenseName];
         $("#license-selector").html(["License: ", license[0], " <span class=\"caret\"></span> "].join(""));
         showAlert(["The pictures will be uploaded under the terms of the ", 
                 license[0], " ", license[1], " license (see <a href=\"", license[2], 
@@ -232,10 +227,7 @@ postUpload = function(action) {
         
         $("#upload-button").attr('disabled', true);
         $("#upload-button").addClass('disabled');
-        
-        $("#license-selector").attr('disabled', true);
-        $("#license-selector").addClass('disabled');
-        
+               
         // Clean up UI.
         $("#upload-alert").alert('close');
         
@@ -243,7 +235,7 @@ postUpload = function(action) {
         $(".progress-primary").addClass('active');
         $("#progressbar-container").addClass('in');
         
-        setTimeout("updateProgress()", 1000)
+        setTimeout("updateProgress()", 1000);
     };
     
     // now send the form and wait to hear back
@@ -317,7 +309,7 @@ showAlert = function(message, additionalElement, alertType, container) {
 }
 
 updateProgress = function() {
-    var url = '/services';
+    var url = '/services/progress';
     
     $.getJSON(url, function(progressObj) {
         
@@ -342,9 +334,6 @@ updateProgress = function() {
             
             $("#upload-button").attr('disabled', false);
             $("#upload-button").removeClass('disabled');
-            
-            $("#license-selector").attr('disabled', false);
-            $("#license-selector").removeClass('disabled');
             
             if (progressObj.fails > 0 || progressObj.total == 0) {
                 if (progressObj.fails > 0) {

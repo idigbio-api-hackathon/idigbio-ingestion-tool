@@ -42,7 +42,7 @@ def build_url(collection, entity_uuid=None, subcollection=None):
 def _post_recordset():
     providerid = str(uuid.uuid4())
     data = {"idigbio:data": {"ac:variant": "IngestionTool"},
-            "idigbio:providerID": providerid}
+            "idigbio:providerId": providerid}
     url = build_url("recordsets")
     logger.debug("POSTing recordset. POST URL: %s" % url)
     try:
@@ -59,7 +59,9 @@ def _post_recordset():
 
 def _post_mediarecord(recordset_uuid, path, provider_id, license_, owner_uuid=None):
     data = {"idigbio:data": {"ac:variant": "IngestionTool", 
-                             "dc:rights": license_, 
+                             "xmpRights:UsageTerms": license_[0],
+                             "xmpRights:WebStatement": license_[2],
+                             "ac:licenseLogoURL": license_[3],
                              "idigbio:localpath": path,
                              "idigbio:relationships": {"recordset": recordset_uuid}},
             "idigbio:providerId": provider_id }

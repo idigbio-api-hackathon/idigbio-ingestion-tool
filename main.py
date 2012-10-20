@@ -16,6 +16,7 @@ import appdirs
 import cherrypy
 import ConfigParser
 from cherrypy import engine
+from dataingestion.ui.ingestui import DataIngestionUI
 from dataingestion.services.ingest_rest import DataIngestionService
 import dataingestion.services.model
 import dataingestion.services.user_config
@@ -40,8 +41,6 @@ def main(argv):
     engine_conf_path = join(current_dir, 'etc', 'engine.conf')
     cherrypy.config.update(engine_conf_path)
     cherrypy.config.update({"tools.staticdir.root": current_dir + "/www"})
-
-    class DataIngestionUI(object): pass
     cherrypy.tree.mount(DataIngestionUI(), '/', config=engine_conf_path)
     cherrypy.tree.mount(DataIngestionService(), '/services',
                         config=engine_conf_path)
