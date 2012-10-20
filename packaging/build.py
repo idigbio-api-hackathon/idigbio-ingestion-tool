@@ -10,10 +10,10 @@ import os.path
 SCRIPT_PATH = os.path.abspath("..")
 SCRIPT = "main.py" # path not included
 SCRIPT_BASE_NAME = SCRIPT[:-3] # without the extension
-APP_NAME = "iDigBio Data Ingestion Tool"   # the app name with spaces and stuff
-APP_NAME_U = "iDigBio_Data_Ingestion_Tool" # an underscored version of the name
+APP_NAME = "iDigBio Image Ingestion Tool"   # the app name with spaces and stuff
+APP_NAME_U = "iDigBio_Image_Ingestion_Tool" # an underscored version of the name
 OSX_IDENTIFIER = "org.nsf.idigbio.ingestion.client"
-VERSION = "0.1.0" # must be X.X.X format (OS X requires it)
+VERSION = "0.2.0" # must be X.X.X format (OS X requires it)
 LIB_DIRS = [os.path.join("..", "lib")]
 INCLUDES = ["cherrypy.wsgiserver", "cherrypy.wsgiserver.wsgiserver3",
             "webbrowser", "sqlite3", "sqlalchemy.dialects.sqlite"]
