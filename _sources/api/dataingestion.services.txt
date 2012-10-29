@@ -9,10 +9,10 @@ services Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`client_manager` Module
-----------------------------
+:mod:`idigbio_metadata` Module
+------------------------------
 
-.. automodule:: dataingestion.services.client_manager
+.. automodule:: dataingestion.services.idigbio_metadata
     :members:
     :undoc-members:
     :show-inheritance:
@@ -33,6 +33,14 @@ services Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`ingestion_manager` Module
+-------------------------------
+
+.. automodule:: dataingestion.services.ingestion_manager
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`mock_ingest_svc` Module
 -----------------------------
 
@@ -45,6 +53,14 @@ services Package
 -------------------
 
 .. automodule:: dataingestion.services.model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`user_config` Module
+-------------------------
+
+.. automodule:: dataingestion.services.user_config
     :members:
     :undoc-members:
     :show-inheritance:

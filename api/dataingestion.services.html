@@ -64,13 +64,13 @@
 <p>This module encapulates the communication with iDigBio&#8217;s storage service API.</p>
 <dl class="exception">
 <dt id="dataingestion.services.api_client.ClientException">
-<em class="property">exception </em><tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">ClientException</tt><big>(</big><em>msg</em>, <em>url=''</em>, <em>http_status=0</em>, <em>reason=''</em>, <em>local_path=''</em>, <em>http_response_content=''</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#ClientException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.ClientException" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">ClientException</tt><big>(</big><em>msg</em>, <em>url=''</em>, <em>http_status=None</em>, <em>reason=''</em>, <em>local_path=''</em>, <em>http_response_content=''</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#ClientException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.ClientException" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
 </dd></dl>
 
 <dl class="class">
 <dt id="dataingestion.services.api_client.Connection">
-<em class="property">class </em><tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">Connection</tt><big>(</big><em>authurl=None</em>, <em>user=None</em>, <em>key=None</em>, <em>retries=5</em>, <em>preauthurl=None</em>, <em>preauthtoken=None</em>, <em>snet=False</em>, <em>starting_backoff=1</em>, <em>auth_version='1'</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#Connection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.Connection" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">Connection</tt><big>(</big><em>authurl=None</em>, <em>user=None</em>, <em>key=None</em>, <em>retries=3</em>, <em>preauthurl=None</em>, <em>preauthtoken=None</em>, <em>snet=False</em>, <em>starting_backoff=1</em>, <em>auth_version='1'</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#Connection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.Connection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p>Convenience class to make requests that will also retry the request</p>
 <dl class="method">
@@ -80,7 +80,7 @@
 
 <dl class="method">
 <dt id="dataingestion.services.api_client.Connection.post_mediarecord">
-<tt class="descname">post_mediarecord</tt><big>(</big><em>recordset_uuid</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#Connection.post_mediarecord"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.Connection.post_mediarecord" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">post_mediarecord</tt><big>(</big><em>recordset_uuid</em>, <em>path</em>, <em>provider_id</em>, <em>license_</em>, <em>owner_uuid=None</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#Connection.post_mediarecord"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.Connection.post_mediarecord" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -91,8 +91,18 @@
 </dd></dl>
 
 <dl class="function">
+<dt id="dataingestion.services.api_client.authenticate">
+<tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">authenticate</tt><big>(</big><em>user</em>, <em>key</em><big>)</big><a class="headerlink" href="#dataingestion.services.api_client.authenticate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="dataingestion.services.api_client.build_url">
 <tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">build_url</tt><big>(</big><em>collection</em>, <em>entity_uuid=None</em>, <em>subcollection=None</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/api_client.html#build_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.api_client.build_url" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.api_client.init">
+<tt class="descclassname">dataingestion.services.api_client.</tt><tt class="descname">init</tt><big>(</big><em>api_ep</em><big>)</big><a class="headerlink" href="#dataingestion.services.api_client.init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -111,97 +121,51 @@
 <dd></dd></dl>
 
 </div>
-<div class="section" id="module-dataingestion.services.client_manager">
-<span id="client-manager-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">client_manager</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.client_manager" title="Permalink to this headline">¶</a></h2>
-<p>This module implements the core logic that manages the upload process.</p>
-<dl class="class">
-<dt id="dataingestion.services.client_manager.BatchUploadTask">
-<em class="property">class </em><tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">BatchUploadTask</tt><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#BatchUploadTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.BatchUploadTask" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="attribute">
-<dt id="dataingestion.services.client_manager.BatchUploadTask.STATUS_FINISHED">
-<tt class="descname">STATUS_FINISHED</tt><em class="property"> = 'finished'</em><a class="headerlink" href="#dataingestion.services.client_manager.BatchUploadTask.STATUS_FINISHED" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="dataingestion.services.client_manager.BatchUploadTask.STATUS_RUNNING">
-<tt class="descname">STATUS_RUNNING</tt><em class="property"> = 'running'</em><a class="headerlink" href="#dataingestion.services.client_manager.BatchUploadTask.STATUS_RUNNING" title="Permalink to this definition">¶</a></dt>
-<dd><p>State about a single batch upload task.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="exception">
-<dt id="dataingestion.services.client_manager.ClientManagerException">
-<em class="property">exception </em><tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">ClientManagerException</tt><big>(</big><em>msg</em>, <em>reason=''</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#ClientManagerException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.ClientManagerException" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="dataingestion.services.client_manager.QueueFunctionThread">
-<em class="property">class </em><tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">QueueFunctionThread</tt><big>(</big><em>queue</em>, <em>func</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#QueueFunctionThread"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.QueueFunctionThread" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/threading.html#threading.Thread" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">threading.Thread</span></tt></a></p>
-<dl class="method">
-<dt id="dataingestion.services.client_manager.QueueFunctionThread.run">
-<tt class="descname">run</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#QueueFunctionThread.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.QueueFunctionThread.run" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="function">
-<dt id="dataingestion.services.client_manager.exec_upload_task">
-<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">exec_upload_task</tt><big>(</big><em>root_path</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#exec_upload_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.exec_upload_task" title="Permalink to this definition">¶</a></dt>
-<dd><p>This method returns true when all file upload tasks are executed and print and 
-error queues are emptied.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">False is the upload is not executed due to an existing ongoing task.</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="dataingestion.services.client_manager.get_conn">
-<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">get_conn</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#get_conn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.get_conn" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get connection.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="dataingestion.services.client_manager.get_progress">
-<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">get_progress</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#get_progress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.get_progress" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return (total items, remaining items).</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="dataingestion.services.client_manager.get_result">
-<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">get_result</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#get_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.get_result" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="dataingestion.services.client_manager.main">
-<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">main</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.main" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="data">
-<dt id="dataingestion.services.client_manager.ongoing_upload_task">
-<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">ongoing_upload_task</tt><em class="property"> = None</em><a class="headerlink" href="#dataingestion.services.client_manager.ongoing_upload_task" title="Permalink to this definition">¶</a></dt>
-<dd><p>Singleton upload task.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="dataingestion.services.client_manager.put_errors_from_threads">
-<tt class="descclassname">dataingestion.services.client_manager.</tt><tt class="descname">put_errors_from_threads</tt><big>(</big><em>threads</em>, <em>error_queue</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/client_manager.html#put_errors_from_threads"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.client_manager.put_errors_from_threads" title="Permalink to this definition">¶</a></dt>
-<dd><p>Places any errors from the threads into error_queue.
-:param threads: A list of QueueFunctionThread instances.
-:param error_queue: A queue to put error strings into.
-:returns: True if any errors were found.</p>
-</dd></dl>
-
+<div class="section" id="module-dataingestion.services.idigbio_metadata">
+<span id="idigbio-metadata-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">idigbio_metadata</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.idigbio_metadata" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-dataingestion.services.ingest_rest">
 <span id="ingest-rest-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">ingest_rest</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.ingest_rest" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="dataingestion.services.ingest_rest.Authentication">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.ingest_rest.</tt><tt class="descname">Authentication</tt><a class="headerlink" href="#dataingestion.services.ingest_rest.Authentication" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>REST resource that signs in the user.</p>
+<dl class="method">
+<dt id="dataingestion.services.ingest_rest.Authentication.GET">
+<tt class="descname">GET</tt><big>(</big><big>)</big><a class="headerlink" href="#dataingestion.services.ingest_rest.Authentication.GET" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dataingestion.services.ingest_rest.Authentication.POST">
+<tt class="descname">POST</tt><big>(</big><em>user</em>, <em>password</em><big>)</big><a class="headerlink" href="#dataingestion.services.ingest_rest.Authentication.POST" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.ingest_rest.Authentication.exposed">
+<tt class="descname">exposed</tt><em class="property"> = True</em><a class="headerlink" href="#dataingestion.services.ingest_rest.Authentication.exposed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dataingestion.services.ingest_rest.BatchInfo">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.ingest_rest.</tt><tt class="descname">BatchInfo</tt><a class="headerlink" href="#dataingestion.services.ingest_rest.BatchInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>REST resource that represents info of a batch upload.</p>
+<dl class="method">
+<dt id="dataingestion.services.ingest_rest.BatchInfo.GET">
+<tt class="descname">GET</tt><big>(</big><big>)</big><a class="headerlink" href="#dataingestion.services.ingest_rest.BatchInfo.GET" title="Permalink to this definition">¶</a></dt>
+<dd><p>Currently only return info about the last batch.</p>
+<p>Will be extended to allow querying info about any previous batches.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.ingest_rest.BatchInfo.exposed">
+<tt class="descname">exposed</tt><em class="property"> = True</em><a class="headerlink" href="#dataingestion.services.ingest_rest.BatchInfo.exposed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="class">
 <dt id="dataingestion.services.ingest_rest.DataIngestionService">
 <em class="property">class </em><tt class="descclassname">dataingestion.services.ingest_rest.</tt><tt class="descname">DataIngestionService</tt><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#DataIngestionService"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.DataIngestionService" title="Permalink to this definition">¶</a></dt>
@@ -210,12 +174,11 @@ error queues are emptied.</p>
 <dl class="method">
 <dt id="dataingestion.services.ingest_rest.DataIngestionService.GET">
 <tt class="descname">GET</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#DataIngestionService.GET"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.DataIngestionService.GET" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get ingestion status.</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="dataingestion.services.ingest_rest.DataIngestionService.POST">
-<tt class="descname">POST</tt><big>(</big><em>rootPath</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#DataIngestionService.POST"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.DataIngestionService.POST" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">POST</tt><big>(</big><em>rootPath=None</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#DataIngestionService.POST"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.DataIngestionService.POST" title="Permalink to this definition">¶</a></dt>
 <dd><p>Ingest data.</p>
 </dd></dl>
 
@@ -230,6 +193,7 @@ error queues are emptied.</p>
 <dt id="dataingestion.services.ingest_rest.IngestionResult">
 <em class="property">class </em><tt class="descclassname">dataingestion.services.ingest_rest.</tt><tt class="descname">IngestionResult</tt><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#IngestionResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.IngestionResult" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>REST resource that represents the result of an upload batch.</p>
 <dl class="method">
 <dt id="dataingestion.services.ingest_rest.IngestionResult.GET">
 <tt class="descname">GET</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_rest.html#IngestionResult.GET"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_rest.IngestionResult.GET" title="Permalink to this definition">¶</a></dt>
@@ -253,19 +217,87 @@ error queues are emptied.</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="dataingestion.services.ingest_rest.ProgressStatus">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.ingest_rest.</tt><tt class="descname">ProgressStatus</tt><a class="headerlink" href="#dataingestion.services.ingest_rest.ProgressStatus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="method">
+<dt id="dataingestion.services.ingest_rest.ProgressStatus.GET">
+<tt class="descname">GET</tt><big>(</big><big>)</big><a class="headerlink" href="#dataingestion.services.ingest_rest.ProgressStatus.GET" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get ingestion status.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.ingest_rest.ProgressStatus.exposed">
+<tt class="descname">exposed</tt><em class="property"> = True</em><a class="headerlink" href="#dataingestion.services.ingest_rest.ProgressStatus.exposed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dataingestion.services.ingest_rest.UserConfig">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.ingest_rest.</tt><tt class="descname">UserConfig</tt><a class="headerlink" href="#dataingestion.services.ingest_rest.UserConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>REST resource that represents the user config.</p>
+<dl class="method">
+<dt id="dataingestion.services.ingest_rest.UserConfig.GET">
+<tt class="descname">GET</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#dataingestion.services.ingest_rest.UserConfig.GET" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dataingestion.services.ingest_rest.UserConfig.POST">
+<tt class="descname">POST</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#dataingestion.services.ingest_rest.UserConfig.POST" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.ingest_rest.UserConfig.exposed">
+<tt class="descname">exposed</tt><em class="property"> = True</em><a class="headerlink" href="#dataingestion.services.ingest_rest.UserConfig.exposed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-dataingestion.services.ingest_service">
 <span id="ingest-service-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">ingest_service</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.ingest_service" title="Permalink to this headline">¶</a></h2>
 <p>This is the service module that the web service front-end calls to serve data
 upload requests.</p>
 <dl class="function">
+<dt id="dataingestion.services.ingest_service.authenticate">
+<tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">authenticate</tt><big>(</big><em>accountuuid</em>, <em>apikey</em><big>)</big><a class="headerlink" href="#dataingestion.services.ingest_service.authenticate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingest_service.authenticated">
+<tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">authenticated</tt><big>(</big><big>)</big><a class="headerlink" href="#dataingestion.services.ingest_service.authenticated" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="dataingestion.services.ingest_service.check_progress">
 <tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">check_progress</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_service.html#check_progress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_service.check_progress" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="dataingestion.services.ingest_service.get_last_batch_info">
+<tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">get_last_batch_info</tt><big>(</big><big>)</big><a class="headerlink" href="#dataingestion.services.ingest_service.get_last_batch_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns info about the last batch.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="dataingestion.services.ingest_service.get_result">
 <tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">get_result</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_service.html#get_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_service.get_result" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingest_service.start_resume">
+<tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">start_resume</tt><big>(</big><big>)</big><a class="headerlink" href="#dataingestion.services.ingest_service.start_resume" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -282,10 +314,126 @@ upload requests.</p>
 </table>
 </dd></dl>
 
-<dl class="function">
-<dt id="dataingestion.services.ingest_service.upload_task">
-<tt class="descclassname">dataingestion.services.ingest_service.</tt><tt class="descname">upload_task</tt><big>(</big><em>root_path</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingest_service.html#upload_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingest_service.upload_task" title="Permalink to this definition">¶</a></dt>
+</div>
+<div class="section" id="module-dataingestion.services.ingestion_manager">
+<span id="ingestion-manager-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">ingestion_manager</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.ingestion_manager" title="Permalink to this headline">¶</a></h2>
+<p>This module implements the core logic that manages the upload process.</p>
+<dl class="class">
+<dt id="dataingestion.services.ingestion_manager.BatchUploadTask">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.ingestion_manager.</tt><tt class="descname">BatchUploadTask</tt><big>(</big><em>batch=None</em>, <em>max_continuous_fails=2</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingestion_manager.html#BatchUploadTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingestion_manager.BatchUploadTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>State about a single batch upload task.</p>
+<dl class="attribute">
+<dt id="dataingestion.services.ingestion_manager.BatchUploadTask.STATUS_FINISHED">
+<tt class="descname">STATUS_FINISHED</tt><em class="property"> = 'finished'</em><a class="headerlink" href="#dataingestion.services.ingestion_manager.BatchUploadTask.STATUS_FINISHED" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="attribute">
+<dt id="dataingestion.services.ingestion_manager.BatchUploadTask.STATUS_RUNNING">
+<tt class="descname">STATUS_RUNNING</tt><em class="property"> = 'running'</em><a class="headerlink" href="#dataingestion.services.ingestion_manager.BatchUploadTask.STATUS_RUNNING" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dataingestion.services.ingestion_manager.BatchUploadTask.check_continuous_fails">
+<tt class="descname">check_continuous_fails</tt><big>(</big><em>succ_this_time</em><big>)</big><a class="headerlink" href="#dataingestion.services.ingestion_manager.BatchUploadTask.check_continuous_fails" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Whether this upload should be aborted.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dataingestion.services.ingestion_manager.BatchUploadTask.increment">
+<tt class="descname">increment</tt><big>(</big><em>field_name</em><big>)</big><a class="headerlink" href="#dataingestion.services.ingestion_manager.BatchUploadTask.increment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="dataingestion.services.ingestion_manager.IngestServiceException">
+<em class="property">exception </em><tt class="descclassname">dataingestion.services.ingestion_manager.</tt><tt class="descname">IngestServiceException</tt><big>(</big><em>msg</em>, <em>reason=''</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingestion_manager.html#IngestServiceException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingestion_manager.IngestServiceException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="dataingestion.services.ingestion_manager.QueueFunctionThread">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.ingestion_manager.</tt><tt class="descname">QueueFunctionThread</tt><big>(</big><em>queue</em>, <em>func</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingestion_manager.html#QueueFunctionThread"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingestion_manager.QueueFunctionThread" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/threading.html#threading.Thread" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">threading.Thread</span></tt></a></p>
+<dl class="method">
+<dt id="dataingestion.services.ingestion_manager.QueueFunctionThread.abort_thread">
+<tt class="descname">abort_thread</tt><big>(</big><big>)</big><a class="headerlink" href="#dataingestion.services.ingestion_manager.QueueFunctionThread.abort_thread" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dataingestion.services.ingestion_manager.QueueFunctionThread.run">
+<tt class="descname">run</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingestion_manager.html#QueueFunctionThread.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingestion_manager.QueueFunctionThread.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingestion_manager.exec_upload_task">
+<tt class="descclassname">dataingestion.services.ingestion_manager.</tt><tt class="descname">exec_upload_task</tt><big>(</big><em>root_path=None</em>, <em>resume=False</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingestion_manager.html#exec_upload_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingestion_manager.exec_upload_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute either a new upload task or resume last unsuccessfuly upload task 
+from the DB.</p>
+<p>This method returns true when all file upload tasks are executed and 
+postprocess and error queues are emptied.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">False is the upload is not executed due to an existing ongoing task.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingestion_manager.get_conn">
+<tt class="descclassname">dataingestion.services.ingestion_manager.</tt><tt class="descname">get_conn</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingestion_manager.html#get_conn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingestion_manager.get_conn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get connection.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingestion_manager.get_progress">
+<tt class="descclassname">dataingestion.services.ingestion_manager.</tt><tt class="descname">get_progress</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingestion_manager.html#get_progress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingestion_manager.get_progress" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return (total items, skips, successes, fails).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingestion_manager.get_result">
+<tt class="descclassname">dataingestion.services.ingestion_manager.</tt><tt class="descname">get_result</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingestion_manager.html#get_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingestion_manager.get_result" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingestion_manager.main">
+<tt class="descclassname">dataingestion.services.ingestion_manager.</tt><tt class="descname">main</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingestion_manager.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingestion_manager.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="data">
+<dt id="dataingestion.services.ingestion_manager.ongoing_upload_task">
+<tt class="descclassname">dataingestion.services.ingestion_manager.</tt><tt class="descname">ongoing_upload_task</tt><em class="property"> = None</em><a class="headerlink" href="#dataingestion.services.ingestion_manager.ongoing_upload_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Singleton upload task.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.ingestion_manager.put_errors_from_threads">
+<tt class="descclassname">dataingestion.services.ingestion_manager.</tt><tt class="descname">put_errors_from_threads</tt><big>(</big><em>threads</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/ingestion_manager.html#put_errors_from_threads"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.ingestion_manager.put_errors_from_threads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Places any errors from the threads into error_queue.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>threads</strong> &#8211; A list of QueueFunctionThread instances.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if any errors were found.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </div>
 <div class="section" id="module-dataingestion.services.mock_ingest_svc">
@@ -330,28 +478,39 @@ upload requests.</p>
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="dataingestion.services.model.ImageRecord.ma_uuid">
+<tt class="descname">ma_uuid</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.ma_uuid" title="Permalink to this definition">¶</a></dt>
+<dd><p>The UUID of the <em>media AP</em> for this image.</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="dataingestion.services.model.ImageRecord.md5">
 <tt class="descname">md5</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.md5" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="dataingestion.services.model.ImageRecord.mr_uuid">
+<tt class="descname">mr_uuid</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.mr_uuid" title="Permalink to this definition">¶</a></dt>
+<dd><p>The UUID of the <em>media record</em> for this image.</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="dataingestion.services.model.ImageRecord.path">
 <tt class="descname">path</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.path" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Path does not have to be unique as there can be multiple
+unrelated <a href="#id1"><span class="problematic" id="id2">*</span></a>/USBVolumne1/DCIM/Image1.JPG*s.</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="dataingestion.services.model.ImageRecord.upload_time">
 <tt class="descname">upload_time</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.upload_time" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>The UTC time measured by the local machine.
+None if the image is not uploaded.</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="dataingestion.services.model.ImageRecord.url">
 <tt class="descname">url</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.url" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="dataingestion.services.model.ImageRecord.uuid">
-<tt class="descname">uuid</tt><a class="headerlink" href="#dataingestion.services.model.ImageRecord.uuid" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -360,10 +519,19 @@ upload requests.</p>
 <dt id="dataingestion.services.model.UploadBatch">
 <em class="property">class </em><tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">UploadBatch</tt><big>(</big><em>root</em>, <em>recordset_uuid</em>, <em>start_time</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#UploadBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.UploadBatch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">sqlalchemy.ext.declarative.Base</span></tt></p>
+<p>Represents a batch which is the operation executed when the user clicks the 
+&#8220;Upload&#8221; button.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">When a batch fails and is resumed, the same batch record and 
+recordset id are reused.</p>
+</div>
 <dl class="attribute">
 <dt id="dataingestion.services.model.UploadBatch.finish_time">
 <tt class="descname">finish_time</tt><a class="headerlink" href="#dataingestion.services.model.UploadBatch.finish_time" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>The local time that the batch upload finishes. None if it is not successfully
+finished.</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="dataingestion.services.model.UploadBatch.id">
@@ -373,7 +541,8 @@ upload requests.</p>
 <dl class="attribute">
 <dt id="dataingestion.services.model.UploadBatch.images">
 <tt class="descname">images</tt><a class="headerlink" href="#dataingestion.services.model.UploadBatch.images" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>All images associated with this batch.</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="dataingestion.services.model.UploadBatch.recordset_uuid">
@@ -383,38 +552,55 @@ upload requests.</p>
 <dl class="attribute">
 <dt id="dataingestion.services.model.UploadBatch.root">
 <tt class="descname">root</tt><a class="headerlink" href="#dataingestion.services.model.UploadBatch.root" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>The root path for the batch upload.</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="dataingestion.services.model.UploadBatch.start_time">
 <tt class="descname">start_time</tt><a class="headerlink" href="#dataingestion.services.model.UploadBatch.start_time" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>The local time at which the batch task starts.</p>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="function">
 <dt id="dataingestion.services.model.add_image">
-<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">add_image</tt><big>(</big><em>batch</em>, <em>path</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#add_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.add_image" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">add_image</tt><big>(</big><em>*args</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#add_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.add_image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.add_or_load_image">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">add_or_load_image</tt><big>(</big><em>*args</em><big>)</big><a class="headerlink" href="#dataingestion.services.model.add_or_load_image" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="dataingestion.services.model.add_upload_batch">
-<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">add_upload_batch</tt><big>(</big><em>root</em>, <em>recordset_uuid</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#add_upload_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.add_upload_batch" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">add_upload_batch</tt><big>(</big><em>*args</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#add_upload_batch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.add_upload_batch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.check_session">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">check_session</tt><big>(</big><em>func</em><big>)</big><a class="headerlink" href="#dataingestion.services.model.check_session" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="dataingestion.services.model.commit">
-<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">commit</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#commit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.commit" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">commit</tt><big>(</big><em>*args</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#commit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.commit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="dataingestion.services.model.count_batch_size">
-<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">count_batch_size</tt><big>(</big><em>batch_id</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#count_batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.count_batch_size" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">count_batch_size</tt><big>(</big><em>*args</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#count_batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.count_batch_size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="dataingestion.services.model.get_batch_details">
-<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">get_batch_details</tt><big>(</big><em>batch_id</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#get_batch_details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.get_batch_details" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">get_batch_details</tt><big>(</big><em>*args</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/model.html#get_batch_details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.model.get_batch_details" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.model.load_last_batch">
+<tt class="descclassname">dataingestion.services.model.</tt><tt class="descname">load_last_batch</tt><big>(</big><em>*args</em><big>)</big><a class="headerlink" href="#dataingestion.services.model.load_last_batch" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -433,6 +619,41 @@ upload requests.</p>
 <dd></dd></dl>
 
 </div>
+<div class="section" id="module-dataingestion.services.user_config">
+<span id="user-config-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">user_config</span></tt> Module<a class="headerlink" href="#module-dataingestion.services.user_config" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="dataingestion.services.user_config.UserConfig">
+<em class="property">class </em><tt class="descclassname">dataingestion.services.user_config.</tt><tt class="descname">UserConfig</tt><big>(</big><em>config_file</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/user_config.html#UserConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.user_config.UserConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>The class with the user config values.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.user_config.get_user_config">
+<tt class="descclassname">dataingestion.services.user_config.</tt><tt class="descname">get_user_config</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/user_config.html#get_user_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.user_config.get_user_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.user_config.main">
+<tt class="descclassname">dataingestion.services.user_config.</tt><tt class="descname">main</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/user_config.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.user_config.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.user_config.set_user_config">
+<tt class="descclassname">dataingestion.services.user_config.</tt><tt class="descname">set_user_config</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/user_config.html#set_user_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.user_config.set_user_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.user_config.setup">
+<tt class="descclassname">dataingestion.services.user_config.</tt><tt class="descname">setup</tt><big>(</big><em>config_file</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/user_config.html#setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.user_config.setup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="dataingestion.services.user_config.try_get_user_config">
+<tt class="descclassname">dataingestion.services.user_config.</tt><tt class="descname">try_get_user_config</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="../_modules/dataingestion/services/user_config.html#try_get_user_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dataingestion.services.user_config.try_get_user_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
 </div>
 
 
@@ -445,11 +666,13 @@ upload requests.</p>
   <ul>
 <li><a class="reference internal" href="#">services Package</a><ul>
 <li><a class="reference internal" href="#module-dataingestion.services.api_client"><tt class="docutils literal"><span class="pre">api_client</span></tt> Module</a></li>
-<li><a class="reference internal" href="#module-dataingestion.services.client_manager"><tt class="docutils literal"><span class="pre">client_manager</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-dataingestion.services.idigbio_metadata"><tt class="docutils literal"><span class="pre">idigbio_metadata</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-dataingestion.services.ingest_rest"><tt class="docutils literal"><span class="pre">ingest_rest</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-dataingestion.services.ingest_service"><tt class="docutils literal"><span class="pre">ingest_service</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-dataingestion.services.ingestion_manager"><tt class="docutils literal"><span class="pre">ingestion_manager</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-dataingestion.services.mock_ingest_svc"><tt class="docutils literal"><span class="pre">mock_ingest_svc</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-dataingestion.services.model"><tt class="docutils literal"><span class="pre">model</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-dataingestion.services.user_config"><tt class="docutils literal"><span class="pre">user_config</span></tt> Module</a></li>
 </ul>
 </li>
 </ul>
