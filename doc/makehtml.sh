@@ -1,6 +1,6 @@
 #!/bin/bash 
 
-export PYTHONPATH=../:../lib:$(find ../lib -name *.egg)
+export PYTHONPATH=../:../lib
 
 sphinx-apidoc -f -o "source/api" "../"
 
