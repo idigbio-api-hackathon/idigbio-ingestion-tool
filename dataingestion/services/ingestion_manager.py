@@ -16,12 +16,13 @@ from threading import enumerate as threading_enumerate, Thread
 from time import sleep
 from sys import exc_info
 from os.path import isdir, join
+import re
 from traceback import format_exception
 from errno import ENOENT
 from dataingestion.services.api_client import ClientException, Connection
 from dataingestion.services import model
 from dataingestion.services import user_config
-from dataingestion.services import idigbio_metadata
+from dataingestion.services import constants
 
 logger = logging.getLogger('iDigBioSvc.ingestion_manager')
 
@@ -257,7 +258,7 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
                 idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]
                 provider_id = idprefix + idsuffix
                 license_key = user_config.get_user_config('imagelicense')
-                license_ = idigbio_metadata.IMAGE_LICENSES[license_key]
+                license_ = constants.IMAGE_LICENSES[license_key]
                 owner_uuid = user_config.try_get_user_config('owneruuid')
                 
                 record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, license_, owner_uuid)
@@ -307,8 +308,11 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
             error_queue.put('Local file %s not found' % repr(path))
 
     def _upload_dir(dir_path):
+        allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
         for dirpath, _dirnames, filenames in os.walk(dir_path):
             for filename in filenames:
+                if not allowed_files.match(filename):
+                    continue
                 subpath = join(dirpath, filename)
                 object_queue.put({'path': subpath})
                 fn = partial(ongoing_upload_task.increment, 'total_count')

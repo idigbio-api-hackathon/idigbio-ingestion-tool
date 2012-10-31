@@ -5,3 +5,8 @@ IMAGE_LICENSES = {
     "CC BY-NC": ["CC BY-NC", "(Attribution-Non-Commercial)", "http://creativecommons.org/licenses/by-nc/3.0/", "http://mirrors.creativecommons.org/presskit/buttons/80x15/png/by-nc.png"],
     "CC BY-NC-SA": ["CC BY-NC-SA", "(Attribution-NonCommercial-ShareAlike)", "http://creativecommons.org/licenses/by-nc-sa/3.0/", "http://mirrors.creativecommons.org/presskit/buttons/80x15/png/by-nc-sa.png"]
 };
+
+ALLOWED_FILES = '(.*?)\.(jpg|jpeg|tiff)$'
+'''
+Regex of allowed files. Will be matched case-insensitively.
+'''
