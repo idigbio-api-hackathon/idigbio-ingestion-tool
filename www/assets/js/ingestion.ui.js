@@ -1,5 +1,5 @@
 $(function() {
-    
+
     checkAuthentication();
     
     // Certain UI components will be disabled if JS is. This overrides the css
@@ -8,7 +8,6 @@ $(function() {
     if ($(".js-required").hasClass('hidden')) {
         $('#unsupported-browser-msg').show();
     }
-});
 });
 
 var IMAGE_LICENSES = {
@@ -124,7 +123,9 @@ initPreferencePane = function() {
 
 
 checkAuthentication = function() {
+    blockUI();
     $.getJSON('/services/auth', function(data) {
+        $.unblockUI();
         if (!data) {
             initLoginModal();
         } else {
@@ -132,21 +133,73 @@ checkAuthentication = function() {
         }
     })
     .error(function(data) {
-       $('#serviceErrorModal').modal();
+        $.unblockUI();
+        $('#serviceErrorModal').modal();
     });
+}
+
+blockUI = function() {
+    var div = document.createElement("div");
+    var throb = new Throbber({
+        color: 'white',
+        padding: 30,
+        size: 100,
+        fade: 200,
+        clockwise: false
+    }).appendTo(div).start();
+    $.blockUI.defaults.css = {}; 
+    $.blockUI({ 
+        message: div
+     });
 }
 
 initLoginModal = function() {
     $('#loginModal').modal();
+
+    $('#login-form').validate({
+        onkeyup: false,
+        errorElement:'span',
+        errorClass:'help-inline',
+        highlight: function(element, errorClass, validClass) {
+            $(element).closest('.control-group').addClass('error');
+        },
+        unhighlight: function (element, errorClass, validClass) { 
+            $(element).parents(".error").removeClass('error');
+        },
+        rules: {
+            accountuuid: {
+                rangelength: [32, 36],
+                required: true
+            },
+            apikey: {
+                rangelength: [32, 36],
+                required: true
+            }
+        }
+    });
     
     $('#login-button').click(function(event) {
         event.preventDefault();
+        if ($('#login-button').attr('disabled')) {
+            return;
+        }
+
+        if (!$('#login-form').valid()) {
+            return;
+        }
         
-        var accountuuid = $("#account-uuid").val();
-        var apikey = $("#api-key").val();
-        
+        var accountuuid = $("#accountuuid").val();
+        var apikey = $("#apikey").val();
+
+        $('#login-button').attr('disabled', true);
+        $('#login-button').addClass('disabled');
+        new Throbber({
+            color: '#005580',
+            size: 20
+        }).appendTo($('#login-error')[0]).start();
+
         $.post('/services/auth', { user: accountuuid, password: apikey }, function(data) {
-            $('#login-form').removeClass('error');
+            $('#login-form > .control-group').removeClass('error');
             $('#login-error').addClass('hide');
 
             $('#loginModal').modal('hide');
@@ -155,10 +208,12 @@ initLoginModal = function() {
         .error(function(err) {
             if (err.status == 409) {
                 $('#login-error').html('Wrong Account UUID and API Key combination..');
+                $('#login-button').attr('disabled', false);
+                $('#login-button').removeClass('disabled');
             } else {
-                $('#login-error').html('iDigBio service unavailable. Please come back later.');
+                $('#login-error').html('Cannot sign in due to iDigBio service unavailable. Please come back later.');
             }
-            $('#login-form').addClass('error');
+            $('#login-form > .control-group').addClass('error');
             $('#login-error').removeClass('hide');
         });
     });
@@ -264,7 +319,7 @@ showLastBatchInfo = function() {
                 postUpload("retry");
             });
         } else {
-            var msg = "<strong>Welcome!</strong> BTW, you last upload was successful."
+            var msg = "<strong>Welcome!</strong> BTW, your last upload was successful."
             showAlert(msg, "", "alert-success")
         }
     }, "json");

@@ -61,11 +61,23 @@
           <p>Before you can use this application, you first need to sign in using the iDigBio API Account UUID and the API key. 
             After you sign in, this combination will be saved by the application for your future use.
           </p>
-          <div id="login-form" class="control-group">
-            <input id="account-uuid" class="input-large" type="text" placeholder="Account UUID">
-            <input id="api-key" class="input-large" type="password" placeholder="API Key">
-            <span id="login-error" class="help-block hide"></span>
-          </div>
+          <form id="login-form" class="form-horizontal">
+            <div class="control-group">
+              <label class="control-label" for="accountuuid">Account UUID</label>
+              <div class="controls">
+                <input id="accountuuid" name="accountuuid" class="input-large" type="text" placeholder="Account UUID">
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="apikey">API Key</label>
+              <div class="controls">
+                <input id="apikey" name="apikey" class="input-large" type="password" placeholder="API Key">
+              </div>
+            </div>
+            <div class="control-group">
+              <span id="login-error" class="help-block"></span>
+            </div>
+          </form>
         </div>
         <div class="modal-footer">
           By clicking the button, you agree to our
@@ -242,6 +254,8 @@
     ================================================== -->
     <script src="assets/js/jquery.js"></script>
     <script src="assets/js/jquery.validate.js"></script>
+    <script src="assets/js/jquery.blockUI.js"></script>
+    <script src="assets/js/throbber.js"></script>
     <script src="assets/js/bootstrap.js"></script>
     <script type="text/javascript" charset="utf8" src="assets/js/jquery.cookie.js"></script>
     <!-- DataTables -->

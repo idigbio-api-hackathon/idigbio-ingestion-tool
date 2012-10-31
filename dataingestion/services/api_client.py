@@ -148,7 +148,7 @@ def authenticate(user, key):
         req = urllib2.Request(url, '{ "idigbio:data": { } }', {'Content-Type': 'application/json'})
         base64string = base64.encodestring('%s:%s' % (user, key)).replace('\n', '')
         req.add_header("Authorization", "Basic %s" % base64string)
-        urllib2.urlopen(req, timeout=3)
+        urllib2.urlopen(req, timeout=10)
         logger.debug("Successfully logged in.")
         auth_string = base64string
         return True
