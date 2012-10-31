@@ -117,47 +117,41 @@
             </div>
             <div id="collapseOne" class="accordion-body collapse">
               <div class="accordion-inner">
-                <form id="settings-form">
-                <!-- Row 1 of settings. -->
-                <div class="row-fluid">
-                  <div class='span6'>
-                    <input type="hidden" id="imagelicense" />
-                    <div class="btn-group">
-                      <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="license-selector">
-                        Image License 
-                        <span class="caret"></span>
-                      </a>
-                      <ul id="license-dropdown" class="dropdown-menu"></ul>
+                <form id="settings-form" class="form-horizontal">
+
+                  <!-- 1. -->
+                  <div class="control-group">
+                    <label class="control-label" for="license-dropdown">Image <a href="http://creativecommons.org/licenses/" target="_blank">License</a></label>
+                    <div class="controls controls-row">
+                      <select id="license-dropdown" class="span4"></select>
                     </div>
                   </div>
-                  <div class='span6'>
-                    <input type="text" data-provide="typeahead" class="input-block-level"
+
+                  <div class="control-group">
+                    <label class="control-label" for="owneruuid">Organization UUID</label>
+                    <div class="controls controls-row">
+                      <input type="text" data-provide="typeahead" class="span4"
                       id="owneruuid" placeholder="Organization UUID (optional)" rel="tooltip"
                       data-title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
                   </div>
                 </div>
 
-                <!-- Row 2 of settings. -->
-                <div class="row-fluid">
-                  <div class='span6'>
-                    <input type="hidden" id="idsyntax" />
-                    <div class="btn-group">
-                      <a class="btn btn-block dropdown-toggle" data-toggle="dropdown" href="#" id="idsyntax-selector">
-                        GUID Construction Syntax
-                        <span class="caret"></span>
-                      </a>
-                      <ul id="idsyntax-dropdown" class="dropdown-menu"></ul>
+                  <div class="control-group">
+                    <label class="control-label" for="idsyntax-dropdown">GUID Syntax</label>
+                    <div class="controls controls-row">
+                      <select id="idsyntax-dropdown" class="span4"></select>
                     </div>
                   </div>
                   
-                  <div class='span6'>
                     <div class="control-group">
-                      <input type="text" data-provide="typeahead" class="input-block-level"
+                    <label class="control-label" for="idprefix">GUID Prefix</label>
+                    <div class="controls controls-row">
+                      <input type="text" data-provide="typeahead" class="span4"
                         id="idprefix" name="idprefix" placeholder="GUID Prefix"
                         rel="tooltip" data-title='e.g. http://ids.flmnh.ufl.edu/herb/'>
                     </div>
                   </div>
-                </div>
+
                 </form>
               </div>
             </div> <!-- / collapseOne -->

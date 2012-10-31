@@ -17,8 +17,8 @@ var IMAGE_LICENSES = {
 };
 
 var GUID_SYNTAXES = {
-    "full-path": "{GUID Prefix}/{File Name}",
-    "filename": "{GUID Prefix}/{Full Path}"
+    "filename": "{GUID Prefix}/{File Name}",
+    "full-path": "{GUID Prefix}/{Full Path}"
 }
 
 initMainUI = function() {
@@ -47,13 +47,14 @@ initPreferencePane = function() {
     });
 
     $('#settings-form').validate({
-        ignore: "",
-        onfocusout: false,
         onkeyup: false,
-        onsubmit: false,
-        errorPlacement: function(error, element) {},
-        highlight: function(label) {
-            //$(label).closest('.control-group').addClass('error');
+        errorElement:'span',
+        errorClass:'help-inline',
+        highlight: function(element, errorClass, validClass) {
+            $(element).closest('.control-group').addClass('error');
+        },
+        unhighlight: function (element, errorClass, validClass) { 
+            $(element).parents(".error").removeClass('error');
         },
         rules: {
             idprefix: {
@@ -72,8 +73,6 @@ initPreferencePane = function() {
     $('#collapseOne').on('hidden', function (e) {
         if (!$('#settings-form').valid()) {
             $('#collapseOne').collapse('show');
-
-            showAlert('You must set all non-optional preferences to continue.');
         }
     });
 
@@ -96,8 +95,7 @@ initPreferencePane = function() {
 
     getPreference('imagelicense', function(val) {
         if (val) {
-            $('#imagelicense').val(val);
-            $("#license-selector").html(["License: ", IMAGE_LICENSES[val][0], " <span class=\"caret\"></span> "].join(""));
+            $('#license-dropdown').val(val);
         }
         hideAndShowPanes();
     });
@@ -105,8 +103,7 @@ initPreferencePane = function() {
 
     getPreference('idsyntax', function(val) {
         if (val) {
-            $('#idsyntax').val(val);
-            $("#idsyntax-selector").html(["Use: ", GUID_SYNTAXES[val], " <span class=\"caret\"></span> "].join(""));
+            $('#idsyntax-dropdown').val(val);
         }
         hideAndShowPanes();
     });
@@ -166,18 +163,14 @@ initLoginModal = function() {
 
 initLicenseSelector = function() {
     $.each(IMAGE_LICENSES, function(key, value) {
-        var li = ["<li><a name=\"", key, "\" href=\"#\">", value[0], " ", 
-            value[1], "</a><a href=\"", value[2], 
-            "\" target=\"_blank\">definition</a></li>"].join("");
-        $("#license-dropdown").append(li);
+        var option = ["<option value=\"", key, "\">", value[0], " ", 
+            value[1], "</option>"].join("");
+        $("#license-dropdown").append(option);
     });
     
-    $("#license-dropdown li a[name]").click(function(e) {
-        e.preventDefault();
-        var licenseName = $(e.target)[0].name;
-        $("#imagelicense").val(licenseName);
+    $("#license-dropdown").change(function(e) {
+        var licenseName = $("#license-dropdown").val();
         var license = IMAGE_LICENSES[licenseName];
-        $("#license-selector").html(["License: ", license[0], " <span class=\"caret\"></span> "].join(""));
         showAlert(["The pictures will be uploaded under the terms of the ", 
                 license[0], " ", license[1], " license (see <a href=\"", license[2], 
                 "\" target=\"_blank\">definition</a>)."].join(""), 
@@ -188,20 +181,12 @@ initLicenseSelector = function() {
 
 initIDSyntaxSelector = function() {
     $.each(GUID_SYNTAXES, function(key, value) {
-        var li = ["<li><a name=\"", key, "\" href=\"#\">", value, "</a></li>"].join("");
-        $("#idsyntax-dropdown").append(li);
+        var option = ["<option value=\"", key, "\">", value, "</option>"].join("");
+        $("#idsyntax-dropdown").append(option);
     });
     
-    $("#idsyntax-dropdown li a[name]").click(function(e) {
-        e.preventDefault();
-        if ($("#idsyntax-selector").hasClass("disabled")) {
-            // This dropdown could be temporarily disbled when an ongoing upload
-            // is in progress.
-            return;
-        }
-        var syntaxName = $(e.target)[0].name;
-        $("#idsyntax").val(syntaxName);
-        $("#idsyntax-selector").html(["Use: ", GUID_SYNTAXES[syntaxName], " <span class=\"caret\"></span> "].join(""));
+    $("#idsyntax-dropdown").change(function(e) {
+        var syntaxName = $("#idsyntax-dropdown").val();
         setPreference('idsyntax', syntaxName);
     });
 }
