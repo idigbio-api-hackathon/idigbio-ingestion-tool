@@ -48,6 +48,10 @@ initPreferencePane = function() {
         setPreference('owneruuid', $(this).val());
     });
 
+    $.validator.addMethod("notrailingslash", function(value, element) { 
+      return value.indexOf('/', value.length - 1) == -1;
+    }, "Please avoid using a trailing slash.");
+
     $('#settings-form').validate({
         onkeyup: false,
         errorElement:'span',
@@ -61,6 +65,7 @@ initPreferencePane = function() {
         rules: {
             idprefix: {
                 minlength: 3,
+                notrailingslash: true,
                 required: true
             },
             idsyntax: {

@@ -256,7 +256,7 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
                 idsyntax = user_config.get_user_config('idsyntax')
                 idprefix = user_config.get_user_config('idprefix')
                 idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]
-                provider_id = idprefix + idsuffix
+                provider_id = idprefix + '/' + idsuffix
                 license_key = user_config.get_user_config('imagelicense')
                 license_ = constants.IMAGE_LICENSES[license_key]
                 owner_uuid = user_config.try_get_user_config('owneruuid')

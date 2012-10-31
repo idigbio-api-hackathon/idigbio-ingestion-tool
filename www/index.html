@@ -141,7 +141,10 @@
                   <div class="control-group">
                     <label class="control-label" for="license-dropdown">Image <a href="http://creativecommons.org/licenses/" target="_blank">License</a></label>
                     <div class="controls controls-row">
-                      <select id="license-dropdown" class="span4"></select>
+                      <select id="license-dropdown" name="imagelicense" class="span4" rel="tooltip"
+                      data-title='Select the license you want to associate with the images you upload.'>
+                        <option value=""></option>
+                      </select>
                     </div>
                   </div>
 
@@ -157,7 +160,10 @@
                   <div class="control-group">
                     <label class="control-label" for="idsyntax-dropdown">GUID Syntax</label>
                     <div class="controls controls-row">
-                      <select id="idsyntax-dropdown" class="span4"></select>
+                      <select id="idsyntax-dropdown" name="idsyntax" class="span4" rel="tooltip"
+                        data-title='Select the way to construct a GUID of the media record for each image.'>
+                        <option value=""></option>
+                      </select>
                     </div>
                   </div>
 
@@ -166,7 +172,7 @@
                     <div class="controls controls-row">
                       <input type="text" data-provide="typeahead" class="span4"
                         id="idprefix" name="idprefix" placeholder="GUID Prefix"
-                        rel="tooltip" data-title='e.g. http://ids.flmnh.ufl.edu/herb/'>
+                        rel="tooltip" data-title='This is the prefix used with the "GUID Syntax". e.g. http://ids.flmnh.ufl.edu/herb'>
                     </div>
                   </div>
 
