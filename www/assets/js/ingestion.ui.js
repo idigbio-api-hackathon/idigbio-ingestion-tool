@@ -1,11 +1,14 @@
 $(function() {
     
-
     checkAuthentication();
     
     // Certain UI components will be disabled if JS is. This overrides the css
     // that hides them (ingestion.ui.css), making sure they are shown.
-    $(".js-required").css("display", "inherit");
+    $(".js-required").not('.hidden').css("display", "inherit");
+    if ($(".js-required").hasClass('hidden')) {
+        $('#unsupported-browser-msg').show();
+    }
+});
 });
 
 var IMAGE_LICENSES = {

@@ -104,8 +104,13 @@
       </div>
 
       <!-- Main form used to post path to the service -->
+      <!--[if lt IE 7 ]> <div id="upload-dashboard" class="hidden js-required"> <![endif]-->
+      <!--[if IE 7 ]>    <div id="upload-dashboard" class="hidden js-required"> <![endif]-->
+      <!--[if IE 8 ]>    <div id="upload-dashboard" class="hidden js-required"> <![endif]-->
+      <!--[if IE 9 ]>    <div id="upload-dashboard" class="hidden js-required"> <![endif]-->
+      <!--[if (gte IE 10)|!(IE)]><!-->
       <div id="upload-dashboard" class="js-required">
-
+      <!--<![endif]-->
         <!-- Row 1. The control panel. -->
         <div class="accordion row" id="accordion2">
           <!-- Settings panel. -->
@@ -131,10 +136,10 @@
                     <label class="control-label" for="owneruuid">Organization UUID</label>
                     <div class="controls controls-row">
                       <input type="text" data-provide="typeahead" class="span4"
-                      id="owneruuid" placeholder="Organization UUID (optional)" rel="tooltip"
-                      data-title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
+                        id="owneruuid" placeholder="Organization UUID (optional)" rel="tooltip"
+                        data-title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
+                    </div>
                   </div>
-                </div>
 
                   <div class="control-group">
                     <label class="control-label" for="idsyntax-dropdown">GUID Syntax</label>
@@ -142,8 +147,8 @@
                       <select id="idsyntax-dropdown" class="span4"></select>
                     </div>
                   </div>
-                  
-                    <div class="control-group">
+
+                  <div class="control-group">
                     <label class="control-label" for="idprefix">GUID Prefix</label>
                     <div class="controls controls-row">
                       <input type="text" data-provide="typeahead" class="span4"
@@ -212,10 +217,19 @@
       
       <noscript>
         <p class="text-centered">
-          This software makes heavy use of JavaScript. You must enable
+          This application makes heavy use of JavaScript. You must enable
           JavaScript to use this tool.
         </p>
       </noscript>
+
+      <div id="unsupported-browser-msg" style="display: none">
+        <p class="text-centered">
+          This application requires functionality that is not supported by your browser.
+          Supported browsers include IE 10, recent verions of Chrome, Safari, Firefox and Opera.
+          To use a supported browser with this application, you may either set it as your system's 
+          default browser or simply copy the URL of this page and paste it into its address bar.
+        </p>
+      </div>
       <hr>
 
       <footer class="text-centered">
