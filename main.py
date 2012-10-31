@@ -118,10 +118,10 @@ def main(argv):
         print("Starting the iDigBio Data Ingestion Tool...")
         try:
             import webbrowser
-            webbrowser.open("http://127.0.0.1:8080")
+            webbrowser.open("http://127.0.0.1:{0}".format(cherrypy.config['server.socket_port']))
         except ImportError:
             # Gracefully fall back
-            print("Open http://127.0.0.1:8080 in your webbrowser.")
+            print("Open http://127.0.0.1:{0} in your webbrowser.".format(cherrypy.config['server.socket_port']))
         print("Close this window or hit ctrl+c to stop the local iDigBio Data "
               "Ingestion Tool.")
     engine.block()
