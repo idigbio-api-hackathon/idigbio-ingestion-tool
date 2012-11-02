@@ -1,16 +1,9 @@
 Overview
 ========
-This is a Python-based application for ingesting data into the iDigBio storage cloud.
+This is a Python-based application for ingesting images into the iDigBio storage cloud.
 
-Run the Application from Command Line
-=====================================
-cd into directory ``<RepoRoot>/pyweb`` and type ``./main.py``.
+Documentation
+=============
+Documentation for this application is hosted on `Github <https://github.com/iDigBio/idigbio-ingestion-tool/wiki>`_.
 
-Terminate the Application
--------------------------
-``Ctrl-C``.
-
-External Dependencies
-=====================
-Currently this application requires installation of Python 2.7, CherryPy, Jinja2 and SQLAlchemy.
-These dependencies won't be necessary with the operating system specific bundles that we'll soon release.
+.. image:: https://www.idigbio.org/sites/all/themes/idigbio_org/logo.png
