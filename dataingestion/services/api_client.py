@@ -57,14 +57,13 @@ def _post_recordset():
                               reason=str(e), url=url)
     return response['idigbio:uuid']
 
-def _post_mediarecord(recordset_uuid, path, provider_id, license_, owner_uuid=None):
+def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner_uuid=None):
     data = {"idigbio:data": {"ac:variant": "IngestionTool", 
-                             "xmpRights:UsageTerms": license_[0],
-                             "xmpRights:WebStatement": license_[2],
-                             "ac:licenseLogoURL": license_[3],
                              "idigbio:localpath": path,
+                             "idigbio:mediaGUID": provider_id,
                              "idigbio:relationships": {"recordset": recordset_uuid}},
             "idigbio:providerId": provider_id }
+    data["idigbio:data"] = dict(data["idigbio:data"].items() + idigbio_metadata.items())
     
     if owner_uuid:
         data["idigbio:data"]["idigbio:relationships"]["owner"] = owner_uuid
@@ -265,10 +264,10 @@ class Connection(object):
     def post_recordset(self):
         return self._retry(None, _post_recordset)
     
-    def post_mediarecord(self, recordset_uuid, path, provider_id, license_, 
+    def post_mediarecord(self, recordset_uuid, path, provider_id, idigbio_metadata, 
                          owner_uuid=None):
         return self._retry(None, _post_mediarecord, recordset_uuid, path, 
-                           provider_id, license_, owner_uuid)
+                           provider_id, idigbio_metadata, owner_uuid)
     
     def post_media(self, local_path, entity_uuid):
         return self._retry(None, _post_media, local_path, entity_uuid)

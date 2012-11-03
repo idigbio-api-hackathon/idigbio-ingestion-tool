@@ -226,6 +226,22 @@ def exec_upload_task(root_path=None, resume=False):
         # Reset of singleton task in the module.
         ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
 
+
+def make_idigbio_metadata(path):
+    metadata = {}
+
+    license_key = user_config.get_user_config('imagelicense')
+
+    license_ = constants.IMAGE_LICENSES[license_key]
+    metadata["xmpRights:usageTerms"] = license_[0]
+    metadata["xmpRights:webStatement"] = license_[2]
+    metadata["ac:licenseLogoURL"] = license_[3]
+    # The suffix has already been checked so that extension must be in the 
+    # dictionary.
+    extension = os.path.splitext(path)[1].lstrip('.')
+    metadata["idigbio:mediaType"] = constants.EXTENSION_MEDIA_TYPES[extension]
+    return metadata
+
 def _upload(ongoing_upload_task, root_path=None, resume=False):
     """
     This method returns when all file upload tasks have been executed.
@@ -257,11 +273,10 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
                 idprefix = user_config.get_user_config('idprefix')
                 idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]
                 provider_id = idprefix + '/' + idsuffix
-                license_key = user_config.get_user_config('imagelicense')
-                license_ = constants.IMAGE_LICENSES[license_key]
                 owner_uuid = user_config.try_get_user_config('owneruuid')
-                
-                record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, license_, owner_uuid)
+
+                metadata = make_idigbio_metadata(path)
+                record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, metadata, owner_uuid)
                 image_record.mr_uuid = record_uuid
 
             # Post image to API.

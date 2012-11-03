@@ -6,7 +6,14 @@ IMAGE_LICENSES = {
     "CC BY-NC-SA": ["CC BY-NC-SA", "(Attribution-NonCommercial-ShareAlike)", "http://creativecommons.org/licenses/by-nc-sa/3.0/", "http://mirrors.creativecommons.org/presskit/buttons/80x15/png/by-nc-sa.png"]
 };
 
-ALLOWED_FILES = '(.*?)\.(jpg|jpeg|tiff)$'
+ALLOWED_FILES = '(.*?)\.(jpg|jpeg|tiff|tif)$'
 '''
 Regex of allowed files. Will be matched case-insensitively.
 '''
+
+EXTENSION_MEDIA_TYPES = {
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "tiff": "image/tiff",
+    "tif": "image/tiff",
+}
