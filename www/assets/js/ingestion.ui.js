@@ -31,10 +31,31 @@ initMainUI = function() {
         selector: '[rel=tooltip]'
     });
     
+    $('#upload-form').validate({
+        onfocusout: false,
+        onkeyup: false,
+        onsubmit: false,
+        errorPlacement: function(error, element) {},
+        highlight: function(element) {
+            $(element).closest('.control-group').addClass('error');
+        },
+        unhighlight: function(element) {
+            $(element).closest('.control-group').removeClass('error');
+        },
+        rules: {
+            rootpath: {
+                required: true
+            }
+        }
+    });
+
     $('#upload-form').submit(function(event) {
-        // we want to submit the form using Ajax (prevent page refresh)
         event.preventDefault();
-        postUpload("new")
+        if ($('#upload-form').valid()) {
+            postUpload("new");
+        } else {
+            showAlert('The path cannot be empty.');
+        }
     });
 }
 

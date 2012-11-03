@@ -44,7 +44,7 @@
           <div class="nav-collapse">
             <ul class="nav">
               <li class="active"><a href="/">Home</a></li>
-              <li><a target="_blank" href="http://www.idigbio.org">About</a></li>
+              <li><a target="_blank" href="https://github.com/iDigBio/idigbio-ingestion-tool/wiki">Docs</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -191,18 +191,20 @@
             <div id="collapseTwo" class="accordion-body collapse">
               <div class="accordion-inner">
                 <form id='upload-form'>
-                  <div class="row-fluid">
-                    <div class='span9'>
-                        <input type="text" data-provide="typeahead" class="input-block-level"
-                          id="root-path" placeholder="Paste the image folder path&hellip;"
-                          rel="tooltip"
-                          data-title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
-                    </div>
-                    <div class='span3'>
-                      <button id="upload-button" type="submit"  class="btn btn-primary btn-block">
-                        <i class="icon-upload icon-white"></i>
-                        <span>Upload</span>
-                      </button>
+                  <div class="control-group">
+                    <div class="row-fluid">
+                      <div class='span9'>
+                          <input type="text" data-provide="typeahead" class="input-block-level"
+                            id="root-path" placeholder="Paste the image folder path&hellip;"
+                            rel="tooltip" name="rootpath"
+                            data-title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
+                      </div>
+                      <div class='span3'>
+                        <button id="upload-button" type="submit"  class="btn btn-primary btn-block">
+                          <i class="icon-upload icon-white"></i>
+                          <span>Upload</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </form>
