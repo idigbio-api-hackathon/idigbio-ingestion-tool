@@ -321,7 +321,7 @@ postUpload = function(action) {
         $.post('/services', callback, 'json')
         .error(function(data) {
             var errMsg = "<strong>Error! </strong>" + data.responseText;
-            showAlert(errMsg)
+            showAlert(errMsg);
         });
     }
 }
@@ -338,7 +338,7 @@ showLastBatchInfo = function() {
             batch.root, " which started at ", start_time,
             ' was not entirely successful.</p>'].join("");
             var extra = '<p><button id="retry-button" type="submit" class="btn btn-warning">Retry failed uploads</button></p>';
-            showAlert(errMsg, extra, "alert-warning")
+            showAlert(errMsg, extra, "alert-warning");
             $("#retry-button").click(function(event) {
                 event.preventDefault();
                 $("#upload-alert").alert('close');
@@ -346,7 +346,7 @@ showLastBatchInfo = function() {
             });
         } else {
             var msg = "<strong>Welcome!</strong> BTW, your last upload was successful."
-            showAlert(msg, "", "alert-success")
+            showAlert(msg, "", "alert-success");
         }
     }, "json");
 }
@@ -372,7 +372,7 @@ showAlert = function(message, additionalElement, alertType, container) {
     $(container).html(alert_html);
     $("#upload-alert").show();
     $("#upload-alert").addClass('in');
-    $("#upload-alert").addClass(alertType)
+    $("#upload-alert").addClass(alertType);
     $("#alert-text").html(message);
     $("#alert-extra").html(additionalElement);
 }
@@ -393,7 +393,7 @@ updateProgress = function() {
              ", Total to upload: " + progressObj.total,
              ")"].join(""));
         
-        $("#upload-progressbar").width(progress + '%')
+        $("#upload-progressbar").width(progress + '%');
         
         if (progressObj.finished) {
             $(".progress-primary").toggleClass('active');
@@ -421,7 +421,7 @@ updateProgress = function() {
                         "Please check the folder and network connection and ",
                         "retry it by clicking the 'Upload' button."].join("");
                 }
-                showAlert(errMsg, extra, "alert-warning")
+                showAlert(errMsg, extra, "alert-warning");
                 $("#retry-button").click(function(event) {
                     event.preventDefault();
                     $("#upload-alert").alert('close');
@@ -437,7 +437,7 @@ updateProgress = function() {
             return;
         }
         
-        setTimeout("updateProgress()", 4000)
+        setTimeout("updateProgress()", 4000);
     });
 }
 
