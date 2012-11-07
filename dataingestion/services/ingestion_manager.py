@@ -238,7 +238,7 @@ def make_idigbio_metadata(path):
     metadata["ac:licenseLogoURL"] = license_[3]
     # The suffix has already been checked so that extension must be in the 
     # dictionary.
-    extension = os.path.splitext(path)[1].lstrip('.')
+    extension = os.path.splitext(path)[1].lstrip('.').lower()
     metadata["idigbio:mediaType"] = constants.EXTENSION_MEDIA_TYPES[extension]
     return metadata
 
