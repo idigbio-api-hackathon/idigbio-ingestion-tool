@@ -227,7 +227,7 @@ def exec_upload_task(root_path=None, resume=False):
         ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
 
 
-def make_idigbio_metadata(path):
+def _make_idigbio_metadata(path):
     metadata = {}
 
     license_key = user_config.get_user_config('imagelicense')
@@ -241,6 +241,23 @@ def make_idigbio_metadata(path):
     extension = os.path.splitext(path)[1].lstrip('.').lower()
     metadata["idigbio:mediaType"] = constants.EXTENSION_MEDIA_TYPES[extension]
     return metadata
+
+def _make_provider_id(path):
+    idsyntax = user_config.get_user_config('idsyntax')
+    idprefix = user_config.get_user_config('idprefix')
+
+    # The path should exist on the disk, which is verified in previous steps.
+    if os.path.isfile(path):
+        # For file -> media record
+        idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]        
+    else:
+        # For directory -> record set
+        idsuffix = path if idsyntax == 'full-path' else ""
+
+    provider_id = idprefix + '/' + idsuffix
+
+    return provider_id
+
 
 def _upload(ongoing_upload_task, root_path=None, resume=False):
     """
@@ -269,13 +286,10 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
 
             # Post mediarecord if necesssary.
             if image_record.mr_uuid is None:
-                idsyntax = user_config.get_user_config('idsyntax')
-                idprefix = user_config.get_user_config('idprefix')
-                idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]
-                provider_id = idprefix + '/' + idsuffix
+                provider_id = _make_provider_id(path)
                 owner_uuid = user_config.try_get_user_config('owneruuid')
 
-                metadata = make_idigbio_metadata(path)
+                metadata = _make_idigbio_metadata(path)
                 record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, metadata, owner_uuid)
                 image_record.mr_uuid = record_uuid
 
@@ -344,7 +358,8 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
             root_path = batch.root
             recordset_uuid = batch.recordset_uuid
         elif root_path:
-            recordset_uuid = conn.post_recordset()
+            provider_id = _make_provider_id(root_path)
+            recordset_uuid = conn.post_recordset(provider_id)
             batch = model.add_upload_batch(root_path, recordset_uuid)
             model.commit()
         else:

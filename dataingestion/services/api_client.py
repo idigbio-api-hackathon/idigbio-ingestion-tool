@@ -39,10 +39,9 @@ def build_url(collection, entity_uuid=None, subcollection=None):
     return ret
 
 
-def _post_recordset():
-    providerid = str(uuid.uuid4())
+def _post_recordset(provider_id):
     data = {"idigbio:data": {"ac:variant": "IngestionTool"},
-            "idigbio:providerId": providerid}
+            "idigbio:providerId": provider_id}
     url = build_url("recordsets")
     logger.debug("POSTing recordset. POST URL: %s" % url)
     try:
@@ -51,7 +50,7 @@ def _post_recordset():
         raise ClientException("Failed to POST the recordset to server.",
                               url=url, http_status=e.code, 
                               http_response_content=e.read(),
-                              reason=providerid)
+                              reason=provider_id)
     except (urllib2.URLError, socket.error, HTTPException) as e:
         raise ClientException("{0} caught while POSTing the recordset.".format(type(e)),
                               reason=str(e), url=url)
@@ -106,6 +105,7 @@ def _post_json(url, obj):
     :returns: the reponse JSON object.
     """
     content = json.dumps(obj, separators=(',',':'))
+    #logger.debug("API request for {0}: {1}".format(url, content))
     req = urllib2.Request(url, content, {'Content-Type': 'application/json'})
     req.add_header("Authorization", "Basic %s" % auth_string)
     r = urllib2.urlopen(req, timeout=TIMEOUT)
@@ -261,8 +261,8 @@ class Connection(object):
             if reset_func:
                 reset_func(func, *args, **kwargs)
                 
-    def post_recordset(self):
-        return self._retry(None, _post_recordset)
+    def post_recordset(self, provider_id):
+        return self._retry(None, _post_recordset, provider_id)
     
     def post_mediarecord(self, recordset_uuid, path, provider_id, idigbio_metadata, 
                          owner_uuid=None):
