@@ -28,10 +28,13 @@ def init(api_ep):
 TIMEOUT = 5
 
 def build_url(collection, entity_uuid=None, subcollection=None):
-    assert api_endpoint
+    assert api_endpoint    
     
     if entity_uuid is None:
-        ret = "%s/%s/" % (api_endpoint, collection)
+        ape = api_endpoint
+        if collection == "check":
+            ape = "/".join(api_endpoint.split("/")[:-1])
+        ret = "%s/%s/" % (ape, collection)
     elif subcollection is None:
         ret = "%s/%s/%s/" % (api_endpoint, collection, entity_uuid)
     else:
