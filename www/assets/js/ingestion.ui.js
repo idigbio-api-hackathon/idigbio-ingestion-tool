@@ -255,7 +255,7 @@ initLicenseSelector = function() {
     $("#license-dropdown").change(function(e) {
         var licenseName = $("#license-dropdown").val();
         var license = IMAGE_LICENSES[licenseName];
-        showAlert(["The pictures will be uploaded under the terms of the ", 
+        showAlert(["The images will be uploaded under the terms of the ", 
                 license[0], " ", license[1], " license (see <a href=\"", license[2], 
                 "\" target=\"_blank\">definition</a>)."].join(""), 
             null, "alert-info");
