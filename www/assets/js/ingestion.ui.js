@@ -30,6 +30,10 @@ initMainUI = function() {
     $("body").tooltip({
         selector: '[rel=tooltip]'
     });
+
+    $('#logout-checkbox').change(function(e) {
+        setPreference('logoutafterexit', $(e.target).is(':checked'));
+    });
     
     $('#upload-form').validate({
         onfocusout: false,

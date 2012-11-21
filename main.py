@@ -6,6 +6,7 @@
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 from os.path import join, exists
 import sys, os, logging, site
+import atexit
 import logging.handlers
 from datetime import datetime
 import argparse
@@ -93,10 +94,9 @@ def main(argv):
     if not exists(data_folder):
         os.makedirs(data_folder)
     db_file = join(data_folder, "idigbio.ingest.db")
-    if args.newdb and exists(db_file):
-        move_to = join(data_folder, "idigbio.ingest." + datetime.now().strftime("%Y-%b-%d_%H-%M-%S") + ".db")
-        shutil.move(db_file, move_to)
-        cherrypy.log.error("Creating a new db. Moved the old DB to {0}".format(move_to), "main")
+    if args.newdb:
+        _move_db(data_folder, db_file)
+        cherrypy.log.error("Creating a new DB file.", "main")
 
     cherrypy.log.error("Use DB file: {0}".format(db_file), "main")
     dataingestion.services.model.setup(db_file)
@@ -111,6 +111,9 @@ def main(argv):
     if hasattr(engine, "console_control_handler"):
         engine.console_control_handler.subscribe()
     cherrypy.log("Starting...", "main")
+
+    atexit.register(_logout_user_if_configured, user_config_path, data_folder, db_file)
+
     engine.start()
     if not debug_mode and not quiet_mode:
         # In a proper run, the text written here will be the only text output
@@ -125,6 +128,19 @@ def main(argv):
         print("Close this window or hit ctrl+c to stop the local iDigBio Data "
               "Ingestion Tool.")
     engine.block()
+
+def _move_db(data_folder, db_file):
+    if exists(db_file):
+        move_to = join(data_folder, "idigbio.ingest." + datetime.now().strftime("%Y-%b-%d_%H-%M-%S") + ".db")
+        shutil.move(db_file, move_to)
+        cherrypy.log.error("Moved the old DB to {0}".format(move_to), "main")
+
+def _logout_user_if_configured(user_config_path, data_folder, db_file):
+    logout = dataingestion.services.user_config.try_get_user_config('logoutafterexit')
+    if logout == 'true':
+        cherrypy.log.error("User chooses to log out after exit. Logging out...", "main")
+        _move_db(data_folder, db_file)
+        os.remove(user_config_path)
 
 if __name__ == '__main__':
     main(sys.argv)
