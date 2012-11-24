@@ -181,6 +181,11 @@ def commit():
     logger.debug("Committing session to DB.")
     session.commit()
 
+def close():
+    global session
+    if session:
+        session.close()
+        session = None
 
 def main():
     parser = argparse.ArgumentParser()

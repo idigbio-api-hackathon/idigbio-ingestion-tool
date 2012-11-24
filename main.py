@@ -131,6 +131,7 @@ def main(argv):
 
 def _move_db(data_folder, db_file):
     if exists(db_file):
+        dataingestion.services.model.close()    
         move_to = join(data_folder, "idigbio.ingest." + datetime.now().strftime("%Y-%b-%d_%H-%M-%S") + ".db")
         shutil.move(db_file, move_to)
         cherrypy.log.error("Moved the old DB to {0}".format(move_to), "main")
