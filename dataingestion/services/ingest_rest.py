@@ -66,6 +66,9 @@ class UserConfig(object):
     def POST(self, name, value):
         ingest_service.set_user_config(name, value)
 
+    def DELETE(self):
+        ingest_service.rm_user_config()
+
 
 class Authentication(object):
     '''

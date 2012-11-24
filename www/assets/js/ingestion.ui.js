@@ -31,8 +31,13 @@ initMainUI = function() {
         selector: '[rel=tooltip]'
     });
 
-    $('#logout-checkbox').change(function(e) {
-        setPreference('logoutafterexit', $(e.target).is(':checked'));
+    $('#logout-btn').click(function(e) {
+        $.ajax({
+            url: "/services/config",
+            type: 'DELETE'
+        }).done(function() {
+            location.reload();
+        });
     });
     
     $('#upload-form').validate({
@@ -300,6 +305,9 @@ postUpload = function(action) {
         
         $("#upload-button").attr('disabled', true);
         $("#upload-button").addClass('disabled');
+
+        $("#logout-btn").attr('disabled', true);
+        $("#logout-btn").addClass('disabled');
                
         // Clean up UI.
         $("#upload-alert").alert('close');
@@ -407,6 +415,9 @@ updateProgress = function() {
             
             $("#upload-button").attr('disabled', false);
             $("#upload-button").removeClass('disabled');
+
+            $("#logout-btn").attr('disabled', false);
+            $("#logout-btn").removeClass('disabled');
             
             if (progressObj.fails > 0 || progressObj.total == 0) {
                 if (progressObj.fails > 0) {

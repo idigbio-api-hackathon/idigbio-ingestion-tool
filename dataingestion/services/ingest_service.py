@@ -13,7 +13,7 @@ import cherrypy
 import Queue, os
 from dataingestion.task_queue import BackgroundTaskQueue
 from dataingestion.services import model, ingestion_manager
-from dataingestion.services.user_config import get_user_config, set_user_config 
+from dataingestion.services.user_config import get_user_config, set_user_config, rm_user_config
 from dataingestion.services import api_client
 
 singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)

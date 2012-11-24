@@ -16,6 +16,11 @@ def get_user_config(name):
 def set_user_config(name, value):
     setattr(config, name, value)
 
+def rm_user_config():
+    if os.path.exists(config.config_file):
+        os.remove(config.config_file)
+    config.config = ConfigParser.ConfigParser()
+
 def try_get_user_config(name):
     try:
         return getattr(config, name)
@@ -30,13 +35,15 @@ class UserConfig(object):
         self.config = ConfigParser.ConfigParser()
         self.config_file = config_file
 
-        if os.path.exists(config_file):
-            self.config.read(config_file)
+    def reload(self):
+        if os.path.exists(self.config_file):
+            self.config.read(self.config_file)
 
         if not self.config.has_section(CONFIG_SECTION):
             self.config.add_section(CONFIG_SECTION)
 
     def __getattr__(self, name):
+        self.reload()
         if self.config.has_option(CONFIG_SECTION, name):
             return self.config.get(CONFIG_SECTION, name)
         else:
