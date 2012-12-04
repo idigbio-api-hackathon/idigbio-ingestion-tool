@@ -19,8 +19,8 @@ var IMAGE_LICENSES = {
 };
 
 var GUID_SYNTAXES = {
-    "filename": "{GUID Prefix}/{File Name}",
-    "full-path": "{GUID Prefix}/{Full Path}"
+    "filename": "GUID = \"{GUID Prefix}/{File Name}\"",
+    "full-path": "GUID = \"{GUID Prefix}/{Full Path}\""
 }
 
 initMainUI = function() {
