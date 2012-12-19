@@ -1,6 +1,6 @@
-================
+=====================================
 iDigBio Data Ingestion Tool Packaging
-================
+=====================================
 
 The build script is currently only for Mac OS X and Windows. To execute it, just
 cd into the proper directory and run::
