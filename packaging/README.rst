@@ -28,5 +28,20 @@ for it::
     rm setuptools-0.6c11-py2.7.egg
     sudo easy_install-2.7 py2app
 
+32-Bit vs 64-Bit
+----------------
+
+A 32-bit application can execute on a 64-bit system, but not vice-versa, so we
+should distribute 32-bit versions of our software primarily.
+
+Because cx_Freeze and py2app copy in the system-wide version of Python, you must
+ensure that you are building everything with 32-bit copies of Python. The OS
+doesn't need to be 32-bit, but all the dependencies should be in 32-bit form.
+
+If you are unsure about compatibility on OS X, you can force it to boot with a
+`32-bit kernel`_. When building with Windows you can test with a 32-bit version
+of the OS.
+
 .. _python.org: http://python.org/
 .. _cx_Freeze: http://cx-freeze.sourceforge.net/
+.. _32-bit kernel: https://support.apple.com/kb/HT3773
