@@ -20,7 +20,7 @@ from cherrypy import engine
 from dataingestion.ui.ingestui import DataIngestionUI
 from dataingestion.services.ingest_rest import DataIngestionService
 import dataingestion.services.model
-import dataingestion.services.user_config
+from dataingestion.services import user_config
 
 APP_NAME = 'iDigBio Data Ingestion Tool'
 APP_AUTHOR = 'iDigBio'
@@ -35,6 +35,7 @@ def main(argv):
     config = ConfigParser.ConfigParser()
     config.read(idigbio_conf_path)
     api_endpoint = config.get('iDigBio', 'idigbio.api_endpoint')
+    disable_startup_service_check = config.get('iDigBio', 'devmode_disable_startup_service_check')
     
     dataingestion.services.api_client.init(api_endpoint)
     cherrypy.config.update(join(current_dir, 'etc', 'http.conf'))
@@ -103,7 +104,8 @@ def main(argv):
     
     # Set up the user config.
     user_config_path = join(data_folder, USER_CONFIG_FILENAME)
-    dataingestion.services.user_config.setup(user_config_path)
+    user_config.setup(user_config_path)
+    user_config.set_user_config('devmode_disable_startup_service_check', disable_startup_service_check)
     
     # Set up/start server.
     if hasattr(engine, "signal_handler"):

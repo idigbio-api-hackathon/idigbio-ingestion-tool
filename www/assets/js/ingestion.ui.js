@@ -1,6 +1,9 @@
 $(function() {
-
-    checkAuthentication();
+    getPreference('devmode_disable_startup_service_check', function(val) {
+        if (val != 'true') {
+            checkAuthentication();   
+        }
+    });
     
     // Certain UI components will be disabled if JS is. This overrides the css
     // that hides them (ingestion.ui.css), making sure they are shown.

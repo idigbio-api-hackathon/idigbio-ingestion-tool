@@ -8,6 +8,7 @@ config = None
 def setup(config_file):
     global config
     config = UserConfig(config_file)
+    config.reload()
 
 def get_user_config(name):
     # TODO: check whether the name is in the allowed list.
