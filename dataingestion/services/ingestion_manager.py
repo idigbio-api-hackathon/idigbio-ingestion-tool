@@ -17,6 +17,7 @@ from time import sleep
 from sys import exc_info
 from os.path import isdir, join
 import re
+import csv
 from traceback import format_exception
 from errno import ENOENT
 from dataingestion.services.api_client import ClientException, Connection
@@ -257,6 +258,132 @@ def _make_provider_id(path):
     provider_id = idprefix + '/' + idsuffix
 
     return provider_id
+
+
+def _upload_csv(csv_path=None, resume=False):
+    object_queue = ongoing_upload_task.object_queue
+    postprocess_queue = ongoing_upload_task.postprocess_queue 
+    error_queue = ongoing_upload_task.error_queue
+
+    def _csv_job(row, conn):
+        # Get items from the CSV row, which is an array.
+        path, providerid = row
+
+        try:
+            # Get the image record
+            image_record = model.add_or_load_image(batch, path)
+            if image_record is None:
+                # Skip this one because it's already uploaded.
+                logger.debug('Skipped file {0}.'.format(path))
+                fn = partial(ongoing_upload_task.increment, 'skips')
+                postprocess_queue.put(fn)
+                return
+
+            # Post mediarecord if necesssary.
+            if image_record.mr_uuid is None:
+                provider_id = providerid
+                owner_uuid = ""
+                metadata = {}
+                record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, metadata, owner_uuid)
+                image_record.mr_uuid = record_uuid
+
+            # Post image to API.
+            result_obj = conn.post_media(path, image_record.mr_uuid)
+            url = result_obj["idigbio:links"]["media"][0]
+            ma_uuid = result_obj['idigbio:uuid']
+
+            image_record.ma_uuid = ma_uuid
+
+            img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
+
+            if img_etag and image_record.md5 == img_etag:
+                image_record.upload_time = datetime.utcnow()
+                image_record.url = url
+            else:
+                raise ClientException('Upload failed because local MD5 does not match the eTag or no eTag is returned.')
+
+            if conn.attempts > 1:
+                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
+            else:
+                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
+            
+            fn = partial(ongoing_upload_task.increment, 'success_count')
+            postprocess_queue.put(fn)
+            
+            fn = partial(ongoing_upload_task.check_continuous_fails, True)
+            postprocess_queue.put(fn)
+            
+        except ClientException:
+            logger.error("An object job failed.")
+            fn = partial(ongoing_upload_task.increment, 'fails')
+            ongoing_upload_task.postprocess_queue.put(fn)
+            
+            def _abort_if_necessary():
+                if ongoing_upload_task.check_continuous_fails(False):
+                    logger.info("Aborting threads because continuous failures exceed the threshold.")
+                    map(lambda x: x.abort_thread(), ongoing_upload_task.object_threads)
+            ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
+            
+            raise
+        except OSError, err:
+            if err.errno != ENOENT:
+                raise
+            error_queue.put('Local file %s not found' % repr(path))    
+
+    try:
+        if resume:
+            batch = model.load_last_batch()
+            if batch.finish_time:
+                raise IngestServiceException("Last batch already finished, why resume?")
+            # Assign local variables with values in DB. 
+            csv_path = batch.root
+            recordset_uuid = batch.recordset_uuid
+        elif csv_path:
+            provider_id = 'dummy_recordset_id'
+            recordset_uuid = conn.post_recordset(provider_id)
+            batch = model.add_upload_batch(csv_path, recordset_uuid)
+            model.commit()
+        else:
+            raise IngestServiceException("Root path not specified.")
+        
+        ongoing_upload_task.batch = batch
+        
+        worker_thread_count = 1
+        object_threads = [QueueFunctionThread(object_queue, _csv_job,
+            get_conn()) for _junk in xrange(worker_thread_count)]
+        ongoing_upload_task.object_threads = object_threads
+        
+        for thread in object_threads:
+            thread.start()
+        logger.debug('{0} upload worker threads started.'.format(worker_thread_count))
+
+        with open(csv_path, 'rb') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+            for row in reader:
+                object_queue.put(row)
+
+        # Wait until all files are executed.
+        while not object_queue.empty():
+            sleep(0.01)
+
+        for thread in object_threads:
+            thread.abort = True
+            while thread.isAlive():
+                thread.join(0.01)
+
+        was_error = put_errors_from_threads(object_threads)
+        if not was_error:
+            logger.info("Upload finishes with no error")
+            batch.finish_time = datetime.now()
+        else:
+            logger.error("Upload finishes with errors.")
+
+    except ClientException:
+        error_queue.put('Upload failed outside of the worker thread.')
+        
+    finally:
+        model.commit()
+
 
 
 def _upload(ongoing_upload_task, root_path=None, resume=False):

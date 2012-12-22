@@ -106,7 +106,6 @@ class ProgressStatus(object):
         except IngestServiceException as ex:
             raise JsonHTTPError(409, str(ex))
 
-
 class DataIngestionService(object):
     """
     The root RESTful web service exposed through CherryPy at /services
@@ -122,6 +121,7 @@ class DataIngestionService(object):
         self.config = UserConfig()
         self.auth = Authentication()
         self.progress = ProgressStatus()
+        self.csv = CsvIngestionService()
 
     def GET(self):
         return '<html><body>Ingestion Service is running.</body></html>'
@@ -147,3 +147,13 @@ class DataIngestionService(object):
             ingest_service.start_resume()
         except ValueError as ex:
             raise JsonHTTPError(409, str(ex))
+
+
+class CsvIngestionService(object):
+    exposed = True
+    
+    def POST(self, csvPath=None):
+        """
+        Ingest csv data.
+        """
+        cherrypy.log.error("POST request received.", self.__class__.__name__)

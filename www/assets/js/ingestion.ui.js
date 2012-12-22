@@ -2,6 +2,8 @@ $(function() {
     getPreference('devmode_disable_startup_service_check', function(val) {
         if (val != 'true') {
             checkAuthentication();   
+        } else {
+            initMainUI();
         }
     });
     
@@ -43,6 +45,7 @@ initMainUI = function() {
         });
     });
     
+    // Set up upload-form
     $('#upload-form').validate({
         onfocusout: false,
         onkeyup: false,
@@ -65,6 +68,34 @@ initMainUI = function() {
         event.preventDefault();
         if ($('#upload-form').valid()) {
             postUpload("new");
+        } else {
+            showAlert('The path cannot be empty.');
+        }
+    });
+
+    // Set up csv-upload-form
+    $('#csv-upload-form').validate({
+        onfocusout: false,
+        onkeyup: false,
+        onsubmit: false,
+        errorPlacement: function(error, element) {},
+        highlight: function(element) {
+            $(element).closest('.control-group').addClass('error');
+        },
+        unhighlight: function(element) {
+            $(element).closest('.control-group').removeClass('error');
+        },
+        rules: {
+            csvpath: {
+                required: true
+            }
+        }
+    });
+
+    $('#csv-upload-form').submit(function(event) {
+        event.preventDefault();
+        if ($('#csv-upload-form').valid()) {
+            postCsvUpload("new");
         } else {
             showAlert('The path cannot be empty.');
         }
@@ -334,6 +365,54 @@ postUpload = function(action) {
         });
     } else {
         $.post('/services', callback, 'json')
+        .error(function(data) {
+            var errMsg = "<strong>Error! </strong>" + data.responseText;
+            showAlert(errMsg);
+        });
+    }
+}
+
+
+postCsvUpload = function(action) {
+    // Reset the elements
+    $("#result-table-container").removeClass('in');
+    $("#result-table-container").removeClass('hide');
+    $("#progressbar-container").removeClass('in');
+    $("#progressbar-container").removeClass('hide');
+    
+    var callback = function(dataReceived){
+        // Disable inputs
+        $('#csv-path').attr('disabled', true);
+        $("#csv-path").addClass('disabled');
+        
+        $("#csv-upload-button").attr('disabled', true);
+        $("#csv-upload-button").addClass('disabled');
+
+        $("#logout-btn").attr('disabled', true);
+        $("#logout-btn").addClass('disabled');
+               
+        // Clean up UI.
+        $("#upload-alert").alert('close');
+        
+        // Show progress bar in animation
+        $(".progress-primary").addClass('active');
+        $("#progressbar-container").addClass('in');
+        
+        //setTimeout("updateProgress()", 1000);
+    };
+    
+    // now send the form and wait to hear back
+    if (action == "new") {
+        var csvPath = $('#csv-path').val();
+
+        $.post('/services/csv', { csvPath: csvPath }, callback, 
+                'json')
+        .error(function(data) {
+            var errMsg = "<strong>Error! </strong>" + data.responseText;
+            showAlert(errMsg)
+        });
+    } else {
+        $.post('/services/csv', callback, 'json')
         .error(function(data) {
             var errMsg = "<strong>Error! </strong>" + data.responseText;
             showAlert(errMsg);

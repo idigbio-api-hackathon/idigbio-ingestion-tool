@@ -125,8 +125,38 @@
       <!--[if (gte IE 10)|!(IE)]><!-->
       <div id="upload-dashboard" class="js-required">
       <!--<![endif]-->
-        <!-- Row 1. The control panel. -->
-        <div class="accordion row" id="accordion2">
+
+        <ul class="nav nav-pills">
+          <li class="active">
+            <a href="#">Via CSV</a>
+          </li>
+          <li><a href="#">Via Root Directory</a></li>
+        </ul>
+
+        <!-- Tab 1: the CSV upload form. -->
+        <div >
+          <form id='csv-upload-form'>
+            <div class="control-group">
+              <div class="row-fluid">
+                <div class='span9'>
+                    <input type="text" data-provide="typeahead" class="input-block-level"
+                      id="csv-path" placeholder="Paste CSV path&hellip;"
+                      rel="tooltip" name="csvpath"
+                      data-title='e.g. /Users/you/collection.csv'>
+                </div>
+                <div class='span3'>
+                  <button id="csv-upload-button" type="submit"  class="btn btn-primary btn-block">
+                    <i class="icon-upload icon-white"></i>
+                    <span>Upload</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Tab 2. The directory upload control panel. -->
+        <div class="accordion row hidden" id="accordion2">
           <!-- Settings panel. -->
           <div class="accordion-group span12">
             <div class="accordion-heading">
@@ -212,9 +242,8 @@
               </div>
             </div>
           </div> <!-- accordion-group 2. Uploader box. -->
-
         </div> <!-- / Accordion row -->
-            
+        
         <!-- Alert, row 2. -->
         <div class="row-fluid" id="alert-container"></div>
         
