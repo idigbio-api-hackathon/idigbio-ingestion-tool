@@ -109,11 +109,14 @@ class ProgressStatus(object):
 
 class DataIngestionService(object):
     """
-    The RESTful web service exposed through CherryPy.
+    The root RESTful web service exposed through CherryPy at /services
     """
     exposed = True
 
     def __init__(self):
+        '''
+        self.{attr} is answers the request to URL path /services/{attr}.
+        '''
         self.result = IngestionResult()
         self.batch = BatchInfo()
         self.config = UserConfig()
