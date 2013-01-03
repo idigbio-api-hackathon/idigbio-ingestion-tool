@@ -8,7 +8,7 @@
 """
 This module implements the core logic that manages the upload process.
 """
-import os, logging, argparse, tempfile, atexit
+import os, logging, argparse, tempfile, atexit, cherrypy, re, csv
 from functools import partial
 from datetime import datetime
 from Queue import Empty, Queue
@@ -16,14 +16,12 @@ from threading import enumerate as threading_enumerate, Thread
 from time import sleep
 from sys import exc_info
 from os.path import isdir, join
-import re
-import csv
 from traceback import format_exception
 from errno import ENOENT
 from dataingestion.services.api_client import ClientException, Connection
 from dataingestion.services import model
 from dataingestion.services import user_config
-from dataingestion.services import constants
+from dataingestion.services.constants import CSV_TYPE, DIR_TYPE
 
 logger = logging.getLogger('iDigBioSvc.ingestion_manager')
 
@@ -44,7 +42,6 @@ def get_conn():
 def put_errors_from_threads(threads):
     """
     Places any errors from the threads into error_queue.
-    
     :param threads: A list of QueueFunctionThread instances.
     :returns: True if any errors were found.
     """
@@ -55,7 +52,7 @@ def put_errors_from_threads(threads):
             if isinstance(info[1], ClientException):
                 logger.error("ClientException: " + str(info[1]))
             else:
-                logger.error("Non-ClientException: " + 
+                logger.error("Non-ClientException: " +
                                 ''.join(format_exception(*info)))
                 raise IngestServiceException("Task failed for unkown reason.")
     return was_error
@@ -64,9 +61,9 @@ class QueueFunctionThread(Thread):
 
     def __init__(self, queue, func, *args, **kwargs):
         """ Calls func for each item in queue; func is called with a queued
-            item as the first arg followed by *args and **kwargs. Use the abort
-            attribute to have the thread empty the queue (without processing)
-            and exit. """
+        item as the first arg followed by *args and **kwargs. Use the abort
+        attribute to have the thread empty the queue (without processing)
+        and exit. """
         Thread.__init__(self)
         self.abort = False
         self.queue = queue
@@ -93,7 +90,8 @@ class QueueFunctionThread(Thread):
 
     def abort_thread(self):
         self.abort = True
-    
+
+# This makes a ongoing_upload_task.
 class BatchUploadTask:
     """
     State about a single batch upload task.
@@ -101,7 +99,7 @@ class BatchUploadTask:
     STATUS_FINISHED = "finished"
     STATUS_RUNNING = "running"
 
-    def __init__(self, batch=None, max_continuous_fails=2):
+    def __init__(self, batch=None, tasktype=CSV_TYPE, max_continuous_fails=2):
         self.batch = batch
         self.total_count = 0
         self.object_queue = Queue(10000)
@@ -114,14 +112,17 @@ class BatchUploadTask:
         self.success_count = 0
         self.continuous_fails = 0
         self.max_continuous_fails = max_continuous_fails
+        self.tasktype = tasktype
         
+    # Increment a field's value by 1.
     def increment(self, field_name):
         if hasattr(self, field_name) and type(getattr(self, field_name)) == int:
             setattr(self, field_name, getattr(self, field_name) + 1)
         else:
-            raise ValueError("BatchUploadTask object doesn't have this field or " + 
+            raise ValueError("BatchUploadTask object doesn't have this field or " +
                              "has has a field that cannot be incremented.")
     
+    # Update the continuous failure times.
     def check_continuous_fails(self, succ_this_time):
         '''
         :return: Whether this upload should be aborted.
@@ -152,7 +153,7 @@ def get_progress():
         # Things are yet to be added.
         sleep(0.1)
 
-    return (task.total_count, task.skips, task.success_count, task.fails, 
+    return (task.total_count, task.skips, task.success_count, task.fails,
         True if task.status == BatchUploadTask.STATUS_FINISHED else False)
 
 def get_result():
@@ -162,18 +163,16 @@ def get_result():
     if ongoing_upload_task.batch:
         return model.get_batch_details(ongoing_upload_task.batch.id)
     else:
-        # If the task fails before the batch is created (e.g. fail to post a 
+        # If the task fails before the batch is created (e.g. fail to post a
         # record set), then the batch could be None.
         raise IngestServiceException("No batch is found.")
 
 def exec_upload_task(root_path=None, resume=False):
     """
-    Execute either a new upload task or resume last unsuccessfuly upload task 
-    from the DB. 
-    
-    This method returns true when all file upload tasks are executed and 
+    Execute either a new upload task or resume last unsuccessfuly upload task
+    from the DB.
+    This method returns true when all file upload tasks are executed and
     postprocess and error queues are emptied.
-    
     :return: False is the upload is not executed due to an existing ongoing task.
     """
     global ongoing_upload_task
@@ -182,7 +181,7 @@ def exec_upload_task(root_path=None, resume=False):
         # Ongoing task exists
         return False
 
-    ongoing_upload_task = BatchUploadTask()
+    ongoing_upload_task = BatchUploadTask(DIR_TYPE)
     ongoing_upload_task.status = BatchUploadTask.STATUS_RUNNING
 
     postprocess_queue = ongoing_upload_task.postprocess_queue
@@ -203,6 +202,67 @@ def exec_upload_task(root_path=None, resume=False):
     try:
         try:
             _upload(ongoing_upload_task, root_path, resume)
+        except (ClientException, err):
+            error_queue.put(str(err))
+        while not postprocess_queue.empty():
+            sleep(0.01)
+        postprocess_thread.abort = True
+        while postprocess_thread.isAlive():
+            postprocess_thread.join(0.01)
+        while not error_queue.empty():
+            sleep(0.01)
+        error_thread.abort = True
+        while error_thread.isAlive():
+            error_thread.join(0.01)
+
+        logger.info("Upload task execution completed.")
+
+    except (SystemExit, Exception):
+        logger.error("Aborting all threads...")
+        for thread in threading_enumerate():
+            thread.abort = True
+        raise
+    finally:
+        # Reset of singleton task in the module.
+        ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
+
+def exec_upload_csv_task(csv_path=None, resume=False):
+    """
+    Execute either a new upload task or resume last unsuccessfuly upload task
+    from the DB.
+    This method returns true when all file upload tasks are executed and
+    postprocess and error queues are emptied.
+    :return: False is the upload is not executed due to an existing ongoing task.
+    """
+    global ongoing_upload_task
+
+    if ongoing_upload_task and ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED:
+        # Ongoing task exists
+        return False
+
+    ongoing_upload_task = BatchUploadTask(CSV_TYPE)
+    ongoing_upload_task.status = BatchUploadTask.STATUS_RUNNING
+
+    postprocess_queue = ongoing_upload_task.postprocess_queue
+
+    def _postprocess(func=None, *args):
+        func and func(*args)
+
+    # postprocess_thread is a new thread post processing the tasks?
+    postprocess_thread = QueueFunctionThread(postprocess_queue, _postprocess)
+    postprocess_thread.start()
+
+    def _error(item):
+        logger.error(item)
+
+    # error_thread is a new thread logging the errors.
+    error_queue = ongoing_upload_task.error_queue
+    error_thread = QueueFunctionThread(error_queue, _error)
+    error_thread.start()
+
+    try:
+        try:
+            _upload_csv(ongoing_upload_task, csv_path, resume)
         except ClientException, err:
             error_queue.put(str(err))
         while not postprocess_queue.empty():
@@ -227,7 +287,6 @@ def exec_upload_task(root_path=None, resume=False):
         # Reset of singleton task in the module.
         ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
 
-
 def _make_idigbio_metadata(path):
     metadata = {}
 
@@ -237,7 +296,7 @@ def _make_idigbio_metadata(path):
     metadata["xmpRights:usageTerms"] = license_[0]
     metadata["xmpRights:webStatement"] = license_[2]
     metadata["ac:licenseLogoURL"] = license_[3]
-    # The suffix has already been checked so that extension must be in the 
+    # The suffix has already been checked so that extension must be in the
     # dictionary.
     extension = os.path.splitext(path)[1].lstrip('.').lower()
     metadata["idigbio:mediaType"] = constants.EXTENSION_MEDIA_TYPES[extension]
@@ -250,7 +309,7 @@ def _make_provider_id(path):
     # The path should exist on the disk, which is verified in previous steps.
     if os.path.isfile(path):
         # For file -> media record
-        idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]        
+        idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]
     else:
         # For directory -> record set
         idsuffix = path if idsyntax == 'full-path' else ""
@@ -259,145 +318,19 @@ def _make_provider_id(path):
 
     return provider_id
 
-
-def _upload_csv(csv_path=None, resume=False):
-    object_queue = ongoing_upload_task.object_queue
-    postprocess_queue = ongoing_upload_task.postprocess_queue 
-    error_queue = ongoing_upload_task.error_queue
-
-    def _csv_job(row, conn):
-        # Get items from the CSV row, which is an array.
-        path, providerid = row
-
-        try:
-            # Get the image record
-            image_record = model.add_or_load_image(batch, path)
-            if image_record is None:
-                # Skip this one because it's already uploaded.
-                logger.debug('Skipped file {0}.'.format(path))
-                fn = partial(ongoing_upload_task.increment, 'skips')
-                postprocess_queue.put(fn)
-                return
-
-            # Post mediarecord if necesssary.
-            if image_record.mr_uuid is None:
-                provider_id = providerid
-                owner_uuid = ""
-                metadata = {}
-                record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, metadata, owner_uuid)
-                image_record.mr_uuid = record_uuid
-
-            # Post image to API.
-            result_obj = conn.post_media(path, image_record.mr_uuid)
-            url = result_obj["idigbio:links"]["media"][0]
-            ma_uuid = result_obj['idigbio:uuid']
-
-            image_record.ma_uuid = ma_uuid
-
-            img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
-
-            if img_etag and image_record.md5 == img_etag:
-                image_record.upload_time = datetime.utcnow()
-                image_record.url = url
-            else:
-                raise ClientException('Upload failed because local MD5 does not match the eTag or no eTag is returned.')
-
-            if conn.attempts > 1:
-                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
-            else:
-                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
-            
-            fn = partial(ongoing_upload_task.increment, 'success_count')
-            postprocess_queue.put(fn)
-            
-            fn = partial(ongoing_upload_task.check_continuous_fails, True)
-            postprocess_queue.put(fn)
-            
-        except ClientException:
-            logger.error("An object job failed.")
-            fn = partial(ongoing_upload_task.increment, 'fails')
-            ongoing_upload_task.postprocess_queue.put(fn)
-            
-            def _abort_if_necessary():
-                if ongoing_upload_task.check_continuous_fails(False):
-                    logger.info("Aborting threads because continuous failures exceed the threshold.")
-                    map(lambda x: x.abort_thread(), ongoing_upload_task.object_threads)
-            ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
-            
-            raise
-        except OSError, err:
-            if err.errno != ENOENT:
-                raise
-            error_queue.put('Local file %s not found' % repr(path))    
-
-    try:
-        if resume:
-            batch = model.load_last_batch()
-            if batch.finish_time:
-                raise IngestServiceException("Last batch already finished, why resume?")
-            # Assign local variables with values in DB. 
-            csv_path = batch.root
-            recordset_uuid = batch.recordset_uuid
-        elif csv_path:
-            provider_id = 'dummy_recordset_id'
-            recordset_uuid = conn.post_recordset(provider_id)
-            batch = model.add_upload_batch(csv_path, recordset_uuid)
-            model.commit()
-        else:
-            raise IngestServiceException("Root path not specified.")
-        
-        ongoing_upload_task.batch = batch
-        
-        worker_thread_count = 1
-        object_threads = [QueueFunctionThread(object_queue, _csv_job,
-            get_conn()) for _junk in xrange(worker_thread_count)]
-        ongoing_upload_task.object_threads = object_threads
-        
-        for thread in object_threads:
-            thread.start()
-        logger.debug('{0} upload worker threads started.'.format(worker_thread_count))
-
-        with open(csv_path, 'rb') as csvfile:
-            reader = csv.reader(csvfile, delimiter=',')
-            for row in reader:
-                object_queue.put(row)
-
-        # Wait until all files are executed.
-        while not object_queue.empty():
-            sleep(0.01)
-
-        for thread in object_threads:
-            thread.abort = True
-            while thread.isAlive():
-                thread.join(0.01)
-
-        was_error = put_errors_from_threads(object_threads)
-        if not was_error:
-            logger.info("Upload finishes with no error")
-            batch.finish_time = datetime.now()
-        else:
-            logger.error("Upload finishes with errors.")
-
-    except ClientException:
-        error_queue.put('Upload failed outside of the worker thread.')
-        
-    finally:
-        model.commit()
-
-
-
+# Upload all the image files within a path.
 def _upload(ongoing_upload_task, root_path=None, resume=False):
     """
     This method returns when all file upload tasks have been executed.
     """
     
     object_queue = ongoing_upload_task.object_queue
-    postprocess_queue = ongoing_upload_task.postprocess_queue 
+    postprocess_queue = ongoing_upload_task.postprocess_queue
     error_queue = ongoing_upload_task.error_queue
 
     def _object_job(job, conn):
         '''
-        The job that uploads a single object (file). 
+        The job that uploads a single object (file).
         '''
         path = job['path']
 
@@ -440,9 +373,11 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
             else:
                 logger.debug('%s [after %d attempts]' % (path, conn.attempts))
             
+            # Increment the success_count by 1.
             fn = partial(ongoing_upload_task.increment, 'success_count')
             postprocess_queue.put(fn)
             
+            # It's sccessful this time.
             fn = partial(ongoing_upload_task.check_continuous_fails, True)
             postprocess_queue.put(fn)
             
@@ -458,7 +393,7 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
             ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
             
             raise
-        except OSError, err:
+        except (OSError, err):
             if err.errno != ENOENT:
                 raise
             error_queue.put('Local file %s not found' % repr(path))
@@ -481,12 +416,12 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
             batch = model.load_last_batch()
             if batch.finish_time:
                 raise IngestServiceException("Last batch already finished, why resume?")
-            # Assign local variables with values in DB. 
+            # Assign local variables with values in DB.
             root_path = batch.root
             recordset_uuid = batch.recordset_uuid
         elif root_path:
             provider_id = _make_provider_id(root_path)
-            recordset_uuid = conn.post_recordset(provider_id)
+            recordset_uuid = conn.post_recordset(provider_id) # This posts the record set to the server.
             batch = model.add_upload_batch(root_path, recordset_uuid)
             model.commit()
         else:
@@ -509,6 +444,145 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
             # Single file.
             object_queue.put({'path': root_path})
 
+        while not object_queue.empty():
+            sleep(0.01)
+
+        for thread in object_threads:
+            thread.abort = True
+            while thread.isAlive():
+                thread.join(0.01)
+
+        was_error = put_errors_from_threads(object_threads)
+        if not was_error:
+            logger.info("Upload finishes with no error")
+            batch.finish_time = datetime.now()
+        else:
+            logger.error("Upload finishes with errors.")
+
+    except ClientException:
+        error_queue.put('Upload failed outside of the worker thread.')
+        
+    finally:
+        model.commit()
+
+def _upload_csv(ongoing_upload_task, csv_path=None, resume=False):
+    object_queue = ongoing_upload_task.object_queue
+    postprocess_queue = ongoing_upload_task.postprocess_queue
+    error_queue = ongoing_upload_task.error_queue
+
+    # This function is passed to the threads.
+    def _csv_job(row, conn):
+
+        try:
+            # Get items from the CSV row, which is an array.
+            # In current version, the row is simply [path, providerid].
+            path, providerid = row
+            path = path.strip(' ')
+            providerid = providerid.strip(' ')
+            cherrypy.log.error("Put in file path="+path+", providerid="+providerid)
+            
+            # Get the image record
+            image_record = model.add_or_load_image(batch, CSV_TYPE, path)
+
+            if image_record is None:
+                # Skip this one because it's already uploaded. Increment skips count and return.
+                logger.debug('Skipped file {0}.'.format(path))
+                fn = partial(ongoing_upload_task.increment, 'skips')
+                postprocess_queue.put(fn)
+                return
+
+            if image_record.mr_uuid is None:
+                # Post mediarecord.
+                owner_uuid = user_config.try_get_user_config('owneruuid')
+                metadata = {}
+                record_uuid = conn.post_mediarecord(
+                    recordset_uuid, path, providerid, metadata, owner_uuid)
+                image_record.mr_uuid = record_uuid
+
+            # Post image to API.
+            result_obj = conn.post_media(path, image_record.mr_uuid)
+            url = result_obj["idigbio:links"]["media"][0]
+            ma_uuid = result_obj['idigbio:uuid']
+
+            image_record.ma_uuid = ma_uuid
+
+            img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
+
+            if img_etag and image_record.md5 == img_etag:
+                image_record.upload_time = datetime.utcnow()
+                image_record.url = url
+            else:
+                raise ClientException('Upload failed because local MD5 does not match the eTag or no eTag is returned.')
+
+            if conn.attempts > 1:
+                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
+            else:
+                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
+            
+            # Increment the success_count by 1.
+            fn = partial(ongoing_upload_task.increment, 'success_count')
+            postprocess_queue.put(fn)
+            
+            # It's sccessful this time.
+            fn = partial(ongoing_upload_task.check_continuous_fails, True)
+            postprocess_queue.put(fn)
+            
+        except ClientException:
+            logger.error("An object job failed.")
+            fn = partial(ongoing_upload_task.increment, 'fails')
+            ongoing_upload_task.postprocess_queue.put(fn)
+            
+            def _abort_if_necessary():
+                if ongoing_upload_task.check_continuous_fails(False):
+                    logger.info("Aborting threads because continuous failures exceed the threshold.")
+                    map(lambda x: x.abort_thread(), ongoing_upload_task.object_threads)
+            ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
+            raise
+        except OSError, err:
+            if err.errno != ENOENT:
+                raise
+            error_queue.put('Local file %s not found' % repr(path))
+
+    cherrypy.log.error("ingestion_manager.csv_path:", csv_path)
+    conn = get_conn()
+    try:
+        if resume:
+            batch = model.load_last_batch()
+            if batch.finish_time:
+                raise IngestServiceException("Last batch already finished, why resume?")
+            # Assign local variables with values in DB.
+            csv_path = batch.path
+            recordset_uuid = batch.recordset_uuid
+        elif csv_path: # Not resume, and csv_path is provided. It is a new upload.
+            provider_id = 'dummy_recordset_id' # Temporary provider ID
+            # TODO: Receive provider id from UI.
+            cherrypy.log.error('ingestion_manager._upload_csv:post_recordset')
+            recordset_uuid = conn.post_recordset(provider_id)
+            cherrypy.log.error('ingestion_manager._upload_csv:got uuid, put into db.')
+            batch = model.add_upload_batch(csv_path, recordset_uuid, CSV_TYPE)
+            model.commit()
+            cherrypy.log.error('ingestion_manager._upload_csv:got uuid, committed into db.')
+        else:
+            raise IngestServiceException("Root path not specified.")
+        
+        ongoing_upload_task.batch = batch
+        
+        worker_thread_count = 1
+        # the object_queue and _csv_job are passed to the thread.
+        object_threads = [QueueFunctionThread(object_queue, _csv_job,
+            get_conn()) for _junk in xrange(worker_thread_count)]
+        ongoing_upload_task.object_threads = object_threads
+        
+        for thread in object_threads:
+            thread.start()
+        logger.debug('{0} upload worker threads started.'.format(worker_thread_count))
+
+        with open(csv_path, 'rb') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+            for row in reader:
+                object_queue.put(row)
+
+        # Wait until all images are executed.
         while not object_queue.empty():
             sleep(0.01)
 

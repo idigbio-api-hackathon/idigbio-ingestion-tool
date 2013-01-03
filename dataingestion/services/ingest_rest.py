@@ -11,6 +11,7 @@ import cherrypy, json
 from dataingestion.services.ingestion_manager import IngestServiceException
 from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
+from dataingestion.services import constants
 
 class JsonHTTPError(HTTPError):
     def set_response(self):
@@ -69,7 +70,6 @@ class UserConfig(object):
     def DELETE(self):
         ingest_service.rm_user_config()
 
-
 class Authentication(object):
     '''
     REST resource that signs in the user.
@@ -78,9 +78,12 @@ class Authentication(object):
     
     def GET(self):
         try:
+#            cherrypy.log.error("ingest_rest.Authentication")
             ret = ingest_service.authenticated()
+ #           cherrypy.log.error('ingest_rest.Authentication:', str(ret))
             return json.dumps(ret)
         except Exception as ex:
+            cherrypy.log.error('ingest_rest.Authentication:')
             cherrypy.log.error(str(ex), __name__)
             raise JsonHTTPError(503, 'iDigBio Service Currently Unavailable.')
 
@@ -130,21 +133,21 @@ class DataIngestionService(object):
         """
         Ingest data.
         """
-        cherrypy.log.error("POST request received.", self.__class__.__name__)
+        cherrypy.log.error("POST dir request received.", self.__class__.__name__)
         if rootPath is None:
             return self._resume()
         else:
             return self._upload(rootPath)
 
-    def _upload(self, root_path):
+    def _upload(self, rootPath):
         try:
-            ingest_service.start_upload(root_path)
+            ingest_service.start_upload(rootPath, constants.DIR_TYPE)
         except ValueError as ex:
             raise JsonHTTPError(409, str(ex))
     
     def _resume(self):
         try:
-            ingest_service.start_resume()
+            ingest_service.start_resume(constants.DIR_TYPE)
         except ValueError as ex:
             raise JsonHTTPError(409, str(ex))
 
@@ -152,8 +155,27 @@ class DataIngestionService(object):
 class CsvIngestionService(object):
     exposed = True
     
+    def GET(self):
+        return '<html><body>CSV ingestion Service is running.</body></html>'
+
     def POST(self, csvPath=None):
         """
         Ingest csv data.
         """
-        cherrypy.log.error("POST request received.", self.__class__.__name__)
+        cherrypy.log.error("POST csv request received.", self.__class__.__name__)
+        if csvPath is None:
+            return self._resume()
+        else:
+            return self._upload(csvPath)
+
+    def _upload(self, csvPath):
+        try:
+            ingest_service.start_upload(csvPath, constants.CSV_TYPE)
+        except ValueError as ex:
+            raise JsonHTTPError(409, str(ex))
+
+    def _resume(self):
+        try:
+            ingest_service.start_resume(constants.CSV_TYPE)
+        except ValueError as ex:
+            raise JsonHTTPError(409, str(ex)) 

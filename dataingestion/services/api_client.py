@@ -7,6 +7,7 @@
 """
 This module encapulates the communication with iDigBio's storage service API.
 """
+import cherrypy
 import socket
 import argparse, json, urllib2, logging
 import uuid
@@ -72,6 +73,8 @@ def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner
     
     url = build_url("mediarecords")
     logger.debug("POSTing mediarecord. URL: %s" % url)
+    logger.debug("recordset_uuid:"+recordset_uuid+", path:"+path+", provider_id:"+provider_id+
+        ", owner_uuid:"+owner_uuid)
     try:
         response = _post_json(url, data)
     except urllib2.HTTPError as e:

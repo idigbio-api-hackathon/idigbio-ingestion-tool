@@ -3,6 +3,9 @@ import ConfigParser
 
 CONFIG_SECTION = 'iDigBio'
 
+DISABLE_CHECK = "devmode_disable_startup_service_check"
+DISABLE_CHECK_RETURN = "dumbvalue"
+
 config = None
 
 def setup(config_file):
@@ -45,6 +48,9 @@ class UserConfig(object):
 
     def __getattr__(self, name):
         self.reload()
+
+        if self.check_disabled():
+            return DISABLE_CHECK_RETURN
         if self.config.has_option(CONFIG_SECTION, name):
             return self.config.get(CONFIG_SECTION, name)
         else:
@@ -59,6 +65,14 @@ class UserConfig(object):
         with open(self.config_file, 'wb') as f:
             self.config.write(f)
 
+    # Check if the authentication check is disabled.
+    def check_disabled(self):
+        self.reload()
+
+        if self.config.has_option(CONFIG_SECTION, DISABLE_CHECK):
+            return self.config.get(CONFIG_SECTION, DISABLE_CHECK)
+        else:
+            return False
 
 def main():
     import tempfile

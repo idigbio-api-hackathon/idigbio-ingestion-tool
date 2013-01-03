@@ -17,3 +17,6 @@ EXTENSION_MEDIA_TYPES = {
     "tiff": "image/tiff",
     "tif": "image/tiff",
 }
+
+CSV_TYPE = "csv_type"
+DIR_TYPE = "dir_type"

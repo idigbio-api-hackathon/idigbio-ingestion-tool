@@ -17,6 +17,9 @@ import argparse
 from datetime import datetime
 from sqlalchemy.sql.expression import desc
 
+__images_tablename__ = 'images'
+__batches_tablename__ = 'batches'
+
 Base = declarative_base()
 
 logger = logging.getLogger('iDigBioSvc.model')
@@ -29,7 +32,7 @@ def check_session(func):
     return wrapper
 
 class ImageRecord(Base):
-    __tablename__ = 'images'
+    __tablename__ = __images_tablename__
 
     id = Column(Integer, primary_key=True)
     path = Column(String)
@@ -60,7 +63,7 @@ class ImageRecord(Base):
     def __init__(self, path, md5, batch):
         self.path = path
         self.md5 = md5
-        self.batch = batch
+        self.batch_id = batch
 
 class UploadBatch(Base):
     '''
@@ -71,12 +74,12 @@ class UploadBatch(Base):
        recordset id are reused.
        
     '''
-    __tablename__ = 'batches'
+    __tablename__ = __batches_tablename__
 
     id = Column(Integer, primary_key=True)
-    root = Column(String)
+    path = Column(String)
     '''
-    The root path for the batch upload.
+    The path for the batch upload.
     '''
     recordset_uuid = Column(String)
     start_time = Column(DateTime)
@@ -88,15 +91,20 @@ class UploadBatch(Base):
     The local time that the batch upload finishes. None if it is not successfully
     finished.
     '''
+    batchtype = Column(String)
+    '''
+    The type of the batch task, it can be "dir" or "csv".
+    '''
     images = relationship(ImageRecord, backref="batch")
     '''
-    All images associated with this batch.
+    All images associated with the batches in the table.
     '''
 
-    def __init__(self, root, recordset_uuid, start_time):
-        self.root = root
+    def __init__(self, path, recordset_uuid, start_time, batchtype):
+        self.path = path
         self.recordset_uuid = recordset_uuid
         self.start_time = start_time
+        self.batchtype = batchtype
 
 session = None
 
@@ -121,8 +129,9 @@ def md5_file(f, block_size=2 ** 20):
         md5.update(data)
     return md5.hexdigest()
 
+# decorator
 @check_session
-def add_or_load_image(batch, path):
+def add_or_load_image(batch, tasktype, path):
     '''
     Return the image or None is the image should not be uploaded.
     
@@ -153,9 +162,9 @@ def add_image(batch, path):
     return record
 
 @check_session
-def add_upload_batch(root, recordset_uuid):
+def add_upload_batch(path, recordset_uuid, tasktype):
     start_time = datetime.now()
-    batch = UploadBatch(root, recordset_uuid, start_time)
+    batch = UploadBatch(path, recordset_uuid, start_time, tasktype)
     session.add(batch)
     return batch
 

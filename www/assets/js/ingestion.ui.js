@@ -1,8 +1,9 @@
 $(function() {
     getPreference('devmode_disable_startup_service_check', function(val) {
         if (val != 'true') {
-            checkAuthentication();   
+            checkAuthentication();
         } else {
+            $.unblockUI();
             initMainUI();
         }
     });
