@@ -340,7 +340,6 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
         try:
             # Get the image record
             image_record = model.add_or_load_image(batch, path)
-            model.commit()
             if image_record is None:
                 # Skip this one because it's already uploaded.
                 logger.debug('Skipped file {0}.'.format(path))
@@ -356,7 +355,6 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
                 metadata = _make_idigbio_metadata(path)
                 record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, metadata, owner_uuid)
                 image_record.mr_uuid = record_uuid
-                model.commit()
 
             # Post image to API.
             result_obj = conn.post_media(path, image_record.mr_uuid)
@@ -364,7 +362,6 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
             ma_uuid = result_obj['idigbio:uuid']
 
             image_record.ma_uuid = ma_uuid
-            model.commit()
 
             img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
 
@@ -489,7 +486,6 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             
             # Get the image record
             image_record = model.add_or_load_image(batch, constants.CSV_TYPE, path)
-            model.commit()
 
             if image_record is None:
                 # Skip this one because it's already uploaded. Increment skips count and return.
@@ -505,7 +501,6 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                 record_uuid = conn.post_mediarecord(
                     recordset_uuid, path, providerid, metadata, owner_uuid)
                 image_record.mr_uuid = record_uuid
-                model.commit()
 
             # First, change the batch ID to this one. This field is overwriten.
             image_record.batch_id = batch.id
@@ -515,7 +510,6 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             ma_uuid = result_obj['idigbio:uuid']
 
             image_record.ma_uuid = ma_uuid
-            model.commit()
 
             img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
 
@@ -542,17 +536,20 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             logger.error("An object job failed.")
             fn = partial(ongoing_upload_task.increment, 'fails')
             ongoing_upload_task.postprocess_queue.put(fn)
-            
+
             def _abort_if_necessary():
                 if ongoing_upload_task.check_continuous_fails(False):
                     logger.info("Aborting threads because continuous failures exceed the threshold.")
                     map(lambda x: x.abort_thread(), ongoing_upload_task.object_threads)
             ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
             raise
-        except OSError, IOError:
-            if IOError.errno != ENOENT: # No such file or directory.
+        except IOError as err:
+            if err.errno == ENOENT: # No such file or directory.
+                error_queue.put('Local file %s not found' % repr(path))
+                fn = partial(ongoing_upload_task.increment, 'fails')
+                ongoing_upload_task.postprocess_queue.put(fn)
+            else:
                 raise
-            error_queue.put('Local file %s not found' % repr(path))
 
     conn = get_conn()
     try:
