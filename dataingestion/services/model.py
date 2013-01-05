@@ -58,6 +58,16 @@ class ImageRecord(Base):
     None if the image is not uploaded.
     '''
     url = Column(String)
+
+    mr_record = Column(String)
+    '''
+    MadiaRecord record in JSON String
+    '''
+    ma_record = Column(String)
+    '''
+    MadiaAP record in JSON String
+    '''
+    
     batch_id = Column(Integer, ForeignKey('batches.id', onupdate="cascade"))
 
     def __init__(self, path, md5, batch):

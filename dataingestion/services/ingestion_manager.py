@@ -9,6 +9,7 @@
 This module implements the core logic that manages the upload process.
 """
 import os, logging, argparse, tempfile, atexit, cherrypy, re, csv
+import json
 from functools import partial
 from datetime import datetime
 from Queue import Empty, Queue
@@ -498,14 +499,18 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                 # Post mediarecord.
                 owner_uuid = user_config.try_get_user_config('owneruuid')
                 metadata = {}
-                record_uuid = conn.post_mediarecord(
+                record_uuid, mr_str = conn.post_mediarecord(
                     recordset_uuid, path, providerid, metadata, owner_uuid)
                 image_record.mr_uuid = record_uuid
+                image_record.mr_record = mr_str
 
             # First, change the batch ID to this one. This field is overwriten.
             image_record.batch_id = batch.id
             # Post image to API.
-            result_obj = conn.post_media(path, image_record.mr_uuid)
+            ma_str = conn.post_media(path, image_record.mr_uuid)
+            image_record.ma_record = ma_str
+            result_obj = json.loads(ma_str)
+
             url = result_obj["idigbio:links"]["media"][0]
             ma_uuid = result_obj['idigbio:uuid']
 

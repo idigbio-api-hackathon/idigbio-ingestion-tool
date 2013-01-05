@@ -49,7 +49,7 @@ def _post_recordset(provider_id):
     url = build_url("recordsets")
     logger.debug("POSTing recordset. POST URL: %s" % url)
     try:
-        response = _post_json(url, data)
+        response = json.loads(_post_json(url, data))
     except urllib2.HTTPError as e:
         raise ClientException("Failed to POST the recordset to server.",
                               url=url, http_status=e.code, 
@@ -61,6 +61,9 @@ def _post_recordset(provider_id):
     return response['idigbio:uuid']
 
 def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner_uuid=None):
+    '''
+    Returns the UUID of the Media Record and the raw MR JSON String as a tuple.
+    '''
     data = {"idigbio:data": {"ac:variant": "IngestionTool", 
                              "idigbio:localpath": path,
                              "idigbio:mediaGUID": provider_id,
@@ -75,7 +78,8 @@ def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner
     logger.debug("POSTing mediarecord. URL: %s" % url)
     logger.debug("recordset_uuid:"+recordset_uuid+", path:"+path+", provider_id:"+provider_id)
     try:
-        response = _post_json(url, data)
+        resp = _post_json(url, data)
+        response = json.loads(resp)
     except urllib2.HTTPError as e:
         raise ClientException("Failed to POST the mediarecord to server.",
                               url=url, http_status=e.code, 
@@ -84,9 +88,12 @@ def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner
     except (urllib2.URLError, socket.error, HTTPException) as e:
         raise ClientException("{0} caught while POSTing the mediarecord.".format(type(e)),
                               reason=str(e), url=url)
-    return response['idigbio:uuid']
+    return response['idigbio:uuid'], resp
 
 def _post_media(local_path, entity_uuid):
+    '''
+    Returns the JSON String of the Media AP.
+    '''
     url = build_url("mediarecords", entity_uuid, "media")
     logger.debug("POSTing media. URL: %s" % url)
     datagen, headers = multipart_encode({"file": open(local_path, "rb")})
@@ -95,7 +102,7 @@ def _post_media(local_path, entity_uuid):
         request.add_header("Authorization", "Basic %s" % auth_string)
         resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
         logger.debug("API response for {0}: {1}".format(url, resp))
-        return json.loads(resp)
+        return resp
     except urllib2.HTTPError as e:
         raise ClientException("Failed to POST the media to server.",
                               url=request.get_full_url(), http_status=e.code,
@@ -116,8 +123,7 @@ def _post_json(url, obj):
     r = urllib2.urlopen(req, timeout=TIMEOUT)
     resp = r.read()
     logger.debug("API response for {0}: {1}".format(url, resp))
-    json_response = json.loads(resp)
-    return json_response
+    return resp
 
 def upload_image_primitive(path):
     try:
