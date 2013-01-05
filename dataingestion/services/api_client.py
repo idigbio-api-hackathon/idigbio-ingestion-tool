@@ -73,8 +73,7 @@ def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner
     
     url = build_url("mediarecords")
     logger.debug("POSTing mediarecord. URL: %s" % url)
-    logger.debug("recordset_uuid:"+recordset_uuid+", path:"+path+", provider_id:"+provider_id+
-        ", owner_uuid:"+owner_uuid)
+    logger.debug("recordset_uuid:"+recordset_uuid+", path:"+path+", provider_id:"+provider_id)
     try:
         response = _post_json(url, data)
     except urllib2.HTTPError as e:

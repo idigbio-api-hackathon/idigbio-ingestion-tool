@@ -49,8 +49,8 @@ class UserConfig(object):
     def __getattr__(self, name):
         self.reload()
 
-        if self.check_disabled():
-            return DISABLE_CHECK_RETURN
+#        if self.check_disabled():
+#            return DISABLE_CHECK_RETURN
         if self.config.has_option(CONFIG_SECTION, name):
             return self.config.get(CONFIG_SECTION, name)
         else:

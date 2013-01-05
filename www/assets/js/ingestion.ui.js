@@ -87,6 +87,9 @@ initMainUI = function() {
             $(element).closest('.control-group').removeClass('error');
         },
         rules: {
+            rsguid: {
+                required: true
+            },
             csvpath: {
                 required: true
             }
@@ -98,19 +101,28 @@ initMainUI = function() {
         if ($('#csv-upload-form').valid()) {
             postCsvUpload("new");
         } else {
-            showAlert('The path cannot be empty.');
+            showAlert('The record set GUID and path cannot be empty.');
         }
     });
 }
 
 initPreferencePane = function() {
-    initLicenseSelector();
+//    initLicenseSelector();
+    initCsvLicenseSelector();
     initIDSyntaxSelector();
-    $('#idprefix').focusout(function(e) {
-        setPreference('idprefix', $(this).val());
-    });
-    $('#owneruuid').focusout(function(e) {
+//    $('#idprefix').focusout(function(e) {
+//        setPreference('idprefix', $(this).val());
+//    });
+//    $('#owneruuid').focusout(function(e) {
+//        setPreference('owneruuid', $(this).val());
+//    });
+
+    $('#csv-owneruuid').focusout(function(e) {
         setPreference('owneruuid', $(this).val());
+    });
+
+    $('#rsguid').focusout(function(e) {
+        setPreference('rsguid', $(this).val());
     });
 
     $.validator.addMethod("notrailingslash", function(value, element) { 
@@ -307,6 +319,24 @@ initLicenseSelector = function() {
     });
 }
 
+initCsvLicenseSelector = function() {
+    $.each(IMAGE_LICENSES, function(key, value) {
+        var option = ["<option value=\"", key, "\">", value[0], " ", 
+            value[1], "</option>"].join("");
+        $("#csv-license-dropdown").append(option);
+    });
+    
+    $("#csv-license-dropdown").change(function(e) {
+        var licenseName = $("#csv-license-dropdown").val();
+        var license = IMAGE_LICENSES[licenseName];
+        showAlert(["The images will be uploaded under the terms of the ", 
+                license[0], " ", license[1], " license (see <a href=\"", license[2], 
+                "\" target=\"_blank\">definition</a>)."].join(""), 
+            null, "alert-info");
+        setPreference('imagelicense', licenseName);
+    });
+}
+
 initIDSyntaxSelector = function() {
     $.each(GUID_SYNTAXES, function(key, value) {
         var option = ["<option value=\"", key, "\">", value, "</option>"].join("");
@@ -341,8 +371,8 @@ postUpload = function(action) {
         $("#upload-button").attr('disabled', true);
         $("#upload-button").addClass('disabled');
 
-        $("#logout-btn").attr('disabled', true);
-        $("#logout-btn").addClass('disabled');
+//        $("#logout-btn").attr('disabled', true);
+//        $("#logout-btn").addClass('disabled');
                
         // Clean up UI.
         $("#upload-alert").alert('close');
@@ -383,14 +413,23 @@ postCsvUpload = function(action) {
     
     var callback = function(dataReceived){
         // Disable inputs
+        $('#csv-license-dropdown').attr('disabled', true);
+        $("#csv-license-dropdown").addClass('disabled');
+
+        $('#csv-owneruuid').attr('disabled', true);
+        $("#csv-owneruuid").addClass('disabled');
+
+        $('#rsguid').attr('disabled', true);
+        $("#rsguid").addClass('disabled');
+
         $('#csv-path').attr('disabled', true);
         $("#csv-path").addClass('disabled');
         
         $("#csv-upload-button").attr('disabled', true);
         $("#csv-upload-button").addClass('disabled');
 
-        $("#logout-btn").attr('disabled', true);
-        $("#logout-btn").addClass('disabled');
+//        $("#logout-btn").attr('disabled', true);
+//        $("#logout-btn").addClass('disabled');
                
         // Clean up UI.
         $("#upload-alert").alert('close');
@@ -399,7 +438,7 @@ postCsvUpload = function(action) {
         $(".progress-primary").addClass('active');
         $("#progressbar-container").addClass('in');
         
-        //setTimeout("updateProgress()", 1000);
+        setTimeout("updateProgress()", 1000);
     };
     
     // now send the form and wait to hear back
@@ -429,15 +468,16 @@ showLastBatchInfo = function() {
             
         if (!batch.finished) {
             var start_time = batch.start_time;
-            var errMsg = ["<p><strong>Warning!</strong> Your last upload from directory ",
-            batch.root, " which started at ", start_time,
+            var errMsg = ["<p><strong>Warning!</strong> Your last upload from directory/CSV file ",
+            batch.path, " which started at ", start_time,
             ' was not entirely successful.</p>'].join("");
             var extra = '<p><button id="retry-button" type="submit" class="btn btn-warning">Retry failed uploads</button></p>';
             showAlert(errMsg, extra, "alert-warning");
             $("#retry-button").click(function(event) {
                 event.preventDefault();
                 $("#upload-alert").alert('close');
-                postUpload("retry");
+                // TODO: Differentiate the CSV task or dir task.
+                postCsvUpload("retry");
             });
         } else {
             var msg = "<strong>Welcome!</strong> BTW, your last upload was successful."
@@ -493,14 +533,26 @@ updateProgress = function() {
         if (progressObj.finished) {
             $(".progress-primary").toggleClass('active');
             
-            $('#root-path').attr('disabled', false);
-            $("#root-path").removeClass('disabled');
+            $('#csv-license-dropdown').attr('disabled', false);
+            $("#csv-license-dropdown").removeClass('disabled');
+            
+            $('#csv-owneruuid').attr('disabled', false);
+            $("#csv-owneruuid").removeClass('disabled');
             
             $("#upload-button").attr('disabled', false);
             $("#upload-button").removeClass('disabled');
 
-            $("#logout-btn").attr('disabled', false);
-            $("#logout-btn").removeClass('disabled');
+            $('#rsguid').attr('disabled', false);
+            $("#rsguid").removeClass('disabled');
+
+            $('#csv-path').attr('disabled', false);
+            $("#csv-path").removeClass('disabled');
+            
+            $("#csv-upload-button").attr('disabled', false);
+            $("#csv-upload-button").removeClass('disabled');
+
+//            $("#logout-btn").attr('disabled', false);
+//            $("#logout-btn").removeClass('disabled');
             
             if (progressObj.fails > 0 || progressObj.total == 0) {
                 if (progressObj.fails > 0) {
@@ -523,7 +575,8 @@ updateProgress = function() {
                 $("#retry-button").click(function(event) {
                     event.preventDefault();
                     $("#upload-alert").alert('close');
-                    postUpload("retry");
+                // TODO: Differentiate the CSV task or dir task.
+                    postCsvUpload("retry");
                 });
             }
             
@@ -535,6 +588,7 @@ updateProgress = function() {
             return;
         }
         
+        // Calls itself again after 4000ms.
         setTimeout("updateProgress()", 4000);
     });
 }

@@ -19,9 +19,7 @@ from os.path import isdir, join
 from traceback import format_exception
 from errno import ENOENT
 from dataingestion.services.api_client import ClientException, Connection
-from dataingestion.services import model
-from dataingestion.services import user_config
-from dataingestion.services.constants import CSV_TYPE, DIR_TYPE
+from dataingestion.services import model, user_config, constants
 
 logger = logging.getLogger('iDigBioSvc.ingestion_manager')
 
@@ -99,7 +97,8 @@ class BatchUploadTask:
     STATUS_FINISHED = "finished"
     STATUS_RUNNING = "running"
 
-    def __init__(self, batch=None, tasktype=CSV_TYPE, max_continuous_fails=2):
+    def __init__(self, tasktype=constants.CSV_TYPE, batch=None, max_continuous_fails=2):
+        self.tasktype = tasktype
         self.batch = batch
         self.total_count = 0
         self.object_queue = Queue(10000)
@@ -112,7 +111,6 @@ class BatchUploadTask:
         self.success_count = 0
         self.continuous_fails = 0
         self.max_continuous_fails = max_continuous_fails
-        self.tasktype = tasktype
         
     # Increment a field's value by 1.
     def increment(self, field_name):
@@ -157,6 +155,7 @@ def get_progress():
         True if task.status == BatchUploadTask.STATUS_FINISHED else False)
 
 def get_result():
+    # The result is given only when all the tasks are finished.
     while ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED:
         sleep(0.1)
     
@@ -181,7 +180,7 @@ def exec_upload_task(root_path=None, resume=False):
         # Ongoing task exists
         return False
 
-    ongoing_upload_task = BatchUploadTask(DIR_TYPE)
+    ongoing_upload_task = BatchUploadTask(constants.DIR_TYPE)
     ongoing_upload_task.status = BatchUploadTask.STATUS_RUNNING
 
     postprocess_queue = ongoing_upload_task.postprocess_queue
@@ -202,8 +201,8 @@ def exec_upload_task(root_path=None, resume=False):
     try:
         try:
             _upload(ongoing_upload_task, root_path, resume)
-        except (ClientException, err):
-            error_queue.put(str(err))
+        except (ClientException, IOError):
+            error_queue.put(str(IOError))
         while not postprocess_queue.empty():
             sleep(0.01)
         postprocess_thread.abort = True
@@ -240,7 +239,7 @@ def exec_upload_csv_task(csv_path=None, resume=False):
         # Ongoing task exists
         return False
 
-    ongoing_upload_task = BatchUploadTask(CSV_TYPE)
+    ongoing_upload_task = BatchUploadTask(constants.CSV_TYPE)
     ongoing_upload_task.status = BatchUploadTask.STATUS_RUNNING
 
     postprocess_queue = ongoing_upload_task.postprocess_queue
@@ -262,9 +261,9 @@ def exec_upload_csv_task(csv_path=None, resume=False):
 
     try:
         try:
-            _upload_csv(ongoing_upload_task, csv_path, resume)
-        except ClientException, err:
-            error_queue.put(str(err))
+            _upload_csv(ongoing_upload_task, resume, csv_path)
+        except (ClientException, IOError):
+            error_queue.put(str(IOError))
         while not postprocess_queue.empty():
             sleep(0.01)
         postprocess_thread.abort = True
@@ -318,6 +317,10 @@ def _make_provider_id(path):
 
     return provider_id
 
+def _csv_get_recordset_provider_id():
+    provider_id = user_config.get_user_config('rsguid')
+    return provider_id
+
 # Upload all the image files within a path.
 def _upload(ongoing_upload_task, root_path=None, resume=False):
     """
@@ -337,6 +340,7 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
         try:
             # Get the image record
             image_record = model.add_or_load_image(batch, path)
+            model.commit()
             if image_record is None:
                 # Skip this one because it's already uploaded.
                 logger.debug('Skipped file {0}.'.format(path))
@@ -352,6 +356,7 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
                 metadata = _make_idigbio_metadata(path)
                 record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, metadata, owner_uuid)
                 image_record.mr_uuid = record_uuid
+                model.commit()
 
             # Post image to API.
             result_obj = conn.post_media(path, image_record.mr_uuid)
@@ -359,6 +364,7 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
             ma_uuid = result_obj['idigbio:uuid']
 
             image_record.ma_uuid = ma_uuid
+            model.commit()
 
             img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
 
@@ -393,8 +399,8 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
             ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
             
             raise
-        except (OSError, err):
-            if err.errno != ENOENT:
+        except (OSError, IOError):
+            if IOError.errno != ENOENT:
                 raise
             error_queue.put('Local file %s not found' % repr(path))
 
@@ -465,7 +471,7 @@ def _upload(ongoing_upload_task, root_path=None, resume=False):
     finally:
         model.commit()
 
-def _upload_csv(ongoing_upload_task, csv_path=None, resume=False):
+def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
     object_queue = ongoing_upload_task.object_queue
     postprocess_queue = ongoing_upload_task.postprocess_queue
     error_queue = ongoing_upload_task.error_queue
@@ -482,7 +488,8 @@ def _upload_csv(ongoing_upload_task, csv_path=None, resume=False):
             cherrypy.log.error("Put in file path="+path+", providerid="+providerid)
             
             # Get the image record
-            image_record = model.add_or_load_image(batch, CSV_TYPE, path)
+            image_record = model.add_or_load_image(batch, constants.CSV_TYPE, path)
+            model.commit()
 
             if image_record is None:
                 # Skip this one because it's already uploaded. Increment skips count and return.
@@ -498,13 +505,17 @@ def _upload_csv(ongoing_upload_task, csv_path=None, resume=False):
                 record_uuid = conn.post_mediarecord(
                     recordset_uuid, path, providerid, metadata, owner_uuid)
                 image_record.mr_uuid = record_uuid
+                model.commit()
 
+            # First, change the batch ID to this one. This field is overwriten.
+            image_record.batch_id = batch.id
             # Post image to API.
             result_obj = conn.post_media(path, image_record.mr_uuid)
             url = result_obj["idigbio:links"]["media"][0]
             ma_uuid = result_obj['idigbio:uuid']
 
             image_record.ma_uuid = ma_uuid
+            model.commit()
 
             img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
 
@@ -538,12 +549,11 @@ def _upload_csv(ongoing_upload_task, csv_path=None, resume=False):
                     map(lambda x: x.abort_thread(), ongoing_upload_task.object_threads)
             ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
             raise
-        except OSError, err:
-            if err.errno != ENOENT:
+        except OSError, IOError:
+            if IOError.errno != ENOENT: # No such file or directory.
                 raise
             error_queue.put('Local file %s not found' % repr(path))
 
-    cherrypy.log.error("ingestion_manager.csv_path:", csv_path)
     conn = get_conn()
     try:
         if resume:
@@ -554,12 +564,12 @@ def _upload_csv(ongoing_upload_task, csv_path=None, resume=False):
             csv_path = batch.path
             recordset_uuid = batch.recordset_uuid
         elif csv_path: # Not resume, and csv_path is provided. It is a new upload.
-            provider_id = 'dummy_recordset_id' # Temporary provider ID
+            provider_id = _csv_get_recordset_provider_id() # Temporary provider ID
             # TODO: Receive provider id from UI.
             cherrypy.log.error('ingestion_manager._upload_csv:post_recordset')
             recordset_uuid = conn.post_recordset(provider_id)
             cherrypy.log.error('ingestion_manager._upload_csv:got uuid, put into db.')
-            batch = model.add_upload_batch(csv_path, recordset_uuid, CSV_TYPE)
+            batch = model.add_upload_batch(csv_path, recordset_uuid, constants.CSV_TYPE)
             model.commit()
             cherrypy.log.error('ingestion_manager._upload_csv:got uuid, committed into db.')
         else:
@@ -577,9 +587,16 @@ def _upload_csv(ongoing_upload_task, csv_path=None, resume=False):
             thread.start()
         logger.debug('{0} upload worker threads started.'.format(worker_thread_count))
 
+        # Read from the CSV file.
+        allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
         with open(csv_path, 'rb') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
             for row in reader:
+                filepath, providerid = row
+                if not allowed_files.match(filepath):
+                    continue
+                fn = partial(ongoing_upload_task.increment, 'total_count')
+                postprocess_queue.put(fn)
                 object_queue.put(row)
 
         # Wait until all images are executed.

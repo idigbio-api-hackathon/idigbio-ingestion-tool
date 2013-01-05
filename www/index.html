@@ -135,20 +135,54 @@
 
         <!-- Tab 1: the CSV upload form. -->
         <div >
-          <form id='csv-upload-form'>
+          <form id='csv-upload-form' class="form-horizontal">
             <div class="control-group">
               <div class="row-fluid">
-                <div class='span9'>
-                    <input type="text" data-provide="typeahead" class="input-block-level"
+                <div class="control-group">
+                  <label class="control-label" for="license-dropdown">Image <a href="http://creativecommons.org/licenses/" target="_blank">License</a></label>
+                  <div class="controls controls-row">
+                    <select id="csv-license-dropdown" name="imagelicense" class="span6" rel="tooltip"
+                    data-title='Select the license you want to associate with the images you upload.'>
+                      <option value=""></option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label" for="owneruuid">Organization UUID</label>
+                  <div class="controls controls-row">
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="csv-owneruuid" placeholder="Organization UUID (optional)" rel="tooltip"
+                      data-title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label" for="idprefix">Record Set GUID</label>
+                  <div class="controls controls-row">
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="rsguid" name="rsguid" placeholder="Record Set GUID"
+                      rel="tooltip" data-title='This is the GUID for this record set.'>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label" for="csvpath">CSV File Path</label>
+                  <div class='controls controls-row'>
+                    <input type="text" data-provide="typeahead" class="span6"
                       id="csv-path" placeholder="Paste CSV path&hellip;"
                       rel="tooltip" name="csvpath"
                       data-title='e.g. /Users/you/collection.csv'>
+                  </div>
                 </div>
-                <div class='span3'>
-                  <button id="csv-upload-button" type="submit"  class="btn btn-primary btn-block">
-                    <i class="icon-upload icon-white"></i>
-                    <span>Upload</span>
-                  </button>
+
+                <div class='controls controls-row'>
+                  <div class='span3'>
+                    <button id="csv-upload-button" type="submit"  class="btn btn-primary btn-block">
+                      <i class="icon-upload icon-white"></i>
+                      <span>Upload</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

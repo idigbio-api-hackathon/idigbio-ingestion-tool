@@ -63,7 +63,7 @@ class ImageRecord(Base):
     def __init__(self, path, md5, batch):
         self.path = path
         self.md5 = md5
-        self.batch_id = batch
+        self.batch_id = batch.id
 
 class UploadBatch(Base):
     '''
