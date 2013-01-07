@@ -35,11 +35,11 @@ def build_url(collection, entity_uuid=None, subcollection=None):
         ape = api_endpoint
         if collection == "check":
             ape = "/".join(api_endpoint.split("/")[:-1])
-        ret = "%s/%s/" % (ape, collection)
+        ret = "%s/%s" % (ape, collection)
     elif subcollection is None:
-        ret = "%s/%s/%s/" % (api_endpoint, collection, entity_uuid)
+        ret = "%s/%s/%s" % (api_endpoint, collection, entity_uuid)
     else:
-        ret = "%s/%s/%s/%s/" % (api_endpoint, collection, entity_uuid, subcollection)
+        ret = "%s/%s/%s/%s" % (api_endpoint, collection, entity_uuid, subcollection)
     return ret
 
 
