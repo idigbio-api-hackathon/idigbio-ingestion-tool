@@ -71,6 +71,9 @@ initMainUI = function() {
     $('#csv-upload-form').submit(function(event) {
         event.preventDefault();
         if ($('#csv-upload-form').valid()) {
+            setPreference('owneruuid', $('#csv-owneruuid').val())
+            setPreference('rsguid', $('#rsguid').val())
+            setPreference('imagelicense', $('#csv-license-dropdown').val())
             postCsvUpload("new");
         } else {
             showAlert('The record set GUID and path cannot be empty.');
@@ -80,7 +83,7 @@ initMainUI = function() {
 
 initCsvUploadUI = function() {
     initCsvLicenseSelector();
-
+/*
     $('#csv-owneruuid').focusout(function(e) {
         setPreference('owneruuid', $(this).val());
     });
@@ -106,6 +109,7 @@ initCsvUploadUI = function() {
             $('#csv-license-dropdown').val(val);
         }
     });
+*/
 }
 
 checkAuthentication = function() {

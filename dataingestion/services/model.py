@@ -17,8 +17,8 @@ import argparse
 from datetime import datetime
 from sqlalchemy.sql.expression import desc
 
-__images_tablename__ = 'images'
-__batches_tablename__ = 'batches'
+__images_tablename__ = 'imagesV2'
+__batches_tablename__ = 'batchesV2'
 
 Base = declarative_base()
 
@@ -68,7 +68,7 @@ class ImageRecord(Base):
     MadiaAP record in JSON String
     '''
     
-    batch_id = Column(Integer, ForeignKey('batches.id', onupdate="cascade"))
+    batch_id = Column(Integer, ForeignKey(__batches_tablename__+'.id', onupdate="cascade"))
 
     def __init__(self, path, md5, batch):
         self.path = path

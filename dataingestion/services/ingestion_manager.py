@@ -480,34 +480,35 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
         try:
             # Get items from the CSV row, which is an array.
             # In current version, the row is simply [path, providerid].
-            path, providerid = row
-            path = path.strip(' ')
-            providerid = providerid.strip(' ')
-            cherrypy.log.error("Put in file path="+path+", providerid="+providerid)
+            mediapath, mediaproviderid = row
+            mediapath = mediapath.strip(' ')
+            mediaproviderid = mediaproviderid.strip(' ')
+            cherrypy.log.error("Put in file mediapath="+mediapath+", mediaproviderid="+mediaproviderid)
             
             # Get the image record
-            image_record = model.add_or_load_image(batch, constants.CSV_TYPE, path)
+            image_record = model.add_or_load_image(batch, constants.CSV_TYPE, mediapath)
 
             if image_record is None:
                 # Skip this one because it's already uploaded. Increment skips count and return.
-                logger.debug('Skipped file {0}.'.format(path))
+                logger.debug('Skipped file {0}.'.format(mediapath))
                 fn = partial(ongoing_upload_task.increment, 'skips')
                 postprocess_queue.put(fn)
                 return
 
             if image_record.mr_uuid is None:
                 # Post mediarecord.
+                image_record.batch_id = batch.id
                 owner_uuid = user_config.try_get_user_config('owneruuid')
-                metadata = {}
-                record_uuid, mr_str = conn.post_mediarecord(
-                    recordset_uuid, path, providerid, metadata, owner_uuid)
+                metadata = _make_idigbio_metadata(mediapath)
+                record_uuid, mr_str = conn.post_mediarecord( # mr_str is the return from server
+                    recordset_uuid, mediapath, mediaproviderid, metadata, owner_uuid)
                 image_record.mr_uuid = record_uuid
                 image_record.mr_record = mr_str
 
             # First, change the batch ID to this one. This field is overwriten.
             image_record.batch_id = batch.id
             # Post image to API.
-            ma_str = conn.post_media(path, image_record.mr_uuid)
+            ma_str = conn.post_media(mediapath, image_record.mr_uuid) # ma_str is the return from server
             image_record.ma_record = ma_str
             result_obj = json.loads(ma_str)
 
@@ -525,9 +526,9 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                 raise ClientException('Upload failed because local MD5 does not match the eTag or no eTag is returned.')
 
             if conn.attempts > 1:
-                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
+                logger.debug('%s [after %d attempts]' % (mediapath, conn.attempts))
             else:
-                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
+                logger.debug('%s [after %d attempts]' % (mediapath, conn.attempts))
             
             # Increment the success_count by 1.
             fn = partial(ongoing_upload_task.increment, 'success_count')
@@ -550,7 +551,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             raise
         except IOError as err:
             if err.errno == ENOENT: # No such file or directory.
-                error_queue.put('Local file %s not found' % repr(path))
+                error_queue.put('Local file %s not found' % repr(mediapath))
                 fn = partial(ongoing_upload_task.increment, 'fails')
                 ongoing_upload_task.postprocess_queue.put(fn)
             else:
