@@ -324,193 +324,43 @@ def _csv_get_recordset_provider_id():
 
 # Upload all the image files within a path.
 def _upload(ongoing_upload_task, root_path=None, resume=False):
-    """
-    This method returns when all file upload tasks have been executed.
-    """
-    
-    object_queue = ongoing_upload_task.object_queue
-    postprocess_queue = ongoing_upload_task.postprocess_queue
-    error_queue = ongoing_upload_task.error_queue
-
-    def _object_job(job, conn):
-        '''
-        The job that uploads a single object (file).
-        '''
-        path = job['path']
-
-        try:
-            # Get the image record
-            image_record = model.add_or_load_image(batch, path)
-            if image_record is None:
-                # Skip this one because it's already uploaded.
-                logger.debug('Skipped file {0}.'.format(path))
-                fn = partial(ongoing_upload_task.increment, 'skips')
-                postprocess_queue.put(fn)
-                return
-
-            # Post mediarecord if necesssary.
-            if image_record.mr_uuid is None:
-                provider_id = _make_provider_id(path)
-                owner_uuid = user_config.try_get_user_config('owneruuid')
-
-                metadata = _make_idigbio_metadata(path)
-                record_uuid = conn.post_mediarecord(recordset_uuid, path, provider_id, metadata, owner_uuid)
-                image_record.mr_uuid = record_uuid
-
-            # Post image to API.
-            result_obj = conn.post_media(path, image_record.mr_uuid)
-            url = result_obj["idigbio:links"]["media"][0]
-            ma_uuid = result_obj['idigbio:uuid']
-
-            image_record.ma_uuid = ma_uuid
-
-            img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
-
-            if img_etag and image_record.md5 == img_etag:
-                image_record.upload_time = datetime.utcnow()
-                image_record.url = url
-            else:
-                raise ClientException('Upload failed because local MD5 does not match the eTag or no eTag is returned.')
-
-            if conn.attempts > 1:
-                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
-            else:
-                logger.debug('%s [after %d attempts]' % (path, conn.attempts))
-            
-            # Increment the success_count by 1.
-            fn = partial(ongoing_upload_task.increment, 'success_count')
-            postprocess_queue.put(fn)
-            
-            # It's sccessful this time.
-            fn = partial(ongoing_upload_task.check_continuous_fails, True)
-            postprocess_queue.put(fn)
-            
-        except ClientException:
-            logger.error("An object job failed.")
-            fn = partial(ongoing_upload_task.increment, 'fails')
-            ongoing_upload_task.postprocess_queue.put(fn)
-            
-            def _abort_if_necessary():
-                if ongoing_upload_task.check_continuous_fails(False):
-                    logger.info("Aborting threads because continuous failures exceed the threshold.")
-                    map(lambda x: x.abort_thread(), ongoing_upload_task.object_threads)
-            ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
-            
-            raise
-        except (OSError, IOError):
-            if IOError.errno != ENOENT:
-                raise
-            error_queue.put('Local file %s not found' % repr(path))
-
-    def _upload_dir(dir_path):
-        allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
-        for dirpath, _dirnames, filenames in os.walk(dir_path):
-            for filename in filenames:
-                if not allowed_files.match(filename):
-                    continue
-                subpath = join(dirpath, filename)
-                object_queue.put({'path': subpath})
-                fn = partial(ongoing_upload_task.increment, 'total_count')
-                postprocess_queue.put(fn)
-        logger.info("All jobs to upload individual files are added to the job queue.")
-
-    conn = get_conn()
-    try:
-        if resume:
-            batch = model.load_last_batch()
-            if batch.finish_time:
-                raise IngestServiceException("Last batch already finished, why resume?")
-            # Assign local variables with values in DB.
-            root_path = batch.root
-            recordset_uuid = batch.recordset_uuid
-        elif root_path:
-            provider_id = _make_provider_id(root_path)
-            recordset_uuid = conn.post_recordset(provider_id) # This posts the record set to the server.
-            batch = model.add_upload_batch(root_path, recordset_uuid)
-            model.commit()
-        else:
-            raise IngestServiceException("Root path not specified.")
-        
-        ongoing_upload_task.batch = batch
-        
-        worker_thread_count = 1
-        object_threads = [QueueFunctionThread(object_queue, _object_job,
-            get_conn()) for _junk in xrange(worker_thread_count)]
-        ongoing_upload_task.object_threads = object_threads
-        
-        for thread in object_threads:
-            thread.start()
-        logger.debug('{0} upload worker threads started.'.format(worker_thread_count))
-
-        if isdir(root_path):
-            _upload_dir(root_path)
-        else:
-            # Single file.
-            object_queue.put({'path': root_path})
-
-        while not object_queue.empty():
-            sleep(0.01)
-
-        for thread in object_threads:
-            thread.abort = True
-            while thread.isAlive():
-                thread.join(0.01)
-
-        was_error = put_errors_from_threads(object_threads)
-        if not was_error:
-            logger.info("Upload finishes with no error")
-            batch.finish_time = datetime.now()
-        else:
-            logger.error("Upload finishes with errors.")
-
-    except ClientException:
-        error_queue.put('Upload failed outside of the worker thread.')
-        
-    finally:
-        model.commit()
+    pass
 
 def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
     object_queue = ongoing_upload_task.object_queue
     postprocess_queue = ongoing_upload_task.postprocess_queue
     error_queue = ongoing_upload_task.error_queue
 
+    logger.debug("_upload_csv")
     # This function is passed to the threads.
-    def _csv_job(row, conn):
-
+    def _csv_job(image_record, conn):
         try:
-            # Get items from the CSV row, which is an array.
-            # In current version, the row is simply [path, providerid].
-            mediapath, mediaproviderid = row
-            mediapath = mediapath.strip(' ')
-            mediaproviderid = mediaproviderid.strip(' ')
-            cherrypy.log.error("Put in file mediapath="+mediapath+", mediaproviderid="+mediaproviderid)
-            
-            # Get the image record
-            image_record = model.add_or_load_image(batch, constants.CSV_TYPE, mediapath)
-
             if image_record is None:
-                # Skip this one because it's already uploaded. Increment skips count and return.
-                logger.debug('Skipped file {0}.'.format(mediapath))
-                fn = partial(ongoing_upload_task.increment, 'skips')
-                postprocess_queue.put(fn)
-                return
-
+                raise ClientException("image_recod is None.")
             if image_record.mr_uuid is None:
                 # Post mediarecord.
+                logger.debug("image_record.mr_uuid is None.")
+                logger.debug("Task 111: post media record.")
                 image_record.batch_id = batch.id
                 owner_uuid = user_config.try_get_user_config('owneruuid')
+                logger.debug("Got owner_uuid.")
                 metadata = _make_idigbio_metadata(mediapath)
+                logger.debug("post media record.")
                 record_uuid, mr_str = conn.post_mediarecord( # mr_str is the return from server
                     recordset_uuid, mediapath, mediaproviderid, metadata, owner_uuid)
+                logger.debug("Got record uuid.")
                 image_record.mr_uuid = record_uuid
                 image_record.mr_record = mr_str
+                logger.debug("Task 111 done.")
 
+            logger.debug("Task 112: post media.")
             # First, change the batch ID to this one. This field is overwriten.
             image_record.batch_id = batch.id
             # Post image to API.
             ma_str = conn.post_media(mediapath, image_record.mr_uuid) # ma_str is the return from server
             image_record.ma_record = ma_str
             result_obj = json.loads(ma_str)
+            logger.debug("Task 112 done.")
 
             url = result_obj["idigbio:links"]["media"][0]
             ma_uuid = result_obj['idigbio:uuid']
@@ -560,6 +410,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
     conn = get_conn()
     try:
         if resume:
+            logger.debug("Resume batch.")
             batch = model.load_last_batch()
             if batch.finish_time:
                 raise IngestServiceException("Last batch already finished, why resume?")
@@ -567,19 +418,22 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             csv_path = batch.path
             recordset_uuid = batch.recordset_uuid
         elif csv_path: # Not resume, and csv_path is provided. It is a new upload.
+            logger.debug("Start a new csv batch.")
             provider_id = _csv_get_recordset_provider_id() # Temporary provider ID
             # TODO: Receive provider id from UI.
-            cherrypy.log.error('ingestion_manager._upload_csv:post_recordset')
+            logger.debug('ingestion_manager._upload_csv:post_recordset')
             recordset_uuid = conn.post_recordset(provider_id)
-            cherrypy.log.error('ingestion_manager._upload_csv:got uuid, put into db.')
+            logger.debug('ingestion_manager._upload_csv:got uuid, put into db.')
             batch = model.add_upload_batch(csv_path, recordset_uuid, constants.CSV_TYPE)
+            # if batch.finish_time:
+            #    raise IngestServiceException("This is a duplicate upload and successfully done. Ignored.")
             model.commit()
-            cherrypy.log.error('ingestion_manager._upload_csv:got uuid, committed into db.')
+            logger.debug('ingestion_manager._upload_csv:got uuid, committed into db.')
         else:
-            raise IngestServiceException("Root path not specified.")
+            raise IngestServiceException("CSV path is not specified.")
         
         ongoing_upload_task.batch = batch
-        
+
         worker_thread_count = 1
         # the object_queue and _csv_job are passed to the thread.
         object_threads = [QueueFunctionThread(object_queue, _csv_job,
@@ -590,17 +444,42 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             thread.start()
         logger.debug('{0} upload worker threads started.'.format(worker_thread_count))
 
+        # Put all the records to the data base and the job queue.
+        # Get items from the CSV row, which is an array.
+        # In current version, the row is simply [path, providerid].
+        logger.debug('Task 110: ingestion_manager._upload_csv: put all records from CSV file into db.')
         # Read from the CSV file.
         allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
-        with open(csv_path, 'rb') as csvfile:
+        with open(csv_path, 'rb') as csvfile:    
             reader = csv.reader(csvfile, delimiter=',')
             for row in reader:
-                filepath, providerid = row
-                if not allowed_files.match(filepath):
+                mediapath, mediaproviderid = row
+                mediapath = mediapath.strip(' ')
+                mediaproviderid = mediaproviderid.strip(' ')
+                
+                if not allowed_files.match(mediapath):
                     continue
                 fn = partial(ongoing_upload_task.increment, 'total_count')
                 postprocess_queue.put(fn)
-                object_queue.put(row)
+
+                logger.debug("Put in file mediapath="+mediapath+", mediaproviderid="+mediaproviderid)
+                # Get the image record
+                image_record = model.add_or_load_image(batch, row, recordset_uuid, constants.CSV_TYPE)
+
+                if image_record is None:
+                    # Skip this one because it's already uploaded. Increment skips count and return.
+                    logger.debug('Skipped file {0}.'.format(mediapath))
+                    fn = partial(ongoing_upload_task.increment, 'skips')
+                    postprocess_queue.put(fn)
+                elif image_record.file_exist == False:
+                    # File not found.
+                    logger.debug('File {0} not found.'.format(mediapath))
+                    fn = partial(ongoing_upload_task.increment, 'fails')
+                    postprocess_queue.put(fn)
+                else:
+                    object_queue.put(image_record)
+        logger.debug('Task 110 done.')
+
 
         # Wait until all images are executed.
         while not object_queue.empty():

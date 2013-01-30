@@ -17,8 +17,8 @@ import argparse
 from datetime import datetime
 from sqlalchemy.sql.expression import desc
 
-__images_tablename__ = 'imagesV2'
-__batches_tablename__ = 'batchesV2'
+__images_tablename__ = 'imagesV3'
+__batches_tablename__ = 'batchesV3'
 
 Base = declarative_base()
 
@@ -40,6 +40,16 @@ class ImageRecord(Base):
     Path does not have to be unique as there can be multiple 
     unrelated */USBVolumne1/DCIM/Image1.JPG*s.
     '''
+    file_exist = Column(Boolean)
+    '''
+    Indicates if the given path is a valid file.
+    '''
+
+    providerid = Column(String)
+    '''
+    providerid is unique for each media record within the record set.
+    '''
+
     mr_uuid = Column(String)
     '''
     The UUID of the *media record* for this image. 
@@ -51,6 +61,10 @@ class ImageRecord(Base):
     '''
     
     md5 = Column(String, index=True, unique=True)
+    '''
+    This md5 is got from "record set uuid + CSV record line + media file hash".
+    '''
+
     comments = Column(String)
     upload_time = Column(DateTime)
     '''
@@ -70,9 +84,11 @@ class ImageRecord(Base):
     
     batch_id = Column(Integer, ForeignKey(__batches_tablename__+'.id', onupdate="cascade"))
 
-    def __init__(self, path, md5, batch):
+    def __init__(self, path, pid, md5, exist, batch):
         self.path = path
+        self.providerid = pid
         self.md5 = md5
+        self.file_exist = exist
         self.batch_id = batch.id
 
 class UploadBatch(Base):
@@ -82,7 +98,6 @@ class UploadBatch(Base):
     
     .. note:: When a batch fails and is resumed, the same batch record and 
        recordset id are reused.
-       
     '''
     __tablename__ = __batches_tablename__
 
@@ -105,15 +120,21 @@ class UploadBatch(Base):
     '''
     The type of the batch task, it can be "dir" or "csv".
     '''
+    md5 = Column(String)
+    '''
+    The md5 of the CSV file + uuid.
+    '''
+
     images = relationship(ImageRecord, backref="batch")
     '''
     All images associated with the batches in the table.
     '''
 
-    def __init__(self, path, recordset_uuid, start_time, batchtype):
+    def __init__(self, path, recordset_uuid, start_time, md5, batchtype):
         self.path = path
         self.recordset_uuid = recordset_uuid
         self.start_time = start_time
+        self.md5 = md5
         self.batchtype = batchtype
 
 session = None
@@ -137,36 +158,56 @@ def md5_file(f, block_size=2 ** 20):
         if not data:
             break
         md5.update(data)
-    return md5.hexdigest()
+    return md5
+
+def generate_record(csvrow, rs_uuid):
+    mediapath, mediaproviderid = csvrow
+    mediapath = mediapath.strip(' ')
+    mediaproviderid = mediaproviderid.strip(' ')
+    recordmd5 = hashlib.md5()
+    recordmd5.update(rs_uuid)
+    recordmd5.update(mediapath)
+    recordmd5.update(mediaproviderid)
+    return mediapath, mediaproviderid, recordmd5
 
 # decorator
 @check_session
-def add_or_load_image(batch, tasktype, path):
+def add_or_load_image(batch, csvrow, rs_uuid, tasktype):
     '''
     Return the image or None is the image should not be uploaded.
     
     :rtype: ImageRecord or None.
     .. note:: Image identity is not determined by path but rather by its MD5.
     '''
-    with open(path, 'rb') as f:
-        md5 = md5_file(f)
-    record = session.query(ImageRecord).filter_by(md5=md5).first()
-    if record is None:
-        return add_image(batch, path)
-        # What if the file at the same path is actually new?
-    elif record.upload_time:
-        # Already uploaded.
+    path, mediaproviderid, md5value = generate_record(csvrow, rs_uuid)
+
+    file_found = True
+    try:
+        with open(path, 'rb') as f:
+            filemd5 = md5_file(f)
+        md5value.update(filemd5.hexdigest())
+    except IOError as err:
+        logger.debug("The file "+path+" cannot be found.")
+        file_found = False
+
+    record = session.query(ImageRecord).filter_by(md5=md5value.hexdigest()).first()
+    if record is None: # No duplicate record.
+        return add_image(batch, path, mediaproviderid, md5value, file_found)
+    elif record.upload_time: # Found the duplicate record, already uploaded.
+        record.batchid = batch.id 
         return None
-    else:
-        # Needs to be uplaoded.
-        return record
+    else: # Found the duplicate record, but not uploaded.
+        if file_found == True: # Needs to be uploaded.
+            return record
+        else: # No need to be uploaded, because the file does not exist.
+            record.batchid = batch.id 
+            # Update the batch id so that you can find the complete result of this batch.
+            return record
+
 
 @check_session
-def add_image(batch, path):
-    with open(path, 'rb') as f:
-        md5 = md5_file(f)
-
-    record = ImageRecord(path, md5, batch)
+def add_image(batch, path, providerid, md5value, exist):
+    record = ImageRecord(path, providerid, md5value.hexdigest(), exist, batch)
     session.add(record)
     logger.debug("Image %s added to DB session." % path)
     return record
@@ -174,9 +215,22 @@ def add_image(batch, path):
 @check_session
 def add_upload_batch(path, recordset_uuid, tasktype):
     start_time = datetime.now()
-    batch = UploadBatch(path, recordset_uuid, start_time, tasktype)
-    session.add(batch)
-    return batch
+    with open(path, 'rb') as f:
+        md5value = md5_file(f)
+    md5value.update(recordset_uuid)
+
+    record = session.query(UploadBatch).filter_by(md5=md5value.hexdigest()).first()
+    if record is None: # No duplicate record.
+        batch = UploadBatch(path, recordset_uuid, start_time, md5value.hexdigest(), tasktype)
+        session.add(batch)
+        return batch
+    return record # Otherwise, just return the existing record. You still need to process it.
+
+@check_session
+def get_imagerecords_by_batchid(batch_id):
+    batch_id = int(batch_id)
+    imagerecords = session.query(ImageRecord).filter_by(batch_id=batch_id)
+    return imagerecords
 
 @check_session
 def count_batch_size(batch_id):
@@ -187,7 +241,7 @@ def count_batch_size(batch_id):
 @check_session
 def get_batch_details(batch_id):
     batch_id = int(batch_id)
-    query = session.query(ImageRecord.path, ImageRecord.url).filter_by(batch_id=batch_id)
+    query = session.query(ImageRecord.path, ImageRecord.file_exist, ImageRecord.url).filter_by(batch_id=batch_id)
     return query.all()
 
 @check_session

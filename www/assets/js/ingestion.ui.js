@@ -83,37 +83,11 @@ initMainUI = function() {
 
 initCsvUploadUI = function() {
     initCsvLicenseSelector();
-/*
-    $('#csv-owneruuid').focusout(function(e) {
-        setPreference('owneruuid', $(this).val());
-    });
-
-    $('#rsguid').focusout(function(e) {
-        setPreference('rsguid', $(this).val());
-    });
-
-    getPreference('owneruuid', function(val) {
-        if (val) {
-            $('#csv-owneruuid').val(val);
-        }
-    });
-
-    getPreference('rsguid', function(val) {
-        if (val) {
-            $('#rsguid').val(val);
-        }
-    });
-
-    getPreference('imagelicense', function(val) {
-        if (val) {
-            $('#csv-license-dropdown').val(val);
-        }
-    });
-*/
 }
 
 checkAuthentication = function() {
     blockUI();
+    
     $.getJSON('/services/auth', function(data) {
         $.unblockUI();
         if (!data) {
@@ -122,6 +96,7 @@ checkAuthentication = function() {
             initMainUI();
         }
     })
+    
     .error(function(data) {
         $.unblockUI();
         $('#serviceErrorModal').modal();
@@ -422,12 +397,15 @@ renderResult = function(data) {
     $('#result-table').dataTable({
         "aaData": data,
         "aoColumns": [
-            { "sTitle": "Local" },
-            { "sTitle": "Online",
+            { "sTitle": "File Path" },
+            { "sTitle": "Online Path or Error Message",
               "fnRender": function(obj) {
-                var url = obj.aData[ obj.iDataColumn ];
+                file_exist = obj.aData[1]; // It is given as an array.
+                url = obj.aData[8];
                 var text;
-                if (url == null) {
+                if (file_exist == false) {
+                    text = "<span class=\"label label-important\">This image does not exist.</span>"
+                } else if (url == null) {
                     text = "<span class=\"label label-important\">This image is not successfully uploaded.</span>"
                 } else {
                     text = '<a target="_blank" href="' + url + '">'+ url + '</a>';

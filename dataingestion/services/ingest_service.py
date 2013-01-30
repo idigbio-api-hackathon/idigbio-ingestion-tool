@@ -43,7 +43,7 @@ def start_upload(path, tasktype):
     """
     # Initial checks before the task is added to the queue.
     if not os.path.exists(path):
-        raise ValueError("Path does not exist.")
+        raise ValueError("CSV file does not exist.")
     _start(_upload_task, tasktype, path)
 
 def start_resume(tasktype):
