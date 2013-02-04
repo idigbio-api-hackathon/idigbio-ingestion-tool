@@ -80,7 +80,7 @@ class Authentication(object):
         try:
 #            cherrypy.log.error("ingest_rest.Authentication")
             ret = ingest_service.authenticated()
- #           cherrypy.log.error('ingest_rest.Authentication:', str(ret))
+#            cherrypy.log.error('ingest_rest.Authentication:', str(ret))
             return json.dumps(ret)
         except Exception as ex:
             cherrypy.log.error('ingest_rest.Authentication:')

@@ -97,7 +97,7 @@ def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner
     except (urllib2.URLError, socket.error, HTTPException) as e:
         raise ClientException("{0} caught while POSTing the mediarecord.".format(type(e)),
                               reason=str(e), url=url)
-    return response['idigbio:uuid'], resp1
+    return response['idigbio:uuid'], response['idigbio:etag'], resp1
 
 def _post_media(local_path, entity_uuid):
     '''

@@ -1,10 +1,16 @@
 import os
 import ConfigParser
 
+#Fields in the configuration file.
 CONFIG_SECTION = 'iDigBio'
-
 DISABLE_CHECK = "devmode_disable_startup_service_check"
-DISABLE_CHECK_RETURN = "dumbvalue"
+RECORDSET_ID = 'rsguid'
+IMAGE_LICENSE = 'imagelicense'
+MEDIACONTENT_KEYWORD = 'mediaContentKeyword'
+IDIGBIO_PROVIDER_GUID = 'iDigbioProviderGUID'
+IDIGBIO_PUBLISHER_GUID = 'iDigbioPublisherGUID'
+FUNDING_SOURCE = 'fundingSource'
+FUNDING_PURPOSE = 'fundingPurpose'
 
 config = None
 
@@ -49,8 +55,6 @@ class UserConfig(object):
     def __getattr__(self, name):
         self.reload()
 
-#        if self.check_disabled():
-#            return DISABLE_CHECK_RETURN
         if self.config.has_option(CONFIG_SECTION, name):
             return self.config.get(CONFIG_SECTION, name)
         else:

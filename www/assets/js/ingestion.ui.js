@@ -71,9 +71,13 @@ initMainUI = function() {
     $('#csv-upload-form').submit(function(event) {
         event.preventDefault();
         if ($('#csv-upload-form').valid()) {
-            setPreference('owneruuid', $('#csv-owneruuid').val())
             setPreference('rsguid', $('#rsguid').val())
             setPreference('imagelicense', $('#csv-license-dropdown').val())
+            setPreference('mediaContentKeyword', $('#mediaContentKeyword').val())
+            setPreference('iDigbioProviderGUID', $('#csv-owneruuid').val())
+            setPreference('iDigbioPublisherGUID', $('#iDigbioPublisherGUID').val())
+            setPreference('fundingSource', $('#fundingSource').val())
+            setPreference('fundingPurpose', $('#fundingPurpose').val())
             postCsvUpload("new");
         } else {
             showAlert('The record set GUID and path cannot be empty.');
@@ -214,15 +218,27 @@ postCsvUpload = function(action) {
         $('#csv-license-dropdown').attr('disabled', true);
         $("#csv-license-dropdown").addClass('disabled');
 
-        $('#csv-owneruuid').attr('disabled', true);
-        $("#csv-owneruuid").addClass('disabled');
-
         $('#rsguid').attr('disabled', true);
         $("#rsguid").addClass('disabled');
 
         $('#csv-path').attr('disabled', true);
         $("#csv-path").addClass('disabled');
         
+        $('#mediaContentKeyword').attr('disabled', true);
+        $("#mediaContentKeyword").addClass('disabled');
+
+        $('#csv-owneruuid').attr('disabled', true);
+        $("#csv-owneruuid").addClass('disabled');
+
+        $('#iDigbioPublisherGUID').attr('disabled', true);
+        $("#iDigbioPublisherGUID").addClass('disabled');
+
+        $('#fundingSource').attr('disabled', true);
+        $("#fundingSource").addClass('disabled');
+
+        $('#fundingPurpose').attr('disabled', true);
+        $("#fundingPurpose").addClass('disabled');
+
         $("#csv-upload-button").attr('disabled', true);
         $("#csv-upload-button").addClass('disabled');
 
@@ -277,9 +293,6 @@ showLastBatchInfo = function() {
                 // TODO: Differentiate the CSV task or dir task.
                 postCsvUpload("retry");
             });
-        } else {
-            var msg = "<strong>Welcome!</strong> BTW, your last upload was successful."
-            showAlert(msg, "", "alert-success");
         }
     }, "json");
 }
@@ -330,15 +343,9 @@ updateProgress = function() {
         
         if (progressObj.finished) {
             $(".progress-primary").toggleClass('active');
-            
+
             $('#csv-license-dropdown').attr('disabled', false);
             $("#csv-license-dropdown").removeClass('disabled');
-            
-            $('#csv-owneruuid').attr('disabled', false);
-            $("#csv-owneruuid").removeClass('disabled');
-            
-            $("#upload-button").attr('disabled', false);
-            $("#upload-button").removeClass('disabled');
 
             $('#rsguid').attr('disabled', false);
             $("#rsguid").removeClass('disabled');
@@ -346,8 +353,24 @@ updateProgress = function() {
             $('#csv-path').attr('disabled', false);
             $("#csv-path").removeClass('disabled');
             
+            $('#mediaContentKeyword').attr('disabled', false);
+            $("#mediaContentKeyword").removeClass('disabled');
+
+            $('#csv-owneruuid').attr('disabled', false);
+            $("#csv-owneruuid").removeClass('disabled');
+
+            $('#iDigbioPublisherGUID').attr('disabled', false);
+            $("#iDigbioPublisherGUID").removeClass('disabled');
+
+            $('#fundingSource').attr('disabled', false);
+            $("#fundingSource").removeClass('disabled');
+
+            $('#fundingPurpose').attr('disabled', false);
+            $("#fundingPurpose").removeClass('disabled');
+
             $("#csv-upload-button").attr('disabled', false);
             $("#csv-upload-button").removeClass('disabled');
+
 
 //            $("#logout-btn").attr('disabled', false);
 //            $("#logout-btn").removeClass('disabled');
@@ -423,10 +446,7 @@ renderResult = function(data) {
         "bAutoWidth": true,
         "oTableTools": {
             "sSwfPath": "assets/TableTools/swf/copy_csv_xls_pdf.swf",
-            "aButtons": [
-                "csv",
-                "pdf"
-            ]
+            "aButtons": ["csv","pdf"]
         },
         "bDestroy" : true,
         "sPaginationType": "bootstrap"

@@ -138,8 +138,9 @@
           <form id='csv-upload-form' class="form-horizontal">
             <div class="control-group">
               <div class="row-fluid">
+                
                 <div class="control-group">
-                  <label class="control-label" for="license-dropdown">Image <a href="http://creativecommons.org/licenses/" target="_blank">License</a></label>
+                  <label class="control-label" for="license-dropdown">Image <a href="http://creativecommons.org/licenses/" target="_blank">License</a> *</label>
                   <div class="controls controls-row">
                     <select id="csv-license-dropdown" name="imagelicense" class="span6" rel="tooltip"
                     data-title='Select the license you want to associate with the images you upload.'>
@@ -149,16 +150,7 @@
                 </div>
 
                 <div class="control-group">
-                  <label class="control-label" for="owneruuid">Organization UUID</label>
-                  <div class="controls controls-row">
-                    <input type="text" data-provide="typeahead" class="span6"
-                      id="csv-owneruuid" placeholder="Organization UUID (optional)" rel="tooltip"
-                      data-title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
-                  </div>
-                </div>
-
-                <div class="control-group">
-                  <label class="control-label" for="idprefix">Record Set GUID</label>
+                  <label class="control-label" for="rsguid">Record Set GUID *</label>
                   <div class="controls controls-row">
                     <input type="text" data-provide="typeahead" class="span6"
                       id="rsguid" name="rsguid" placeholder="Record Set GUID"
@@ -167,12 +159,67 @@
                 </div>
 
                 <div class="control-group">
-                  <label class="control-label" for="csvpath">CSV File Path</label>
+                  <label class="control-label" for="csvpath">CSV File Path *</label>
                   <div class='controls controls-row'>
                     <input type="text" data-provide="typeahead" class="span6"
                       id="csv-path" placeholder="Paste CSV path&hellip;"
                       rel="tooltip" name="csvpath"
                       data-title='e.g. /Users/you/collection.csv'>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label" for="mediaContentKeyword">Media Content Keyword</label>
+                  <div class='controls controls-row'>
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="mediaContentKeyword" placeholder="Optional"
+                      rel="tooltip" name="mediaContentKeyword"
+                      data-title='Should indicate "Label" or "FieldBook" for a photograph of a label or field book, "PhysicalSpecimen" or "LivingSpecimen" for a photograph of a specimen, "Illustration" for a man-made drawing, and so on.'>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label" for="owneruuid">iDigbio Provider GUID</label>
+                  <div class="controls controls-row">
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="csv-owneruuid" placeholder="Optional" rel="tooltip"
+                      data-title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label" for="iDigbioPublisherGUID">iDigbio Publisher GUID</label>
+                  <div class='controls controls-row'>
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="iDigbioPublisherGUID" placeholder="Optional"
+                      rel="tooltip" name="iDigbioPublisherGUID"
+                      data-title='Relates this record set to the organization (Organization Concept) that is publishing the data on behalf of the source provider.'>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label" for="fundingSource">Funding Source</label>
+                  <div class='controls controls-row'>
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="fundingSource" placeholder="Optional"
+                      rel="tooltip" name="fundingSource"
+                      data-title='Funding source related to the digitization effort of this set of media.'>
+                  </div>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label" for="fundingPurpose">Funding Purpose</label>
+                  <div class='controls controls-row'>
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="fundingPurpose" placeholder="Optional"
+                      rel="tooltip" name="fundingPurpose"
+                      data-title='E.g., specimen collection, initial digital data capture, metadata augmentation, personnel, etc.'>
+                  </div>
+                </div>
+
+                <div class='controls controls-row'>
+                  <div class='span5'>
+                    <label>Note: the fields with * are mandatory.</label>
                   </div>
                 </div>
 

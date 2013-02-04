@@ -290,7 +290,7 @@ def exec_upload_csv_task(csv_path=None, resume=False):
 def _make_idigbio_metadata(path):
     metadata = {}
 
-    license_key = user_config.get_user_config('imagelicense')
+    license_key = user_config.get_user_config(user_config.IMAGE_LICENSE)
 
     license_ = constants.IMAGE_LICENSES[license_key]
     metadata["xmpRights:usageTerms"] = license_[0]
@@ -301,26 +301,6 @@ def _make_idigbio_metadata(path):
     extension = os.path.splitext(path)[1].lstrip('.').lower()
     metadata["idigbio:mediaType"] = constants.EXTENSION_MEDIA_TYPES[extension]
     return metadata
-
-def _make_provider_id(path):
-    idsyntax = user_config.get_user_config('idsyntax')
-    idprefix = user_config.get_user_config('idprefix')
-
-    # The path should exist on the disk, which is verified in previous steps.
-    if os.path.isfile(path):
-        # For file -> media record
-        idsuffix = path if idsyntax == 'full-path' else os.path.split(path)[1]
-    else:
-        # For directory -> record set
-        idsuffix = path if idsyntax == 'full-path' else ""
-
-    provider_id = idprefix + '/' + idsuffix
-
-    return provider_id
-
-def _csv_get_recordset_provider_id():
-    provider_id = user_config.get_user_config('rsguid')
-    return provider_id
 
 # Upload all the image files within a path.
 def _upload(ongoing_upload_task, root_path=None, resume=False):
@@ -346,12 +326,14 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                 logger.debug("Got owner_uuid.")
                 metadata = _make_idigbio_metadata(mediapath)
                 logger.debug("post media record.")
-                record_uuid, mr_str = conn.post_mediarecord( # mr_str is the return from server
+                record_uuid, etag, mr_str = conn.post_mediarecord( # mr_str is the return from server
                     recordset_uuid, mediapath, mediaproviderid, metadata, owner_uuid)
                 logger.debug("Got record uuid.")
                 image_record.mr_uuid = record_uuid
                 image_record.mr_record = mr_str
+                image_record.etag = etag
                 logger.debug("Task 111 done.")
+                model.commit()
 
             logger.debug("Task 112: post media.")
             # First, change the batch ID to this one. This field is overwriten.
@@ -389,7 +371,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             postprocess_queue.put(fn)
             
         except ClientException:
-            logger.error("An object job failed.")
+            logger.error("An CSV job failed.")
             fn = partial(ongoing_upload_task.increment, 'fails')
             ongoing_upload_task.postprocess_queue.put(fn)
 
@@ -419,14 +401,19 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             recordset_uuid = batch.recordset_uuid
         elif csv_path: # Not resume, and csv_path is provided. It is a new upload.
             logger.debug("Start a new csv batch.")
-            provider_id = _csv_get_recordset_provider_id() # Temporary provider ID
+            recordset_guid = user_config.get_user_config(user_config.RECORDSET_ID) # Temporary provider ID
             # TODO: Receive provider id from UI.
             logger.debug('ingestion_manager._upload_csv:post_recordset')
-            recordset_uuid = conn.post_recordset(provider_id)
+            recordset_uuid = conn.post_recordset(recordset_guid)
             logger.debug('ingestion_manager._upload_csv:got uuid, put into db.')
-            batch = model.add_upload_batch(csv_path, recordset_uuid, constants.CSV_TYPE)
-            # if batch.finish_time:
-            #    raise IngestServiceException("This is a duplicate upload and successfully done. Ignored.")
+            license = user_config.get_user_config(user_config.IMAGE_LICENSE)
+            keyword = user_config.get_user_config(user_config.MEDIACONTENT_KEYWORD)
+            providerID = user_config.get_user_config(user_config.IDIGBIO_PROVIDER_GUID)
+            publisherID = user_config.get_user_config(user_config.IDIGBIO_PUBLISHER_GUID)
+            fundingSource = user_config.get_user_config(user_config.FUNDING_SOURCE)
+            fundingPurpose = user_config.get_user_config(user_config.FUNDING_PURPOSE)
+            batch = model.add_upload_batch(csv_path, license, recordset_guid, recordset_uuid, 
+                constants.CSV_TYPE, keyword, providerID, publisherID, fundingSource, fundingPurpose)
             model.commit()
             logger.debug('ingestion_manager._upload_csv:got uuid, committed into db.')
         else:
@@ -450,13 +437,28 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
         logger.debug('Task 110: ingestion_manager._upload_csv: put all records from CSV file into db.')
         # Read from the CSV file.
         allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
-        with open(csv_path, 'rb') as csvfile:    
-            reader = csv.reader(csvfile, delimiter=',')
-            for row in reader:
-                mediapath, mediaproviderid = row
+        with open(csv_path, 'rb') as csvfile:
+            logger.debug('aaa')
+            csv.register_dialect('mydialect', delimiter=',', quotechar='"', skipinitialspace=True)
+            logger.debug('bbb')
+            reader = csv.reader(csvfile, 'mydialect')
+            logger.debug('ccc')
+            for row in reader: # For each line do the work.
+                if len(row) != 11:
+                    logger.debug(len(row))
+                    logger.debug('length of row is not 11.')
+                    return
+                    # TODO
+
+                logger.debug('Task 110-1')
+
+                mediapath = row[0]
+                mediaproviderid = row[1]
                 mediapath = mediapath.strip(' ')
                 mediaproviderid = mediaproviderid.strip(' ')
                 
+                logger.debug('Task 110-2')
+
                 if not allowed_files.match(mediapath):
                     continue
                 fn = partial(ongoing_upload_task.increment, 'total_count')
@@ -465,6 +467,8 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                 logger.debug("Put in file mediapath="+mediapath+", mediaproviderid="+mediaproviderid)
                 # Get the image record
                 image_record = model.add_or_load_image(batch, row, recordset_uuid, constants.CSV_TYPE)
+
+                logger.debug('Task 110-3')
 
                 if image_record is None:
                     # Skip this one because it's already uploaded. Increment skips count and return.
@@ -477,6 +481,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                     fn = partial(ongoing_upload_task.increment, 'fails')
                     postprocess_queue.put(fn)
                 else:
+                    logger.debug('File information is good.')
                     object_queue.put(image_record)
         logger.debug('Task 110 done.')
 
