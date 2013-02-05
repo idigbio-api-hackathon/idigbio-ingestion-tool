@@ -420,22 +420,168 @@ renderResult = function(data) {
     $('#result-table').dataTable({
         "aaData": data,
         "aoColumns": [
-            { "sTitle": "File Path" },
-            { "sTitle": "Online Path or Error Message",
-              "fnRender": function(obj) {
-                file_exist = obj.aData[1]; // It is given as an array.
-                url = obj.aData[8];
-                var text;
-                if (file_exist == false) {
-                    text = "<span class=\"label label-important\">This image does not exist.</span>"
-                } else if (url == null) {
-                    text = "<span class=\"label label-important\">This image is not successfully uploaded.</span>"
-                } else {
-                    text = '<a target="_blank" href="' + url + '">'+ url + '</a>';
+            {
+                "sTitle": "OriginalFileName", // Path
+                "sWidth": "40%"
+            },
+            {
+                "sTitle": "MediaExists",
+                "bVisible": false
+            },
+            {
+                "sTitle": "MediaGUID", // Provider ID
+                "bVisible": false
+            },
+            {
+                "sTitle": "MediaRecordUUID",
+                "bVisible": false
+            },
+            {
+                "sTitle": "MediaAccessUUID",
+                "bVisible": false
+            },
+            {
+                "sTitle": "Comments",
+                "bVisible": false
+            },
+            {
+                "sTitle": "UploadTime",
+                "bVisible": false
+            },
+            {
+                "sTitle": "MediaURL",
+                "bVisible": false
+            },
+            {
+                "sTitle": "Description",
+                "bVisible": false
+            },
+            {
+                "sTitle": "LanguageCode",
+                "bVisible": false
+            },
+            {
+                "sTitle": "Title",
+                "bVisible": false
+            },
+            {
+                "sTitle": "DigitalizationDevice",
+                "bVisible": false
+            },
+            {
+                "sTitle": "NominalPixelResolution",
+                "bVisible": false
+            },
+            {
+                "sTitle": "Magnification",
+                "bVisible": false
+            },
+            {
+                "sTitle": "OcrOutput",
+                "bVisible": false
+            },
+            {
+                "sTitle": "OcrTechnology",
+                "bVisible": false
+            },
+            {
+                "sTitle": "InformationWithheld",
+                "bVisible": false
+            },
+            {
+                "sTitle": "MediaMD5",
+                "bVisible": false
+            },
+            {
+                "sTitle": "MimeType",
+                "bVisible": false
+            },
+            {
+                "sTitle": "MediaSizeInBytes",
+                "bVisible": false
+            },
+            {
+                "sTitle": "ProviderCreatedTimeStamp",
+                "bVisible": false
+            },
+            {
+                "sTitle": "providerCreatedByGUID", // File owner
+                "bVisible": false
+            },
+            {
+                "sTitle": "etag",
+                "bVisible": false
+            },
+            {
+                "sTitle": "RecordSetUUID",
+                "bVisible": false
+            },
+            {
+                "sTitle": "iDigbioProvidedByGUID",
+                "bVisible": false
+            },
+            {
+                "sTitle": "MediaContentKeyword",
+                "bVisible": false
+            },
+            {
+                "sTitle": "FundingSource",
+                "bVisible": false
+            },
+            {
+                "sTitle": "FundingPurpose",
+                "bVisible": false
+            },
+            {
+                "sTitle": "iDigbioPublisherGUID",
+                "bVisible": false
+            },
+            //{ // I don't know where this comes from.
+            //    "sTitle": "AttributionLogoURL",
+            //    "bVisible": false
+            //},
+            {
+                "sTitle": "RightsLicenseStatementUrl",
+                "bVisible": false
+            },
+            {
+                "sTitle": "RightsLicenseLogoUrl",
+                "bVisible": false
+            },
+            {
+                "sTitle": "iDigbioProviderGUID",
+                "bVisible": false
+            },
+            {
+                "sTitle": "RightsLicense",
+                "bVisible": false
+            },
+            {
+                "sTitle": "CSVfilePath",
+                "bVisible": false
+            },
+            {
+                "sTitle": "RecordSetGUID",
+                "bVisible": false
+            },
+            {
+                //"sTitle": "batchID"
+                "sTitle": "Online Path or Error Message",
+                "sWidth": "60%",
+                "fnRender": function(obj) {
+                    file_exist = obj.aData[1]; // It is given as an array.
+                    url = obj.aData[7];
+                    var text;
+                    if (file_exist == false) {
+                        text = "<span class=\"label label-important\">This image does not exist.</span>"
+                    } else if (url == null) {
+                        text = "<span class=\"label label-important\">This image is not successfully uploaded.</span>"
+                    } else {
+                        text = '<a target="_blank" href="' + url + '">'+ url + '</a>';
+                    }
+                    return text;
                 }
-                return text;
-              }
-            }
+            } // 33 elements.
         ],
         "sDom": "<'row'<'span4'l><'span4'T><'span4'f>r>t<'row'<'span6'i><'span6'p>>",
         "bPaginate": true,
@@ -446,7 +592,20 @@ renderResult = function(data) {
         "bAutoWidth": true,
         "oTableTools": {
             "sSwfPath": "assets/TableTools/swf/copy_csv_xls_pdf.swf",
-            "aButtons": ["csv","pdf"]
+            "aButtons": [
+            {
+                "sExtends": "csv",
+                "sButtonText": 'CSV(Complete)',
+                "sFieldBoundary": '"',
+                "sFieldSeperator": ',',
+                "sFileName": 'iDigBio.csv'
+            },
+            {
+                "sExtends": 'pdf',
+                "sTitle": 'iDigBio',
+                "sButtonText": 'PDF(Selective)',
+                "mColumns": [0, 33]
+            }]
         },
         "bDestroy" : true,
         "sPaginationType": "bootstrap"

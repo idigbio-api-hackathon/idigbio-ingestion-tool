@@ -98,7 +98,7 @@ class BatchUploadTask:
     STATUS_FINISHED = "finished"
     STATUS_RUNNING = "running"
 
-    def __init__(self, tasktype=constants.CSV_TYPE, batch=None, max_continuous_fails=2):
+    def __init__(self, tasktype=constants.CSV_TYPE, batch=None, max_continuous_fails=1000):
         self.tasktype = tasktype
         self.batch = batch
         self.total_count = 0
@@ -311,10 +311,11 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
     postprocess_queue = ongoing_upload_task.postprocess_queue
     error_queue = ongoing_upload_task.error_queue
 
-    logger.debug("_upload_csv")
     # This function is passed to the threads.
     def _csv_job(image_record, conn):
         try:
+            logger.debug("Started!!!++++++++++++++++++++++++++++++++++")
+            logger.debug(object_queue.qsize())
             if image_record is None:
                 raise ClientException("image_recod is None.")
             if image_record.mr_uuid is None:
@@ -406,14 +407,20 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             logger.debug('ingestion_manager._upload_csv:post_recordset')
             recordset_uuid = conn.post_recordset(recordset_guid)
             logger.debug('ingestion_manager._upload_csv:got uuid, put into db.')
-            license = user_config.get_user_config(user_config.IMAGE_LICENSE)
+            iDigbioProvidedByGUID = user_config.get_user_config(user_config.IDIGBIOPROVIDEDBYGUID)
+            RightsLicense = user_config.get_user_config(user_config.IMAGE_LICENSE)
+            license_ = constants.IMAGE_LICENSES[RightsLicense]
+            RightsLicenseStatementUrl = license_[2]
+            RightsLicenseLogoUrl = license_[3]
             keyword = user_config.get_user_config(user_config.MEDIACONTENT_KEYWORD)
             providerID = user_config.get_user_config(user_config.IDIGBIO_PROVIDER_GUID)
             publisherID = user_config.get_user_config(user_config.IDIGBIO_PUBLISHER_GUID)
             fundingSource = user_config.get_user_config(user_config.FUNDING_SOURCE)
             fundingPurpose = user_config.get_user_config(user_config.FUNDING_PURPOSE)
-            batch = model.add_upload_batch(csv_path, license, recordset_guid, recordset_uuid, 
-                constants.CSV_TYPE, keyword, providerID, publisherID, fundingSource, fundingPurpose)
+            batch = model.add_upload_batch(csv_path, iDigbioProvidedByGUID, RightsLicense, 
+                RightsLicenseStatementUrl, RightsLicenseLogoUrl, recordset_guid, 
+                recordset_uuid, constants.CSV_TYPE, keyword, providerID, publisherID, fundingSource, 
+                fundingPurpose)
             model.commit()
             logger.debug('ingestion_manager._upload_csv:got uuid, committed into db.')
         else:
@@ -482,6 +489,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                     postprocess_queue.put(fn)
                 else:
                     logger.debug('File information is good.')
+                    logger.debug("Put in job.")
                     object_queue.put(image_record)
         logger.debug('Task 110 done.')
 
@@ -490,6 +498,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
         while not object_queue.empty():
             sleep(0.01)
 
+        logger.debug("All finished!!!!!!!!!!!!!!!!!!!++++++++++++++++++")
         for thread in object_threads:
             thread.abort = True
             while thread.isAlive():

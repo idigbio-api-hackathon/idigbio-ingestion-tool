@@ -257,9 +257,7 @@ class Connection(object):
         while self.attempts <= self.retries:
             self.attempts += 1
             try:
-                logger.debug("_retry")
                 rv = func(*args, **kwargs)
-                logger.debug("_retry done.")
                 return rv
             except ClientException as err:
                 logger.debug("ClientException caught: {0}".format(err))

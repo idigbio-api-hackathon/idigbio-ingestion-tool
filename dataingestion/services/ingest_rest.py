@@ -35,6 +35,8 @@ class BatchInfo():
         '''
         try:
             result = ingest_service.get_last_batch_info()
+            for item in result:
+                print item
             return json.dumps(result)
         except IngestServiceException as ex:
             raise JsonHTTPError(409, str(ex))
@@ -48,6 +50,7 @@ class IngestionResult(object):
     def GET(self):
         try:
             result = ingest_service.get_result()
+            # ImageRecord array.
             return json.dumps(result)
         except IngestServiceException as ex:
             raise JsonHTTPError(409, str(ex))

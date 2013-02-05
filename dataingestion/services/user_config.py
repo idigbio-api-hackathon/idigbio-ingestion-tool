@@ -4,6 +4,7 @@ import ConfigParser
 #Fields in the configuration file.
 CONFIG_SECTION = 'iDigBio'
 DISABLE_CHECK = "devmode_disable_startup_service_check"
+IDIGBIOPROVIDEDBYGUID = 'accountuuid'
 RECORDSET_ID = 'rsguid'
 IMAGE_LICENSE = 'imagelicense'
 MEDIACONTENT_KEYWORD = 'mediaContentKeyword'

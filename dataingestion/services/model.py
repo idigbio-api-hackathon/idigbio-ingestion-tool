@@ -182,38 +182,42 @@ class UploadBatch(Base):
        recordset id are reused.
     '''
     __tablename__ = __batches_tablename__
-
     id = Column(Integer, primary_key=True)
-    path = Column(String) # The path for the batch upload.
-    license = Column(String) # The license key.
-    recordset_guid = Column(String) # The GUID user provided for the record set.
-    recordset_uuid = Column(String) # Return from server.
+    CSVfilePath = Column(String) # The path for the batch upload.
+    iDigbioProvidedByGUID = Column(String) # Log in information.
+    RightsLicense = Column(String) # The license key.
+    RightsLicenseStatementUrl = Column(String)
+    RightsLicenseLogoUrl = Column(String)
+    RecordSetGUID = Column(String) # The GUID user provided for the record set.
+    RecordSetUUID = Column(String) # Return from server.
     start_time = Column(DateTime) # The local time at which the batch task starts.
     finish_time = Column(DateTime) # The local time that the batch upload finishes. None if not successful.
     batchtype = Column(String) # The type of the batch task, it can be "dir" or "csv".
     md5 = Column(String) # The md5 of the CSV file + uuid.
     images = relationship(ImageRecord, backref="batch") # All images associated with the batches in the table.
-    
     # The following fields are optional.
-    keyword = Column(String)
-    providerGUID = Column(String)
-    publisherGUID = Column(String)
-    fundingSource = Column(String)
-    fundingPurpose = Column(String)
-
-    def __init__(self, path, license, rs_guid, rs_uuid, s_time, md5, btype, kw, proID, pubID, fs, fp):
-        self.path = path
-        self.license = license
-        self.recordset_guid = rs_guid
-        self.recordset_uuid = rs_uuid
+    MediaContentKeyword = Column(String)
+    iDigbioProviderGUID = Column(String)
+    iDigbioPublisherGUID = Column(String)
+    FundingSource = Column(String)
+    FundingPurpose = Column(String)
+    def __init__(self, path, loginID, license, licenseStatementUrl, licenseLogoUrl,
+        rs_guid, rs_uuid, s_time, md5, btype, kw, proID, pubID, fs, fp):
+        self.CSVfilePath = path
+        self.iDigbioProvidedByGUID = loginID
+        self.RightsLicense = license
+        self.RightsLicenseStatementUrl = licenseStatementUrl
+        self.RightsLicenseLogoUrl = licenseLogoUrl
+        self.RecordSetGUID = rs_guid
+        self.RecordSetUUID = rs_uuid
         self.start_time = s_time
         self.md5 = md5
         self.batchtype = btype
-        self.keyword = kw
-        self.providerGUID = proID
-        self.publisherGUID = pubID
-        self.fundingSource = fs
-        self.fundingPurpose = fp
+        self.MediaContentKeyword = kw
+        self.iDigbioProviderGUID = proID
+        self.iDigbioPublisherGUID = pubID
+        self.FundingSource = fs
+        self.FundingPurpose = fp
 
 session = None
 
@@ -271,10 +275,11 @@ def generate_record(csvrow, rs_uuid):
         logger.debug("The file "+mediapath+" cannot be found.")
         file_found = False
 
-    media_size = ""
-    ctime = ""
-    owner = ""
+    media_size = "N/A"
+    ctime = "N/A"
+    owner = "N/A"
     metadata = {}
+    mbuffer = "N/A"
 
     if file_found == True:
         recordmd5.update(filemd5.hexdigest())
@@ -291,12 +296,12 @@ def generate_record(csvrow, rs_uuid):
 
         exifinfo = Image.open(mediapath)._getexif()
         logger.debug('888')
-        for tag, value in exifinfo.items():
-            decoded = TAGS.get(tag, tag)
-            metadata[decoded] = value
-        logger.debug('999')
-        mbuffer = str(metadata)
-        logger.debug('101010')
+        #for tag, value in exifinfo.items():
+        #    decoded = TAGS.get(tag, tag)
+        #    metadata[decoded] = value
+        #logger.debug('999')
+        #mbuffer = str(metadata)
+    logger.debug('101010')
 
     return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_found,desc,lang,title,digi,pix,
         mag,ocr_output,ocr_tech,info_withheld,filemd5.hexdigest(),mime_type,media_size,ctime, 
@@ -337,11 +342,12 @@ def add_or_load_image(batch, csvrow, rs_uuid, tasktype):
             return record
 
 @check_session
-def add_upload_batch(path, license, recordset_guid, recordset_uuid, tasktype, keyword, proID, pubID, 
-    fundingSource, fundingPurpose):
+def add_upload_batch(path, loginID, license, licenseStatementUrl, licenseLogoUrl,
+    recordset_guid, recordset_uuid, tasktype, keyword, proID, pubID, fundingSource, fundingPurpose):
     start_time = datetime.now()
     with open(path, 'rb') as f:
         md5value = md5_file(f)
+    md5value.update(loginID)
     md5value.update(license)
     md5value.update(recordset_guid)
     md5value.update(recordset_uuid)
@@ -353,8 +359,9 @@ def add_upload_batch(path, license, recordset_guid, recordset_uuid, tasktype, ke
 
     record = session.query(UploadBatch).filter_by(md5=md5value.hexdigest()).first()
     if record is None: # No duplicate record.
-        batch = UploadBatch(path, license, recordset_guid, recordset_uuid, start_time, md5value.hexdigest(), 
-        tasktype, keyword, proID, pubID, fundingSource, fundingPurpose)
+        batch = UploadBatch(path, loginID, license, licenseStatementUrl, licenseLogoUrl,
+            recordset_guid, recordset_uuid, start_time, md5value.hexdigest(), tasktype, 
+            keyword, proID, pubID, fundingSource, fundingPurpose)
         session.add(batch)
         return batch
     return record # Otherwise, just return the existing record. You still need to process it.
@@ -373,8 +380,31 @@ def count_batch_size(batch_id):
 
 @check_session
 def get_batch_details(batch_id):
+    logger.debug("f111")
     batch_id = int(batch_id)
-    query = session.query(ImageRecord.path, ImageRecord.file_exist, ImageRecord.url).filter_by(batch_id=batch_id)
+
+    query = session.query(
+        ImageRecord.path, ImageRecord.file_exist, ImageRecord.providerid, 
+        ImageRecord.mr_uuid, ImageRecord.ma_uuid, ImageRecord.comments, ImageRecord.upload_time,
+        ImageRecord.url, ImageRecord.description, ImageRecord.language_code, ImageRecord.title,
+        ImageRecord.digitalization_device, ImageRecord.pixel_resolution, ImageRecord.magnification,
+        ImageRecord.ocr_output, ImageRecord.ocr_tech, ImageRecord.info_withheld, ImageRecord.media_md5,
+        ImageRecord.mime_type, ImageRecord.media_size, ImageRecord.file_ctime, ImageRecord.file_owner,
+        ImageRecord.etag, UploadBatch.RecordSetUUID, UploadBatch.iDigbioProvidedByGUID,
+        UploadBatch.MediaContentKeyword, UploadBatch.FundingSource, UploadBatch.FundingPurpose,
+        UploadBatch.iDigbioPublisherGUID, UploadBatch.RightsLicenseStatementUrl, 
+        UploadBatch.RightsLicenseLogoUrl, UploadBatch.iDigbioProviderGUID, UploadBatch.RightsLicense, 
+        UploadBatch.CSVfilePath, UploadBatch.RecordSetGUID, ImageRecord.batch_id
+        ).filter(ImageRecord.batch_id == batch_id).filter(UploadBatch.id == batch_id
+        ).order_by(ImageRecord.id) # 25 elements.
+    logger.debug("f222")
+    logger.debug(query.count())
+    logger.debug("f333")
+    #for item in query:
+    #    for elem in item:
+    #        logger.debug(elem)
+
+    #query = session.query(ImageRecord).filter_by(batch_id=batch_id)
     return query.all()
 
 @check_session
