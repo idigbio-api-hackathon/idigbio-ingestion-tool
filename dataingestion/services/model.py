@@ -13,11 +13,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.sql.expression import desc
 from sqlalchemy.types import TypeDecorator, Unicode
-import logging, hashlib, argparse, os, time, pwd, struct
+import logging, hashlib, argparse, os, time, struct
 from datetime import datetime
 from dataingestion.services import constants
-from PIL import Image
-from PIL.ExifTags import TAGS
+#import pwd
+#from PIL import Image
+#from PIL.ExifTags import TAGS
 
 __images_tablename__ = 'imagesV5'
 __batches_tablename__ = 'batchesV5'
@@ -268,6 +269,7 @@ def generate_record(csvrow, rs_uuid):
 
     logger.debug('333')
     file_found = True
+    filemd5 = hashlib.md5()
     try:
         with open(mediapath, 'rb') as f:
             filemd5 = md5_file(f)
@@ -291,11 +293,11 @@ def generate_record(csvrow, rs_uuid):
         ctime = time.ctime(os.path.getmtime(mediapath))
         logger.debug('666')
 
-        owner = pwd.getpwuid(os.stat(mediapath).st_uid)[0]
-        logger.debug('777')
+        #owner = pwd.getpwuid(os.stat(mediapath).st_uid)[0]
+        #logger.debug('777')
 
-        exifinfo = Image.open(mediapath)._getexif()
-        logger.debug('888')
+        #exifinfo = Image.open(mediapath)._getexif()
+        #logger.debug('888')
         #for tag, value in exifinfo.items():
         #    decoded = TAGS.get(tag, tag)
         #    metadata[decoded] = value

@@ -398,8 +398,8 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             if batch.finish_time:
                 raise IngestServiceException("Last batch already finished, why resume?")
             # Assign local variables with values in DB.
-            csv_path = batch.path
-            recordset_uuid = batch.recordset_uuid
+            csv_path = batch.CSVfilePath
+            recordset_uuid = batch.RecordSetUUID
         elif csv_path: # Not resume, and csv_path is provided. It is a new upload.
             logger.debug("Start a new csv batch.")
             recordset_guid = user_config.get_user_config(user_config.RECORDSET_ID) # Temporary provider ID
