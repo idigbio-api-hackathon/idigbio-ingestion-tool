@@ -59,6 +59,13 @@ initMainUI = function() {
             $(element).closest('.control-group').removeClass('error');
         },
         rules: {
+            imagelicense: {
+                required: {
+                    depends: function(element) {
+                        return $("#imagelicense").val() != '';
+                    }
+                }
+            },
             rsguid: {
                 required: true
             },
@@ -80,7 +87,7 @@ initMainUI = function() {
             setPreference('fundingPurpose', $('#fundingPurpose').val())
             postCsvUpload("new");
         } else {
-            showAlert('The record set GUID and path cannot be empty.');
+            showAlert('The Image License, Record Set GUID and CSV File Path cannot be empty.');
         }
     });
 }
@@ -292,6 +299,7 @@ showLastBatchInfo = function() {
                 $("#upload-alert").alert('close');
                 // TODO: Differentiate the CSV task or dir task.
                 postCsvUpload("retry");
+                // Note: retry will reload the batch information, and read the CSV file again.
             });
         }
     }, "json");

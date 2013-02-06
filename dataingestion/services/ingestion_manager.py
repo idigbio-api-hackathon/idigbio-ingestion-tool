@@ -83,7 +83,7 @@ class QueueFunctionThread(Thread):
                     break
                 sleep(0.01)
             except Exception:
-                logger.error("Unkown exception caught in a QueueFunctionThread.")
+                logger.error("Exception caught in a QueueFunctionThread.")
                 self.exc_infos.append(exc_info())
                 logger.debug("Thread exiting...")
 
@@ -318,6 +318,8 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             logger.debug(object_queue.qsize())
             if image_record is None:
                 raise ClientException("image_recod is None.")
+            if image_record.file_exist is False:
+                raise ClientException("File is not found.")
             if image_record.mr_uuid is None:
                 # Post mediarecord.
                 logger.debug("image_record.mr_uuid is None.")
@@ -400,6 +402,8 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             # Assign local variables with values in DB.
             csv_path = batch.CSVfilePath
             recordset_uuid = batch.RecordSetUUID
+            batch.id = batch.id + 1
+            model.commit()
         elif csv_path: # Not resume, and csv_path is provided. It is a new upload.
             logger.debug("Start a new csv batch.")
             recordset_guid = user_config.get_user_config(user_config.RECORDSET_ID) # Temporary provider ID
@@ -482,14 +486,13 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                     logger.debug('Skipped file {0}.'.format(mediapath))
                     fn = partial(ongoing_upload_task.increment, 'skips')
                     postprocess_queue.put(fn)
-                elif image_record.file_exist == False:
+                #elif image_record.file_exist == False:
                     # File not found.
-                    logger.debug('File {0} not found.'.format(mediapath))
-                    fn = partial(ongoing_upload_task.increment, 'fails')
-                    postprocess_queue.put(fn)
+                #    logger.debug('File {0} not found.'.format(mediapath))
+                #    fn = partial(ongoing_upload_task.increment, 'fails')
+                #    postprocess_queue.put(fn)
                 else:
-                    logger.debug('File information is good.')
-                    logger.debug("Put in job.")
+                    logger.debug("Put in job (file may not exist).")
                     object_queue.put(image_record)
         logger.debug('Task 110 done.')
 

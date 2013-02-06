@@ -246,8 +246,6 @@ def md5_file(f, block_size=2 ** 20):
 def generate_record(csvrow, rs_uuid):
     (mediapath,mediaproviderid,desc,lang,title,
         digi,pix,mag,ocr_output,ocr_tech,info_withheld) = csvrow
-    mediapath = mediapath.strip(' ')
-    mediaproviderid = mediaproviderid.strip(' ')
     recordmd5 = hashlib.md5()
     recordmd5.update(rs_uuid)
     recordmd5.update(mediapath)
@@ -325,7 +323,7 @@ def add_or_load_image(batch, csvrow, rs_uuid, tasktype):
 
     record = session.query(ImageRecord).filter_by(md5=recordmd5).first()
     logger.debug('111333')
-    if record is None: # No duplicate record. Add the record.
+    if record is None: # New record. Add the record.
         record = ImageRecord(mediapath, mediaproviderid, recordmd5, file_found, batch, 
             desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, filemd5, mime_type,
             media_size, ctime, owner, metadata)
@@ -333,15 +331,11 @@ def add_or_load_image(batch, csvrow, rs_uuid, tasktype):
         session.add(record)
         return record
     elif record.upload_time: # Found the duplicate record, already uploaded.
-        record.batchid = batch.id
+        #record.batch_id = batch.id
         return None
-    else: # Found the duplicate record, but not uploaded.
-        if file_found == True: # Needs to be uploaded.
-            return record
-        else: # No need to be uploaded, because the file does not exist.
-            record.batchid = batch.id 
-            # Update the batch id so that you can find the complete result of this batch.
-            return record
+    else: # Found the duplicate record, but not uploaded or file not found.
+        record.batch_id = batch.id
+        return record
 
 @check_session
 def add_upload_batch(path, loginID, license, licenseStatementUrl, licenseLogoUrl,
