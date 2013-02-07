@@ -423,8 +423,9 @@ updateProgress = function() {
 }
 
 renderResult = function(data) {
+
     $('#result-table-container').addClass('in');
-    
+
     $('#result-table').dataTable({
         "aaData": data,
         "aoColumns": [

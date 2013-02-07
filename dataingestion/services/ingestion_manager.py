@@ -327,8 +327,14 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                 image_record.batch_id = batch.id
                 owner_uuid = user_config.try_get_user_config('owneruuid')
                 logger.debug("Got owner_uuid.")
+
+                mediapath = image_record.path
+                mediaproviderid = image_record.providerid
+                logger.debug("Set mediapath and mediaproviderid.")
+                
                 metadata = _make_idigbio_metadata(mediapath)
                 logger.debug("post media record.")
+
                 record_uuid, etag, mr_str = conn.post_mediarecord( # mr_str is the return from server
                     recordset_uuid, mediapath, mediaproviderid, metadata, owner_uuid)
                 logger.debug("Got record uuid.")
@@ -354,8 +360,8 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
 
             img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
 
-            if img_etag and image_record.md5 == img_etag:
-                image_record.upload_time = datetime.utcnow()
+            if img_etag and image_record.media_md5 == img_etag:
+                image_record.upload_time = str(datetime.utcnow())
                 image_record.url = url
             else:
                 raise ClientException('Upload failed because local MD5 does not match the eTag or no eTag is returned.')
@@ -498,10 +504,13 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
 
 
         # Wait until all images are executed.
-        while not object_queue.empty():
-            sleep(0.01)
-
-        logger.debug("All finished!!!!!!!!!!!!!!!!!!!++++++++++++++++++")
+        #while not object_queue.empty():
+        #    sleep(0.01)
+        while ((ongoing_upload_task.skips + ongoing_upload_task.success_count + 
+            ongoing_upload_task.fails) != ongoing_upload_task.total_count):
+            sleep(1)
+        
+        logger.debug("All finished")
         for thread in object_threads:
             thread.abort = True
             while thread.isAlive():

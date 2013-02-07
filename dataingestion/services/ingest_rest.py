@@ -7,11 +7,13 @@
 
 from dataingestion.services import ingest_service
 #from dataingestion.services import mock_ingest_svc as ingest_service
-import cherrypy, json
+import cherrypy, json, logging
 from dataingestion.services.ingestion_manager import IngestServiceException
 from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
 from dataingestion.services import constants
+
+logger = logging.getLogger('iDigBioSvc.ingest_rest')
 
 class JsonHTTPError(HTTPError):
     def set_response(self):
@@ -30,7 +32,6 @@ class BatchInfo():
     def GET(self):
         '''
         Currently only return info about the last batch.
-        
         Will be extended to allow querying info about any previous batches. 
         '''
         try:
@@ -50,8 +51,8 @@ class IngestionResult(object):
     def GET(self):
         try:
             result = ingest_service.get_result()
-            # ImageRecord array.
-            return json.dumps(result)
+            resultdump = json.dumps(result)
+            return resultdump
         except IngestServiceException as ex:
             raise JsonHTTPError(409, str(ex))
 

@@ -64,7 +64,7 @@ class ImageRecord(Base):
     This md5 is got from "record set uuid + CSV record line + media file hash".
     '''
     comments = Column(String)
-    upload_time = Column(DateTime)
+    upload_time = Column(String)
     '''
     The UTC time measured by the local machine. 
     None if the image is not uploaded.
@@ -244,6 +244,7 @@ def md5_file(f, block_size=2 ** 20):
     return md5
 
 def generate_record(csvrow, rs_uuid):
+    logger.debug('generate_record')
     (mediapath,mediaproviderid,desc,lang,title,
         digi,pix,mag,ocr_output,ocr_tech,info_withheld) = csvrow
     recordmd5 = hashlib.md5()
@@ -260,12 +261,10 @@ def generate_record(csvrow, rs_uuid):
     recordmd5.update(ocr_tech)
     recordmd5.update(info_withheld)
 
-    logger.debug('222')
     name = os.path.splitext(mediapath)[1].split('.')
     extension = name[len(name)-1].lower()
     mime_type = constants.EXTENSION_MEDIA_TYPES[extension]
 
-    logger.debug('333')
     file_found = True
     filemd5 = hashlib.md5()
     try:
@@ -278,18 +277,14 @@ def generate_record(csvrow, rs_uuid):
     media_size = "N/A"
     ctime = "N/A"
     owner = "N/A"
-    metadata = {}
+    #metadata = {}
+    metadata = "N/A"
     mbuffer = "N/A"
 
     if file_found == True:
         recordmd5.update(filemd5.hexdigest())
-        logger.debug('444')
-
         media_size = os.path.getsize(mediapath)
-        logger.debug('555')
-
         ctime = time.ctime(os.path.getmtime(mediapath))
-        logger.debug('666')
 
         #owner = pwd.getpwuid(os.stat(mediapath).st_uid)[0]
         #logger.debug('777')
@@ -301,7 +296,7 @@ def generate_record(csvrow, rs_uuid):
         #    metadata[decoded] = value
         #logger.debug('999')
         #mbuffer = str(metadata)
-    logger.debug('101010')
+    logger.debug('generate_record done')
 
     return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_found,desc,lang,title,digi,pix,
         mag,ocr_output,ocr_tech,info_withheld,filemd5.hexdigest(),mime_type,media_size,ctime, 
@@ -315,20 +310,18 @@ def add_or_load_image(batch, csvrow, rs_uuid, tasktype):
     :rtype: ImageRecord or None.
     .. note:: Image identity is not determined by path but rather by its MD5.
     '''
-    logger.debug('111')
+    logger.debug('add_or_load_image')
     (mediapath,mediaproviderid,recordmd5,file_found,desc,lang,title,digi,pix,mag,ocr_output,ocr_tech,
         info_withheld,filemd5,mime_type,media_size,ctime,owner,metadata) = generate_record(csvrow, rs_uuid)
 
-    logger.debug('111222')
 
     record = session.query(ImageRecord).filter_by(md5=recordmd5).first()
-    logger.debug('111333')
     if record is None: # New record. Add the record.
         record = ImageRecord(mediapath, mediaproviderid, recordmd5, file_found, batch, 
             desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, filemd5, mime_type,
             media_size, ctime, owner, metadata)
-        logger.debug('111444')
         session.add(record)
+        logger.debug('add_or_load_image: new record added')
         return record
     elif record.upload_time: # Found the duplicate record, already uploaded.
         #record.batch_id = batch.id
@@ -376,9 +369,9 @@ def count_batch_size(batch_id):
 
 @check_session
 def get_batch_details(batch_id):
-    logger.debug("f111")
     batch_id = int(batch_id)
-
+    logger.debug("get_batch_details for batch #" + str(batch_id))
+    
     query = session.query(
         ImageRecord.path, ImageRecord.file_exist, ImageRecord.providerid, 
         ImageRecord.mr_uuid, ImageRecord.ma_uuid, ImageRecord.comments, ImageRecord.upload_time,
@@ -393,9 +386,9 @@ def get_batch_details(batch_id):
         UploadBatch.CSVfilePath, UploadBatch.RecordSetGUID, ImageRecord.batch_id
         ).filter(ImageRecord.batch_id == batch_id).filter(UploadBatch.id == batch_id
         ).order_by(ImageRecord.id) # 25 elements.
-    logger.debug("f222")
-    logger.debug(query.count())
-    logger.debug("f333")
+    
+    logger.debug("Image record count: " + str(query.count()))
+    logger.debug("get_batch_details done")
     #for item in query:
     #    for elem in item:
     #        logger.debug(elem)
