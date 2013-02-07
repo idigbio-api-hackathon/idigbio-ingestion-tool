@@ -110,7 +110,6 @@ def _post_media(local_path, entity_uuid):
         request = urllib2.Request(url, datagen, headers)
         request.add_header("Authorization", "Basic %s" % auth_string)
         resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
-        logger.debug("POSTing media: API response for {0}: {1}".format(url, resp))
         return resp
     except urllib2.HTTPError as e:
         raise ClientException("Failed to POST the media to server.",
@@ -127,15 +126,12 @@ def _post_json(url, obj):
     :returns: the reponse JSON object.
     """
     content = json.dumps(obj, separators=(',',':'))
-    logger.debug("API request for {0}: {1}".format(url, content))
     
     req = urllib2.Request(url, content, {'Content-Type': 'application/json'})
-    logger.debug("_post_json: request done.")
 
     req.add_header("Authorization", "Basic %s" % auth_string)
     r = urllib2.urlopen(req, timeout=TIMEOUT)
     resp = r.read()
-    logger.debug("Post_json: API response for {0}: {1}".format(url, resp))
     return resp
 
 def upload_image_primitive(path):
@@ -262,7 +258,6 @@ class Connection(object):
             except ClientException as err:
                 logger.debug("ClientException caught: {0}".format(err))
                 logger.debug("Current retry attempts: {0}".format(self.attempts))
-                logger.debug("Current backoff: {0}".format(backoff))
                 
                 if self.attempts > self.retries:
                     logger.debug("Retries exhausted.")

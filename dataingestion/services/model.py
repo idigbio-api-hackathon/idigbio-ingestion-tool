@@ -148,7 +148,9 @@ class ImageRecord(Base):
     Returned by server.
     '''
 
-    batch_id = Column(Integer, ForeignKey(__batches_tablename__+'.id', onupdate="cascade"))
+    # Changed because batch_id may be changed to map to other elements in batch table.
+    batch_id = Column(Integer)
+    #batch_id = Column(Integer, ForeignKey(__batches_tablename__+'.id', onupdate="cascade"))
 
     def __init__(self, path, pid, r_md5, exist, batch, 
         desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, m_md5, mime_type,
@@ -195,7 +197,9 @@ class UploadBatch(Base):
     finish_time = Column(DateTime) # The local time that the batch upload finishes. None if not successful.
     batchtype = Column(String) # The type of the batch task, it can be "dir" or "csv".
     md5 = Column(String) # The md5 of the CSV file + uuid.
-    images = relationship(ImageRecord, backref="batch") # All images associated with the batches in the table.
+    
+    # images = relationship(ImageRecord, backref="batch") # All images associated with the batches in the table.
+    
     # The following fields are optional.
     MediaContentKeyword = Column(String)
     iDigbioProviderGUID = Column(String)
@@ -244,7 +248,7 @@ def md5_file(f, block_size=2 ** 20):
     return md5
 
 def generate_record(csvrow, rs_uuid):
-    logger.debug('generate_record')
+    #logger.debug('generate_record')
     (mediapath,mediaproviderid,desc,lang,title,
         digi,pix,mag,ocr_output,ocr_tech,info_withheld) = csvrow
     recordmd5 = hashlib.md5()
@@ -296,7 +300,7 @@ def generate_record(csvrow, rs_uuid):
         #    metadata[decoded] = value
         #logger.debug('999')
         #mbuffer = str(metadata)
-    logger.debug('generate_record done')
+    #logger.debug('generate_record done')
 
     return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_found,desc,lang,title,digi,pix,
         mag,ocr_output,ocr_tech,info_withheld,filemd5.hexdigest(),mime_type,media_size,ctime, 
@@ -310,7 +314,7 @@ def add_or_load_image(batch, csvrow, rs_uuid, tasktype):
     :rtype: ImageRecord or None.
     .. note:: Image identity is not determined by path but rather by its MD5.
     '''
-    logger.debug('add_or_load_image')
+    #logger.debug('add_or_load_image')
     (mediapath,mediaproviderid,recordmd5,file_found,desc,lang,title,digi,pix,mag,ocr_output,ocr_tech,
         info_withheld,filemd5,mime_type,media_size,ctime,owner,metadata) = generate_record(csvrow, rs_uuid)
 
@@ -321,7 +325,7 @@ def add_or_load_image(batch, csvrow, rs_uuid, tasktype):
             desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, filemd5, mime_type,
             media_size, ctime, owner, metadata)
         session.add(record)
-        logger.debug('add_or_load_image: new record added')
+        #logger.debug('add_or_load_image: new record added')
         return record
     elif record.upload_time: # Found the duplicate record, already uploaded.
         #record.batch_id = batch.id
@@ -346,15 +350,28 @@ def add_upload_batch(path, loginID, license, licenseStatementUrl, licenseLogoUrl
     md5value.update(fundingSource)
     md5value.update(fundingPurpose)
 
-    record = session.query(UploadBatch).filter_by(md5=md5value.hexdigest()).first()
+    logger.debug("add_upload_batch1")
+    #record = session.query(UploadBatch).filter_by(md5=md5value.hexdigest()).first()
+    
+    # Always add new record.
+    newrecord = UploadBatch(path, loginID, license, licenseStatementUrl, licenseLogoUrl,
+        recordset_guid, recordset_uuid, start_time, md5value.hexdigest(), tasktype, 
+        keyword, proID, pubID, fundingSource, fundingPurpose)
+    session.add(newrecord)
+    logger.debug("add_upload_batch2")
+    return newrecord
+    '''
     if record is None: # No duplicate record.
-        batch = UploadBatch(path, loginID, license, licenseStatementUrl, licenseLogoUrl,
+        newrecord = UploadBatch(path, loginID, license, licenseStatementUrl, licenseLogoUrl,
             recordset_guid, recordset_uuid, start_time, md5value.hexdigest(), tasktype, 
             keyword, proID, pubID, fundingSource, fundingPurpose)
-        session.add(batch)
-        return batch
-    return record # Otherwise, just return the existing record. You still need to process it.
-
+        session.add(newrecord)
+        return newrecord
+    else:
+        record.id = record.id + 1
+        session.add(newrecord)
+        return record # Otherwise, just return the existing record + 1. You still need to process it.
+    '''
 @check_session
 def get_imagerecords_by_batchid(batch_id):
     batch_id = int(batch_id)
@@ -403,7 +420,6 @@ def load_last_batch():
 
 @check_session
 def commit():
-    logger.debug("Committing session to DB.")
     session.commit()
 
 def close():
