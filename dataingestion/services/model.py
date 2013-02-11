@@ -143,7 +143,7 @@ class ImageRecord(Base):
     Blob of text containing metadata about the media (e.g., from EXIF, IPTC). 
     Derived from the object when using the ingestion appliance.
     '''
-    etag = Column(String)
+    mr_etag = Column(String)
     '''
     Returned by server.
     '''
@@ -350,7 +350,6 @@ def add_upload_batch(path, loginID, license, licenseStatementUrl, licenseLogoUrl
     md5value.update(fundingSource)
     md5value.update(fundingPurpose)
 
-    logger.debug("add_upload_batch1")
     #record = session.query(UploadBatch).filter_by(md5=md5value.hexdigest()).first()
     
     # Always add new record.
@@ -358,7 +357,6 @@ def add_upload_batch(path, loginID, license, licenseStatementUrl, licenseLogoUrl
         recordset_guid, recordset_uuid, start_time, md5value.hexdigest(), tasktype, 
         keyword, proID, pubID, fundingSource, fundingPurpose)
     session.add(newrecord)
-    logger.debug("add_upload_batch2")
     return newrecord
     '''
     if record is None: # No duplicate record.
@@ -396,7 +394,7 @@ def get_batch_details(batch_id):
         ImageRecord.digitalization_device, ImageRecord.pixel_resolution, ImageRecord.magnification,
         ImageRecord.ocr_output, ImageRecord.ocr_tech, ImageRecord.info_withheld, ImageRecord.media_md5,
         ImageRecord.mime_type, ImageRecord.media_size, ImageRecord.file_ctime, ImageRecord.file_owner,
-        ImageRecord.etag, UploadBatch.RecordSetUUID, UploadBatch.iDigbioProvidedByGUID,
+        ImageRecord.mr_etag, UploadBatch.RecordSetUUID, UploadBatch.iDigbioProvidedByGUID,
         UploadBatch.MediaContentKeyword, UploadBatch.FundingSource, UploadBatch.FundingPurpose,
         UploadBatch.iDigbioPublisherGUID, UploadBatch.RightsLicenseStatementUrl, 
         UploadBatch.RightsLicenseLogoUrl, UploadBatch.iDigbioProviderGUID, UploadBatch.RightsLicense, 

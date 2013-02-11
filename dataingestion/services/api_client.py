@@ -126,6 +126,7 @@ def _post_json(url, obj):
     :returns: the reponse JSON object.
     """
     content = json.dumps(obj, separators=(',',':'))
+    logger.debug("content -> " + str(content))
     
     req = urllib2.Request(url, content, {'Content-Type': 'application/json'})
 

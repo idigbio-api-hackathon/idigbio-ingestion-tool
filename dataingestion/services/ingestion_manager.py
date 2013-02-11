@@ -330,59 +330,49 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                 mediapath = image_record.path
                 mediaproviderid = image_record.providerid
                 metadata = _make_idigbio_metadata(mediapath)
-                record_uuid, etag, mr_str = conn.post_mediarecord( # mr_str is the return from server
+                record_uuid, mr_etag, mr_str = conn.post_mediarecord( # mr_str is the return from server
                     recordset_uuid, mediapath, mediaproviderid, metadata, owner_uuid)
                 image_record.mr_uuid = record_uuid
                 image_record.mr_record = mr_str
-                image_record.etag = etag
+                image_record.mr_etag = mr_etag
                 model.commit()
                 logger.debug("Media record posted. mr_uuid="+ str(record_uuid))
             
-            logger.debug("Post media")
-            logger.debug("Post media:"+str(batch.id))
             # First, change the batch ID to this one. This field is overwriten.
             image_record.batch_id = str(batch.id)
-            logger.debug("Post media2")
             # Post image to API.
             # ma_str is the return from server
             ma_str = conn.post_media(image_record.path, image_record.mr_uuid)
-            logger.debug("Post media3.")
             image_record.ma_record = ma_str
-            logger.debug("Post media4.")
             result_obj = json.loads(ma_str)
 
             url = result_obj["idigbio:links"]["media"][0]
             ma_uuid = result_obj['idigbio:uuid']
 
             image_record.ma_uuid = ma_uuid
-            logger.debug("Post media5.")
 
+            # img_etag is not stored in the db.
             img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
 
-            logger.debug("Post media6.")
             if img_etag and image_record.media_md5 == img_etag:
                 image_record.upload_time = str(datetime.utcnow())
                 image_record.url = url
             else:
                 raise ClientException('Upload failed because local MD5 does not match the eTag or no eTag is returned.')
 
-            logger.debug("Post media7.")
             if conn.attempts > 1:
                 logger.debug('%s [after %d attempts]' % (image_record.path, conn.attempts))
             else:
                 logger.debug('%s [after %d attempts]' % (image_record.path, conn.attempts))
             
-            logger.debug("Post media7.")
             # Increment the success_count by 1.
             fn = partial(ongoing_upload_task.increment, 'success_count')
             postprocess_queue.put(fn)
             
-            logger.debug("Post media8.")
             # It's sccessful this time.
             fn = partial(ongoing_upload_task.check_continuous_fails, True)
             postprocess_queue.put(fn)
             
-            logger.debug("Post media9.")
         except ClientException:
             logger.error("----------- A CSV job failed -----------------")
             fn = partial(ongoing_upload_task.increment, 'fails')
@@ -473,8 +463,6 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
 
                 mediapath = row[0]
                 mediaproviderid = row[1]
-                mediapath = mediapath.strip(' ')
-                mediaproviderid = mediaproviderid.strip(' ')
                 
                 if not allowed_files.match(mediapath):
                     continue

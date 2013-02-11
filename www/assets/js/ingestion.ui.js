@@ -518,7 +518,7 @@ renderResult = function(data) {
                 "bVisible": false
             },
             {
-                "sTitle": "etag",
+                "sTitle": "MediaRecordEtag",
                 "bVisible": false
             },
             {
@@ -595,7 +595,6 @@ renderResult = function(data) {
         "sDom": "<'row'<'span4'l><'span4'T><'span4'f>r>t<'row'<'span6'i><'span6'p>>",
         "bPaginate": true,
         "bLengthChange": true,
-        "bFilter": true,
         "bSort": true,
         "bInfo": true,
         "bAutoWidth": true,
@@ -613,7 +612,7 @@ renderResult = function(data) {
                 "sExtends": 'pdf',
                 "sTitle": 'iDigBio',
                 "sButtonText": 'PDF(Selective)',
-                "mColumns": [0, 33]
+                "mColumns": "visible"
             }]
         },
         "bDestroy" : true,
