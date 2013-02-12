@@ -20,8 +20,8 @@ from dataingestion.services import constants
 #from PIL import Image
 #from PIL.ExifTags import TAGS
 
-__images_tablename__ = 'imagesV5'
-__batches_tablename__ = 'batchesV5'
+__images_tablename__ = constants.IMAGES_TABLENAME
+__batches_tablename__ = constants.BATCHES_TABLENAME
 
 Base = declarative_base()
 

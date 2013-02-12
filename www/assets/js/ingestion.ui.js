@@ -431,7 +431,7 @@ renderResult = function(data) {
         "aoColumns": [
             {
                 "sTitle": "OriginalFileName", // Path
-                "sWidth": "40%"
+                "sWidth": "45%"
             },
             {
                 "sTitle": "MediaExists",
@@ -576,7 +576,7 @@ renderResult = function(data) {
             {
                 //"sTitle": "batchID"
                 "sTitle": "Online Path or Error Message",
-                "sWidth": "60%",
+                "sWidth": "55%",
                 "fnRender": function(obj) {
                     file_exist = obj.aData[1]; // It is given as an array.
                     url = obj.aData[7];
@@ -595,6 +595,7 @@ renderResult = function(data) {
         "sDom": "<'row'<'span4'l><'span4'T><'span4'f>r>t<'row'<'span6'i><'span6'p>>",
         "bPaginate": true,
         "bLengthChange": true,
+        "bFilter": false,
         "bSort": true,
         "bInfo": true,
         "bAutoWidth": true,

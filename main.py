@@ -29,6 +29,8 @@ quiet_mode = False
 
 USER_CONFIG_FILENAME = 'user.conf'
 
+logger = logging.getLogger("iDigBioSvc.api_client")
+
 def main(argv):    
     # Process configuration files and configure modules.
     idigbio_conf_path = join(current_dir, 'etc', 'idigbio.conf')
@@ -97,9 +99,9 @@ def main(argv):
     db_file = join(data_folder, "idigbio.ingest.db")
     if args.newdb:
         _move_db(data_folder, db_file)
-        cherrypy.log.error("Creating a new DB file.", "main")
+        logger.debug("Creating a new DB file.")
 
-    cherrypy.log.error("Use DB file: {0}".format(db_file), "main")
+    logger.debug("Use DB file: {0}".format(db_file))
     dataingestion.services.model.setup(db_file)
     
     # Set up the user config.
