@@ -35,16 +35,26 @@ if version < VERSION_LIMIT:
 	file_list = urllib2.urlopen(url, timeout=TIMEOUT).read() # for Python 2.7, etc.
 else:
 	file_list = urllib.request.urlopen(url, timeout=TIMEOUT).read() # for Python 3.3, etc.
+	
+	
+dirfile = open("dirfile.txt", "wb")
+dirfile.write(file_list)
+dirfile.close()
 
-
+with open("dirfile.txt") as f:
+	files = f.readlines()
 
 count = 0
-files = re.split('\n', file_list)
+#count = (str(file_list)).count(".jpg")
+
 for file_elem in files:
 	if file_elem == '':
 		del files[count]
 	else:
+		if "\n" in files[count]:
+			files[count] = files[count][:-1]
 		count = count + 1
+		
 print("Total files in list = " + str(count))
 
 if count < num_records:
@@ -58,6 +68,7 @@ print("End position = " + str(end_position))
 
 i = 0
 csvfile = open(csv_name, "wb")
+
 for file_elem in files:
 	if i >= start_position and i < end_position:
 		url = file_url + file_elem
@@ -74,6 +85,9 @@ for file_elem in files:
 		mediafile.close()
 		record = ("\"" + mediapath + file_elem + "\", \"" + url_guid + 
 			str(int(MAX_NUM * random.random())) + "\", " + other_record_info + "\n")
-		csvfile.write(record)
+		if version < VERSION_LIMIT:
+			csvfile.write(record)
+		else:
+			csvfile.write(bytes(record, 'UTF-8'))
 	i = i + 1
-
+csvfile.close()
