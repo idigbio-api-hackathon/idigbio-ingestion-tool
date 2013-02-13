@@ -1,4 +1,12 @@
-import random, urllib2, os, sys, re
+import random, os, sys, re
+
+VERSION_LIMIT = (3,0)
+version = sys.version_info
+
+if version < VERSION_LIMIT:
+	import urllib2 # for Python 2.7, etc.
+else:
+	import urllib.request # for Python 3.3, etc.
 
 TIMEOUT=5
 MAX_NUM = 1000000
@@ -21,9 +29,14 @@ except OSError as err:
 	pass
 
 url = file_url + file_list_name
-print "File list URL: " + url
+print("File list URL: " + url)
 
-file_list = urllib2.urlopen(url, timeout=TIMEOUT).read()
+if version < VERSION_LIMIT:
+	file_list = urllib2.urlopen(url, timeout=TIMEOUT).read() # for Python 2.7, etc.
+else:
+	file_list = urllib.request.urlopen(url, timeout=TIMEOUT).read() # for Python 3.3, etc.
+
+
 
 count = 0
 files = re.split('\n', file_list)
@@ -32,16 +45,16 @@ for file_elem in files:
 		del files[count]
 	else:
 		count = count + 1
-print "Total files in list = " + str(count)
+print("Total files in list = " + str(count))
 
 if count < num_records:
-	print "Total files in list is bigger than required number of files."
+	print("Total files in list is bigger than required number of files.")
 	sys.exit()
 
 start_position = int((count - num_records) * random.random())
 end_position = start_position + num_records
-print "Start position = " + str(start_position)
-print "End position = " + str(end_position)
+print("Start position = " + str(start_position))
+print("End position = " + str(end_position))
 
 i = 0
 csvfile = open(csv_name, "wb")
@@ -49,8 +62,11 @@ for file_elem in files:
 	if i >= start_position and i < end_position:
 		url = file_url + file_elem
 		url = url.replace(' ', '%20')
-		print "Retrieve file: " + str(url)
-		mediadata = urllib2.urlopen(url, timeout=TIMEOUT).read()
+		print("Retrieve file: " + str(url))
+		if version < VERSION_LIMIT:
+			mediadata = urllib2.urlopen(url, timeout=TIMEOUT).read() # for Python 2.7, etc.
+		else:
+			mediadata = urllib.request.urlopen(url, timeout=TIMEOUT).read() # for Python 3.3, etc.
 		index = file_elem.rfind('/')
 		file_elem = file_elem[index + 1:]
 		mediafile = open(file_elem, 'wb')
