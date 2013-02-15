@@ -8,7 +8,7 @@
 """
 This module implements the core logic that manages the upload process.
 """
-import os, logging, argparse, tempfile, atexit, cherrypy, re, csv
+import os, logging, argparse, tempfile, atexit, cherrypy, csv
 import json
 from functools import partial
 from datetime import datetime
@@ -320,8 +320,8 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             if image_record is None:
                 raise ClientException("image_recod is None.")
             logger.debug("Media path: " + image_record.path)
-            if image_record.file_exist is False:
-                raise ClientException("File is not found.")
+            if image_record.file_error is not None:
+                raise ClientException(image_record.file_error)
             if image_record.mr_uuid is None:
                 # Post mediarecord.
                 logger.debug("image_record.mr_uuid is None. So post media record.")
@@ -419,6 +419,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             recordset_uuid = conn.post_recordset(recordset_guid)
             logger.debug('ingestion_manager._upload_csv:got uuid, put into db.')
             iDigbioProvidedByGUID = user_config.get_user_config(user_config.IDIGBIOPROVIDEDBYGUID)
+            logger.debug('111')
             RightsLicense = user_config.get_user_config(user_config.IMAGE_LICENSE)
             license_ = constants.IMAGE_LICENSES[RightsLicense]
             RightsLicenseStatementUrl = license_[2]
@@ -428,6 +429,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             publisherID = user_config.get_user_config(user_config.IDIGBIO_PUBLISHER_GUID)
             fundingSource = user_config.get_user_config(user_config.FUNDING_SOURCE)
             fundingPurpose = user_config.get_user_config(user_config.FUNDING_PURPOSE)
+            logger.debug('222')
             batch = model.add_upload_batch(csv_path, iDigbioProvidedByGUID, RightsLicense, 
                 RightsLicenseStatementUrl, RightsLicenseLogoUrl, recordset_guid, 
                 recordset_uuid, constants.CSV_TYPE, keyword, providerID, publisherID, fundingSource, 
@@ -450,40 +452,31 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
         # In current version, the row is simply [path, providerid].
         logger.debug('Put all records from CSV file into db.')
         # Read from the CSV file.
-        allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
         with open(csv_path, 'rb') as csvfile:
             csv.register_dialect('mydialect', delimiter=',', quotechar='"', skipinitialspace=True)
             reader = csv.reader(csvfile, 'mydialect')
+            headerline = True
+            orderlist = []
             for row in reader: # For each line do the work.
-                if len(row) != 11:
-                    logger.debug(len(row))
-                    logger.debug('length of row is not 11.')
-                    return
-                    # TODO
-
-                mediapath = row[0]
-                mediaproviderid = row[1]
-                
-                if not allowed_files.match(mediapath):
+                if headerline == True:
+                    orderlist = model.setCSVFieldNames(row)
+                    headerline = False
                     continue
+
+                # Get the image record
+                print("AAA")
+                print(orderlist)
+                image_record = model.add_or_load_image(batch, row, orderlist, recordset_uuid, constants.CSV_TYPE)
+
+                print("BBB")
                 fn = partial(ongoing_upload_task.increment, 'total_count')
                 postprocess_queue.put(fn)
 
-                # Get the image record
-                image_record = model.add_or_load_image(batch, row, recordset_uuid, constants.CSV_TYPE)
-
                 if image_record is None:
                     # Skip this one because it's already uploaded. Increment skips count and return.
-                    logger.debug('Skip {0}.'.format(mediapath))
                     fn = partial(ongoing_upload_task.increment, 'skips')
                     postprocess_queue.put(fn)
-                #elif image_record.file_exist == False:
-                    # File not found.
-                #    logger.debug('File {0} not found.'.format(mediapath))
-                #    fn = partial(ongoing_upload_task.increment, 'fails')
-                #    postprocess_queue.put(fn)
                 else:
-                    logger.debug("Put " + mediapath + " into db.")
                     object_queue.put(image_record)
         logger.debug('Records all put into db.')
 

@@ -13,7 +13,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.sql.expression import desc
 from sqlalchemy.types import TypeDecorator, Unicode
-import logging, hashlib, argparse, os, time, struct
+import logging, hashlib, argparse, os, time, struct, re
 from datetime import datetime
 from dataingestion.services import constants
 #import pwd
@@ -43,7 +43,7 @@ class ImageRecord(Base):
     Path does not have to be unique as there can be multiple 
     unrelated */USBVolumne1/DCIM/Image1.JPG*s.
     '''
-    file_exist = Column(Boolean)
+    file_error = Column(String)
     '''
     Indicates if the given path is a valid file.
     '''
@@ -64,6 +64,9 @@ class ImageRecord(Base):
     This md5 is got from "record set uuid + CSV record line + media file hash".
     '''
     comments = Column(String)
+    '''
+    Comments.
+    '''
     upload_time = Column(String)
     '''
     The UTC time measured by the local machine. 
@@ -152,13 +155,13 @@ class ImageRecord(Base):
     batch_id = Column(Integer)
     #batch_id = Column(Integer, ForeignKey(__batches_tablename__+'.id', onupdate="cascade"))
 
-    def __init__(self, path, pid, r_md5, exist, batch, 
+    def __init__(self, path, pid, r_md5, error, batch, 
         desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, m_md5, mime_type,
         m_size, ctime, f_owner, metadata):
         self.path = path
         self.providerid = pid
         self.md5 = r_md5
-        self.file_exist = exist
+        self.file_error = error
         self.batch_id = batch.id
         self.description = desc
         self.language_code = lang
@@ -226,6 +229,23 @@ class UploadBatch(Base):
 
 session = None
 
+def setCSVFieldNames(headerline):
+    orderlist = [] # The order of the input fields in constants.INPUT_CSV_FILENAMES.
+    logger.debug("The format of input CSV file:")
+    logger.debug(headerline)
+    for elem in headerline:
+        if elem in constants.INPUT_CSV_FIELDNAMES:
+            orderlist.append(constants.INPUT_CSV_FIELDNAMES.index(elem))
+        else:
+            raise IngestServiceException("Field " + elem + " in the CSV input file is not supported.")
+    if 0 not in orderlist:
+        raise IngestServiceException("idigbio:OriginalFileName field is required but not provided \
+            in the CSV input file.")
+    if 1 not in orderlist:
+        raise IngestServiceException("idigbio:MediaGUID field is required but not provided \
+            in the CSV input file.")
+    return orderlist
+
 def setup(db_file):
     global session
 
@@ -247,10 +267,57 @@ def md5_file(f, block_size=2 ** 20):
         md5.update(data)
     return md5
 
-def generate_record(csvrow, rs_uuid):
-    #logger.debug('generate_record')
-    (mediapath,mediaproviderid,desc,lang,title,
-        digi,pix,mag,ocr_output,ocr_tech,info_withheld) = csvrow
+def generate_record(csvrow, orderlist, rs_uuid):
+    logger.debug('generate_record')
+    print(csvrow)
+    print(orderlist)
+    
+    mediapath = ""
+    mediaproviderid = ""
+    desc = ""
+    lang = ""
+    title = ""
+    digi = ""
+    pix = ""
+    mag = ""
+    ocr_output = ""
+    ocr_tech = ""
+    info_withheld = ""
+    file_error = None
+    mime_type = ""
+    media_size = ""
+    ctime = ""
+    owner = ""
+    metadata = ""
+    mbuffer = ""
+    filemd5 = hashlib.md5()
+
+    index = 0
+    for elem in orderlist:
+        if elem == 0:
+            mediapath = csvrow[index]
+        elif elem == 1:
+            mediaproviderid = csvrow[index]
+        elif elem == 2:
+            desc = csvrow[index]
+        elif elem == 3:
+            lang = csvrow[index]
+        elif elem == 4:
+            title = csvrow[index]
+        elif elem == 5:
+            digi = csvrow[index]
+        elif elem == 6:
+            pix = csvrow[index]
+        elif elem == 7:
+            mag = csvrow[index]
+        elif elem == 8:
+            ocr_output = csvrow[index]
+        elif elem == 9:
+            ocr_tech = csvrow[index]
+        elif elem == 10:
+            info_withheld = csvrow[index]
+        index = index + 1
+
     recordmd5 = hashlib.md5()
     recordmd5.update(rs_uuid)
     recordmd5.update(mediapath)
@@ -265,27 +332,24 @@ def generate_record(csvrow, rs_uuid):
     recordmd5.update(ocr_tech)
     recordmd5.update(info_withheld)
 
-    name = os.path.splitext(mediapath)[1].split('.')
-    extension = name[len(name)-1].lower()
-    mime_type = constants.EXTENSION_MEDIA_TYPES[extension]
+    allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
+    print("DDD")
+    if not allowed_files.match(mediapath): # This file is not allowed.
+        file_error = "File type unsupported."
+    else:
+        name = os.path.splitext(mediapath)[1].split('.')
+        extension = name[len(name)-1].lower()
+        mime_type = constants.EXTENSION_MEDIA_TYPES[extension]
 
-    file_found = True
-    filemd5 = hashlib.md5()
-    try:
-        with open(mediapath, 'rb') as f:
-            filemd5 = md5_file(f)
-    except IOError as err:
-        logger.debug("The file "+mediapath+" cannot be found.")
-        file_found = False
+        try:
+            with open(mediapath, 'rb') as f:
+                filemd5 = md5_file(f)
+        except IOError as err:
+            logger.debug("The file "+mediapath+" cannot be found.")
+            file_error = "File not found."
+        print("EEE")
 
-    media_size = "N/A"
-    ctime = "N/A"
-    owner = "N/A"
-    #metadata = {}
-    metadata = "N/A"
-    mbuffer = "N/A"
-
-    if file_found == True:
+    if file_error == None:
         recordmd5.update(filemd5.hexdigest())
         media_size = os.path.getsize(mediapath)
         ctime = time.ctime(os.path.getmtime(mediapath))
@@ -302,26 +366,28 @@ def generate_record(csvrow, rs_uuid):
         #mbuffer = str(metadata)
     #logger.debug('generate_record done')
 
-    return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_found,desc,lang,title,digi,pix,
+    return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_error,desc,lang,title,digi,pix,
         mag,ocr_output,ocr_tech,info_withheld,filemd5.hexdigest(),mime_type,media_size,ctime, 
         owner,mbuffer)
 
 # decorator
 @check_session
-def add_or_load_image(batch, csvrow, rs_uuid, tasktype):
+def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
     '''
     Return the image or None is the image should not be uploaded.
     :rtype: ImageRecord or None.
     .. note:: Image identity is not determined by path but rather by its MD5.
     '''
     #logger.debug('add_or_load_image')
-    (mediapath,mediaproviderid,recordmd5,file_found,desc,lang,title,digi,pix,mag,ocr_output,ocr_tech,
-        info_withheld,filemd5,mime_type,media_size,ctime,owner,metadata) = generate_record(csvrow, rs_uuid)
+    logger.debug("add_or_load_image")
+    (mediapath,mediaproviderid,recordmd5,file_error,desc,lang,title,digi,pix,mag,ocr_output,ocr_tech,
+        info_withheld,filemd5,mime_type,media_size,ctime,owner,metadata) = generate_record(csvrow, 
+        orderlist, rs_uuid)
 
-
+    logger.debug("add_or_load_image done")
     record = session.query(ImageRecord).filter_by(md5=recordmd5).first()
     if record is None: # New record. Add the record.
-        record = ImageRecord(mediapath, mediaproviderid, recordmd5, file_found, batch, 
+        record = ImageRecord(mediapath, mediaproviderid, recordmd5, file_error, batch, 
             desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, filemd5, mime_type,
             media_size, ctime, owner, metadata)
         session.add(record)
@@ -388,7 +454,7 @@ def get_batch_details(batch_id):
     logger.debug("get_batch_details for batch #" + str(batch_id))
     
     query = session.query(
-        ImageRecord.path, ImageRecord.file_exist, ImageRecord.providerid, 
+        ImageRecord.path, ImageRecord.file_error, ImageRecord.providerid, 
         ImageRecord.mr_uuid, ImageRecord.ma_uuid, ImageRecord.comments, ImageRecord.upload_time,
         ImageRecord.url, ImageRecord.description, ImageRecord.language_code, ImageRecord.title,
         ImageRecord.digitalization_device, ImageRecord.pixel_resolution, ImageRecord.magnification,

@@ -434,7 +434,7 @@ renderResult = function(data) {
                 "sWidth": "45%"
             },
             {
-                "sTitle": "MediaExists",
+                "sTitle": "MediaError",
                 "bVisible": false
             },
             {
@@ -578,11 +578,11 @@ renderResult = function(data) {
                 "sTitle": "Online Path or Error Message",
                 "sWidth": "55%",
                 "fnRender": function(obj) {
-                    file_exist = obj.aData[1]; // It is given as an array.
+                    file_error = obj.aData[1]; // It is given as an array.
                     url = obj.aData[7];
                     var text;
-                    if (file_exist == false) {
-                        text = "<span class=\"label label-important\">This image does not exist.</span>"
+                    if (file_error != null) {
+                        text = "<span class=\"label label-important\">" + file_error + "</span>"
                     } else if (url == null) {
                         text = "<span class=\"label label-important\">This image is not successfully uploaded.</span>"
                     } else {

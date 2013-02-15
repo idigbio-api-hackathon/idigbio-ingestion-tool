@@ -21,6 +21,11 @@ EXTENSION_MEDIA_TYPES = {
 CSV_TYPE = "csv_type"
 DIR_TYPE = "dir_type"
 
+INPUT_CSV_FIELDNAMES = [
+	"idigbio:OriginalFileName", "idigbio:MediaGUID", "idigbio:Description", "idigbio:LanguageCode", 
+    "idigbio:Title", "idigbio:DigitalizationDevice", "idigbio:NominalPixelResolution", "idigbio:Magnification", 
+    "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld"
+]
 
-IMAGES_TABLENAME = 'imagesV6'
-BATCHES_TABLENAME = 'batchesV6'
+IMAGES_TABLENAME = 'imagesV7'
+BATCHES_TABLENAME = 'batchesV7'

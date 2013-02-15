@@ -8,16 +8,97 @@ if version < VERSION_LIMIT:
 else:
 	import urllib.request # for Python 3.3, etc.
 
+
+acceptable_fields = ["idigbio:OriginalFileName", "idigbio:MediaGUID", "idigbio:Description", "idigbio:LanguageCode", 
+    "idigbio:Title", "idigbio:DigitalizationDevice", "idigbio:NominalPixelResolution", "idigbio:Magnification", 
+    "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld"]
+
+field_values = ["", "", "Scanned herbarium sheet with secimen collected West of Plant City 4 miles from Mango \
+	ct., on Hwy 92.", "en", "Ilex glabra from FSU", "Canon Supershot 2000", "128mm", "4x", "This is OCR output.", "Tesseract version \
+	3.01 on Windows, latin character set", "location information not given for endangered species, contact my@email"]
+
+acceptable_fields_print = ["idigbio:OriginalFileName (Required)", "idigbio:MediaGUID (Required)", "idigbio:Description", "idigbio:LanguageCode", 
+    "idigbio:Title", "idigbio:DigitalizationDevice", "idigbio:NominalPixelResolution", "idigbio:Magnification", 
+    "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld"]
+
 TIMEOUT=5
 MAX_NUM = 1000000
 
-num_records = 5
+num_records = 2
 file_url = "http://www.acis.ufl.edu/~yonggang/idigbio/dataset/"
 file_list_name = "file_list"
 csv_name = "test_input.csv"
-
-other_record_info = "\"Scanned herbarium sheet with secimen collected West of Plant City 4 miles from Mango Jct., on Hwy 92.\", \"en\", \"Ilex glabra from FSU\", \"Canon Supershot 2000\", \"128mm\", \"4x\", \"\", \"Tesseract version 3.01 on Windows, latin character set\", \"location information not given for endangered species, contact my@email\""
 url_guid = "www.fakeurl.edu/abc/def/image"
+
+def retrieveURL(url):
+	if version < VERSION_LIMIT:
+		data = urllib2.urlopen(url, timeout=TIMEOUT).read() # for Python 2.7, etc.
+	else:
+		data = urllib.request.urlopen(url, timeout=TIMEOUT).read() # for Python 3.3, etc.
+	return data
+
+def writeFile(filename, line):
+	if version < VERSION_LIMIT:
+		filename.write(line)
+	else:
+		filename.write(bytes(line, 'UTF-8'))
+
+def printAcceptableFields():
+	print("Acceptable fields include the following elements, please list them exactly as shown:")
+	for elem in acceptable_fields_print:
+		print("  " + elem)
+
+def retrieveFileList(url):
+	file_list = retrieveURL(url)
+	dirfile = open("dirfile.txt", "wb")
+	dirfile.write(file_list)
+	dirfile.close()
+	with open("dirfile.txt") as f:
+		files = f.readlines()
+	count = 0
+	for file_elem in files:
+		if file_elem == '':
+			del files[count]
+		else:
+			if "\n" in files[count]:
+				files[count] = files[count][:-1]
+			count = count + 1
+	print("Total files in list = " + str(count))
+	return files
+
+def retrieveMedia(file_name):
+	url = file_url + file_name
+	url = url.replace(' ', '%20')
+	print("Retrieve file: " + str(url))
+	mediadata = retrieveURL(url)
+	index = file_name.rfind('/')
+	file_name = file_name[index + 1:]
+	mediafile = open(file_name, 'wb')
+	mediafile.write(mediadata)
+	mediafile.close()
+
+inputlist = sys.argv
+
+inputlist = inputlist[1:]
+print("Field names: " + str(inputlist))
+
+orderlist = []
+for elem in inputlist:
+	if elem in acceptable_fields:
+		orderlist.append(acceptable_fields.index(elem))
+	else:
+		print("Error: field " + elem + " is not supported.")
+		printAcceptableFields()
+		exit()
+
+if 0 not in orderlist:
+	print("Error: idigbio:OriginalFileName field is not provided.")
+	printAcceptableFields()
+	exit()
+if 1 not in orderlist:
+	print("Error: idigbio:MediaGUID field is not provided.")
+	printAcceptableFields()
+	exit()
 
 random.seed()
 
@@ -31,32 +112,9 @@ except OSError as err:
 url = file_url + file_list_name
 print("File list URL: " + url)
 
-if version < VERSION_LIMIT:
-	file_list = urllib2.urlopen(url, timeout=TIMEOUT).read() # for Python 2.7, etc.
-else:
-	file_list = urllib.request.urlopen(url, timeout=TIMEOUT).read() # for Python 3.3, etc.
-	
-	
-dirfile = open("dirfile.txt", "wb")
-dirfile.write(file_list)
-dirfile.close()
+files = retrieveFileList(url)
 
-with open("dirfile.txt") as f:
-	files = f.readlines()
-
-count = 0
-#count = (str(file_list)).count(".jpg")
-
-for file_elem in files:
-	if file_elem == '':
-		del files[count]
-	else:
-		if "\n" in files[count]:
-			files[count] = files[count][:-1]
-		count = count + 1
-		
-print("Total files in list = " + str(count))
-
+count = len(files)
 if count < num_records:
 	print("Total files in list is bigger than required number of files.")
 	sys.exit()
@@ -68,26 +126,30 @@ print("End position = " + str(end_position))
 
 i = 0
 csvfile = open(csv_name, "wb")
+# Print the header line.
+record = ""
+for elem in orderlist:
+	record += str("\"" + acceptable_fields[elem] + "\",")
+record = record[:-1]
+record += "\n"
+writeFile(csvfile, record)
 
+# Print the values line by line.
 for file_elem in files:
 	if i >= start_position and i < end_position:
-		url = file_url + file_elem
-		url = url.replace(' ', '%20')
-		print("Retrieve file: " + str(url))
-		if version < VERSION_LIMIT:
-			mediadata = urllib2.urlopen(url, timeout=TIMEOUT).read() # for Python 2.7, etc.
-		else:
-			mediadata = urllib.request.urlopen(url, timeout=TIMEOUT).read() # for Python 3.3, etc.
+		retrieveMedia(file_elem)
 		index = file_elem.rfind('/')
 		file_elem = file_elem[index + 1:]
-		mediafile = open(file_elem, 'wb')
-		mediafile.write(mediadata)
-		mediafile.close()
-		record = ("\"" + mediapath + file_elem + "\", \"" + url_guid + 
-			str(int(MAX_NUM * random.random())) + "\", " + other_record_info + "\n")
-		if version < VERSION_LIMIT:
-			csvfile.write(record)
-		else:
-			csvfile.write(bytes(record, 'UTF-8'))
+		record = ""
+		for elem in orderlist:
+			if elem == 0:
+				record += str("\"" + mediapath + file_elem + "\",")
+			elif elem == 1:
+				record += str("\"" + url_guid + str(int(MAX_NUM * random.random())) + "\",")
+			else:
+				record += str("\"" + field_values[elem] + "\",")
+		record = record[:-1]
+		record += "\n"
+		writeFile(csvfile, record)
 	i = i + 1
 csvfile.close()
