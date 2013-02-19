@@ -65,6 +65,9 @@ def check_progress():
 def get_result():
     return ingestion_manager.get_result()
 
+def get_history(table_id):
+    return ingestion_manager.get_history(table_id)
+
 def get_last_batch_info():
     '''
     Returns info about the last batch.

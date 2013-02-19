@@ -167,6 +167,12 @@ def get_result():
         # record set), then the batch could be None.
         raise IngestServiceException("No batch is found.")
 
+def get_history(table_id):
+    if table_id is None or table_id == "":
+        return model.get_all_batches()
+    else:
+        return model.get_batch_details(table_id)
+
 def exec_upload_task(root_path=None, resume=False):
     """
     Execute either a new upload task or resume last unsuccessfuly upload task
@@ -418,8 +424,8 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             logger.debug('ingestion_manager._upload_csv:post_recordset')
             recordset_uuid = conn.post_recordset(recordset_guid)
             logger.debug('ingestion_manager._upload_csv:got uuid, put into db.')
+
             iDigbioProvidedByGUID = user_config.get_user_config(user_config.IDIGBIOPROVIDEDBYGUID)
-            logger.debug('111')
             RightsLicense = user_config.get_user_config(user_config.IMAGE_LICENSE)
             license_ = constants.IMAGE_LICENSES[RightsLicense]
             RightsLicenseStatementUrl = license_[2]
@@ -429,7 +435,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             publisherID = user_config.get_user_config(user_config.IDIGBIO_PUBLISHER_GUID)
             fundingSource = user_config.get_user_config(user_config.FUNDING_SOURCE)
             fundingPurpose = user_config.get_user_config(user_config.FUNDING_PURPOSE)
-            logger.debug('222')
+
             batch = model.add_upload_batch(csv_path, iDigbioProvidedByGUID, RightsLicense, 
                 RightsLicenseStatementUrl, RightsLicenseLogoUrl, recordset_guid, 
                 recordset_uuid, constants.CSV_TYPE, keyword, providerID, publisherID, fundingSource, 
@@ -457,6 +463,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             reader = csv.reader(csvfile, 'mydialect')
             headerline = True
             orderlist = []
+            recordCount = 0
             for row in reader: # For each line do the work.
                 if headerline == True:
                     orderlist = model.setCSVFieldNames(row)
@@ -464,11 +471,9 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                     continue
 
                 # Get the image record
-                print("AAA")
                 print(orderlist)
                 image_record = model.add_or_load_image(batch, row, orderlist, recordset_uuid, constants.CSV_TYPE)
 
-                print("BBB")
                 fn = partial(ongoing_upload_task.increment, 'total_count')
                 postprocess_queue.put(fn)
 
@@ -478,6 +483,10 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                     postprocess_queue.put(fn)
                 else:
                     object_queue.put(image_record)
+
+                recordCount = recordCount + 1
+            batch.RecordCount = recordCount
+            model.commit()
         logger.debug('Records all put into db.')
 
 

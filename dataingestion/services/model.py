@@ -199,16 +199,18 @@ class UploadBatch(Base):
     start_time = Column(DateTime) # The local time at which the batch task starts.
     finish_time = Column(DateTime) # The local time that the batch upload finishes. None if not successful.
     batchtype = Column(String) # The type of the batch task, it can be "dir" or "csv".
-    md5 = Column(String) # The md5 of the CSV file + uuid.
-    
-    # images = relationship(ImageRecord, backref="batch") # All images associated with the batches in the table.
-    
     # The following fields are optional.
     MediaContentKeyword = Column(String)
     iDigbioProviderGUID = Column(String)
     iDigbioPublisherGUID = Column(String)
     FundingSource = Column(String)
     FundingPurpose = Column(String)
+
+    RecordCount = Column(Integer)
+
+    md5 = Column(String) # The md5 of the CSV file + uuid.
+    # images = relationship(ImageRecord, backref="batch") # All images associated with the batches in the table.
+    
     def __init__(self, path, loginID, license, licenseStatementUrl, licenseLogoUrl,
         rs_guid, rs_uuid, s_time, md5, btype, kw, proID, pubID, fs, fp):
         self.CSVfilePath = path
@@ -269,8 +271,6 @@ def md5_file(f, block_size=2 ** 20):
 
 def generate_record(csvrow, orderlist, rs_uuid):
     logger.debug('generate_record')
-    print(csvrow)
-    print(orderlist)
     
     mediapath = ""
     mediaproviderid = ""
@@ -333,7 +333,6 @@ def generate_record(csvrow, orderlist, rs_uuid):
     recordmd5.update(info_withheld)
 
     allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
-    print("DDD")
     if not allowed_files.match(mediapath): # This file is not allowed.
         file_error = "File type unsupported."
     else:
@@ -347,7 +346,6 @@ def generate_record(csvrow, orderlist, rs_uuid):
         except IOError as err:
             logger.debug("The file "+mediapath+" cannot be found.")
             file_error = "File not found."
-        print("EEE")
 
     if file_error == None:
         recordmd5.update(filemd5.hexdigest())
@@ -451,7 +449,6 @@ def count_batch_size(batch_id):
 @check_session
 def get_batch_details(batch_id):
     batch_id = int(batch_id)
-    logger.debug("get_batch_details for batch #" + str(batch_id))
     
     query = session.query(
         ImageRecord.path, ImageRecord.file_error, ImageRecord.providerid, 
@@ -469,13 +466,44 @@ def get_batch_details(batch_id):
         ).order_by(ImageRecord.id) # 25 elements.
     
     logger.debug("Image record count: " + str(query.count()))
-    logger.debug("get_batch_details done")
     #for item in query:
     #    for elem in item:
     #        logger.debug(elem)
 
     #query = session.query(ImageRecord).filter_by(batch_id=batch_id)
     return query.all()
+
+def get_all_batches():
+    logger.debug("get all the batches in the batch table.")
+    
+    query = session.query(
+        UploadBatch.id, UploadBatch.CSVfilePath, UploadBatch.iDigbioProvidedByGUID,
+        UploadBatch.RightsLicense, UploadBatch.RightsLicenseStatementUrl, 
+        UploadBatch.RightsLicenseLogoUrl, UploadBatch.RecordSetGUID, UploadBatch.RecordSetUUID,
+        UploadBatch.start_time, UploadBatch.finish_time, UploadBatch.MediaContentKeyword,
+        UploadBatch.iDigbioProviderGUID, UploadBatch.iDigbioPublisherGUID, UploadBatch.FundingSource,
+        UploadBatch.FundingPurpose, UploadBatch.RecordCount
+        ).order_by(UploadBatch.id) # 16 elements
+    
+    logger.debug("Batch count: " + str(query.count()))
+    logger.debug("get_all_batches done")
+    ret = []
+    for elem in query:
+        newelem = []
+        index = 0
+        for item in elem:
+            item = str(item)
+            if index == 8:
+                item = item[0:item.index('.')]
+            if index == 9:
+                try:
+                    item = item[0:item.index('.')]
+                except ValueError as ex:
+                    item = "Not successfully finished."
+            newelem.append(str(item))
+            index = index + 1
+        ret.append(newelem)
+    return ret
 
 @check_session
 def load_last_batch():

@@ -26,7 +26,6 @@ class BatchInfo():
     '''
     REST resource that represents info of a batch upload.
     '''
-    
     exposed = True
 
     def GET(self):
@@ -36,8 +35,6 @@ class BatchInfo():
         '''
         try:
             result = ingest_service.get_last_batch_info()
-            for item in result:
-                print item
             return json.dumps(result)
         except IngestServiceException as ex:
             raise JsonHTTPError(409, str(ex))
@@ -73,6 +70,19 @@ class UserConfig(object):
 
     def DELETE(self):
         ingest_service.rm_user_config()
+
+class History(object):
+    '''
+    Get the history of batches or images.
+    '''
+    exposed = True
+    def GET(self, table_id):
+        try:
+            result = ingest_service.get_history(table_id)
+            resultdump = json.dumps(result)
+            return resultdump
+        except IngestServiceException as ex:
+            raise JsonHTTPError(409, str(ex))
 
 class Authentication(object):
     '''
@@ -129,6 +139,7 @@ class DataIngestionService(object):
         self.auth = Authentication()
         self.progress = ProgressStatus()
         self.csv = CsvIngestionService()
+        self.history = History()
 
     def GET(self):
         return '<html><body>Ingestion Service is running.</body></html>'

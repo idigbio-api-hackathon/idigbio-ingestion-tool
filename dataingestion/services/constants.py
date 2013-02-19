@@ -27,5 +27,5 @@ INPUT_CSV_FIELDNAMES = [
     "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld"
 ]
 
-IMAGES_TABLENAME = 'imagesV7'
-BATCHES_TABLENAME = 'batchesV7'
+IMAGES_TABLENAME = 'imagesV8'
+BATCHES_TABLENAME = 'batchesV8'
