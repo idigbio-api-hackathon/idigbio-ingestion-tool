@@ -488,6 +488,7 @@ renderBatchHistory = function(data) {
     // because the dataTable is not doing well in supporting row selections.
     $('#batch-history-table').delegate('tbody > tr > td', 'click', function (event)
     {
+        /*
         if ($(this.parentNode).hasClass('row_selected')) {
             $(this.parentNode).removeClass('success');
             $(this.parentNode).removeClass('row_selected');
@@ -497,20 +498,22 @@ renderBatchHistory = function(data) {
                 $('#image-history-table-container').addClass('hide');
             }
         }
-        else {
+        else {*/
             $(bht.fnSettings().aoData).each(function (){
                 $(this.nTr).removeClass('success');
                 $(this.nTr).removeClass('row_selected');
             });
 
-            $(this.parentNode).addClass('success');
-            $(this.parentNode).addClass('row_selected');
+            if (! $(this.parentNode).hasClass('row_selected')) {
+                $(this.parentNode).addClass('success');
+                $(this.parentNode).addClass('row_selected');
+            }
             
             var aData = bht.fnGetData( this.parentNode );//get data of the clicked row
 
             $.getJSON('/services/history', { table_id: aData[0] }, renderMediaRecordHistory);
             $('#image-history-table-description').text("Batch ID: " + aData[0]);
-        }
+        //}
     });
 }
 
