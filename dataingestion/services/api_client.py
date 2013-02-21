@@ -44,7 +44,7 @@ def build_url(collection, entity_uuid=None, subcollection=None):
 
 def _post_recordset(provider_id):
     data = {"idigbio:data": {"ac:variant": "IngestionTool"},
-            "idigbio:providerId": provider_id}
+            "idigbio:recordId": provider_id}
     url = build_url("recordsets")
     logger.debug("POSTing recordset. POST URL: %s" % url)
     try:
@@ -64,7 +64,7 @@ def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner
                              "idigbio:localpath": path,
                              "idigbio:mediaGUID": provider_id,
                              "idigbio:relationships": {"recordset": recordset_uuid}},
-            "idigbio:providerId": provider_id }
+            "idigbio:recordId": provider_id }
     data["idigbio:data"] = dict(data["idigbio:data"].items() + idigbio_metadata.items())
     
     if owner_uuid:
