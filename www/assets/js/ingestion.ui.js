@@ -95,6 +95,10 @@ initMainUI = function() {
         $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
     });
 
+    $('#history-tab-button').click(function(event) {
+        $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
+    });
+
     $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
 }
 
@@ -289,7 +293,7 @@ postCsvUpload = function(action) {
 
 showLastBatchInfo = function() {
     $.getJSON('/services/batch', function(batch) {
-        if ($.isEmptyObject(batch)) {
+        if (batch.Empty) {
             return;
         }
             
@@ -401,12 +405,13 @@ updateProgress = function() {
                     var extra = ['<p><button id="retry-button" type="submit"',
                         'class="btn btn-warning">Retry failed uploads</button></p>'].join("");
                 } else {
-                    var errMsg = ["<p><strong>Warning!</strong> ",
-                        "Nothing is uploaded. Maybe the folder is empty or the network is down? ",
-                        "Please check the folder and network connection and ",
-                        "retry it by clicking the 'Upload' button."].join("");
+                    $.getJSON('/services/batch', function(batch) {
+                        var errMsg = ["<p><strong>Warning!</strong> ",
+                            batch.ErrorCode,
+                            " Please fix it and retry the upload."].join("");
+                        showAlert(errMsg, extra, "alert-warning");
+                    });
                 }
-                showAlert(errMsg, extra, "alert-warning");
                 $("#retry-button").click(function(event) {
                     event.preventDefault();
                     $("#upload-alert").alert('close');

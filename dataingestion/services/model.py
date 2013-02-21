@@ -208,6 +208,8 @@ class UploadBatch(Base):
 
     RecordCount = Column(Integer)
 
+    ErrorCode = Column(String)
+
     md5 = Column(String) # The md5 of the CSV file + uuid.
     # images = relationship(ImageRecord, backref="batch") # All images associated with the batches in the table.
     
@@ -382,20 +384,22 @@ def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
         info_withheld,filemd5,mime_type,media_size,ctime,owner,metadata) = generate_record(csvrow, 
         orderlist, rs_uuid)
 
-    logger.debug("add_or_load_image done")
     record = session.query(ImageRecord).filter_by(md5=recordmd5).first()
     if record is None: # New record. Add the record.
         record = ImageRecord(mediapath, mediaproviderid, recordmd5, file_error, batch, 
             desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, filemd5, mime_type,
             media_size, ctime, owner, metadata)
         session.add(record)
+        logger.debug("add_or_load_image done: New record.")
         #logger.debug('add_or_load_image: new record added')
         return record
     elif record.upload_time: # Found the duplicate record, already uploaded.
         #record.batch_id = batch.id
+        logger.debug("add_or_load_image done: Already done.")
         return None
     else: # Found the duplicate record, but not uploaded or file not found.
         record.batch_id = batch.id
+        logger.debug("add_or_load_image done: Record not finished.")
         return record
 
 @check_session
@@ -491,8 +495,8 @@ def get_all_batches():
     for elem in query:
         newelem = []
         index = 0
-        for item in elem:
-            item = str(item)
+        for origitem in elem:
+            item = str(origitem)
             if index == 8:
                 item = item[0:item.index('.')]
             if index == 9:
@@ -500,6 +504,9 @@ def get_all_batches():
                     item = item[0:item.index('.')]
                 except ValueError as ex:
                     item = "Not successfully finished."
+            #if index == 15:
+            #    if origitem is None:
+            #        item = "0" # No record.
             newelem.append(str(item))
             index = index + 1
         ret.append(newelem)

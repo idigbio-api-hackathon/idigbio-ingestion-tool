@@ -22,7 +22,7 @@ class JsonHTTPError(HTTPError):
         cherrypy.response.headers.pop('Content-Length', None)
         cherrypy.response.body = ntob(self._message)
 
-class BatchInfo():
+class BatchInfo(object):
     '''
     REST resource that represents info of a batch upload.
     '''

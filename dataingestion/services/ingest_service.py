@@ -14,10 +14,13 @@ import Queue, os
 from dataingestion.task_queue import BackgroundTaskQueue
 from dataingestion.services import model, ingestion_manager, constants, api_client
 from dataingestion.services.user_config import get_user_config, set_user_config, rm_user_config
+from datetime import datetime, timedelta
 
 singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
 singleton_task.subscribe()
 singleton_task.start()
+
+THRESHOLD_TIME = 2 # sec
 
 # Be careful tasktype is the first argument.
 def _upload_task(tasktype, path):
@@ -75,10 +78,25 @@ def get_last_batch_info():
     '''
     batch = model.load_last_batch()
     if batch:
-        return dict(path=batch.path, start_time=str(batch.start_time),
-                    finished=(batch.finish_time and True or False), tasktype=batch.batchtype)
+        starttime = str(batch.start_time)
+        starttime = starttime[0:starttime.index('.')]
+        retdict = {'Empty': False, 'path': batch.CSVfilePath, 'start_time': starttime, 'ErrorCode': batch.ErrorCode}
+        if batch.finish_time is None:
+            retdict['finished'] = False
+        else:
+            retdict['finished'] = True
+        dt = datetime.now() - batch.start_time
+        if dt.seconds > THRESHOLD_TIME:
+            # This is a trick, because network failure does not write to db.
+            # Then we think the last record you get must be "old enough".
+            # In contrast, the CSV file failure writes to db.
+            # The the last record you get is just written a second ago.
+            retdict['ErrorCode'] = 'Network Connection Error.'
+        return retdict
     else:
-        return dict()
+        # If there's no record before, it is possible a network connection failure.
+        retdict = {'Empty': True, 'ErrorCode': 'Network Connection Error.'}
+        return retdict
 
 def authenticate(accountuuid, apikey):
     if api_client.authenticate(accountuuid, apikey):

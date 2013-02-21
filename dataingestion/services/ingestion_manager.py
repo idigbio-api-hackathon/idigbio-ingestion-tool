@@ -82,7 +82,7 @@ class QueueFunctionThread(Thread):
                 if self.abort:
                     break
                 sleep(0.01)
-            except Exception:
+            except Exception as ex:
                 logger.error("Exception caught in a QueueFunctionThread.")
                 self.exc_infos.append(exc_info())
                 logger.debug("Thread exiting...")
@@ -174,63 +174,7 @@ def get_history(table_id):
         return model.get_batch_details(table_id)
 
 def exec_upload_task(root_path=None, resume=False):
-    """
-    Execute either a new upload task or resume last unsuccessfuly upload task
-    from the DB.
-    This method returns true when all file upload tasks are executed and
-    postprocess and error queues are emptied.
-    :return: False is the upload is not executed due to an existing ongoing task.
-    """
-    global ongoing_upload_task
-
-    if ongoing_upload_task and ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED:
-        # Ongoing task exists
-        return False
-
-    ongoing_upload_task = BatchUploadTask(constants.DIR_TYPE)
-    ongoing_upload_task.status = BatchUploadTask.STATUS_RUNNING
-
-    postprocess_queue = ongoing_upload_task.postprocess_queue
-
-    def _postprocess(func=None, *args):
-        func and func(*args)
-
-    postprocess_thread = QueueFunctionThread(postprocess_queue, _postprocess)
-    postprocess_thread.start()
-
-    def _error(item):
-        logger.error(item)
-
-    error_queue = ongoing_upload_task.error_queue
-    error_thread = QueueFunctionThread(error_queue, _error)
-    error_thread.start()
-
-    try:
-        try:
-            _upload(ongoing_upload_task, root_path, resume)
-        except (ClientException, IOError):
-            error_queue.put(str(IOError))
-        while not postprocess_queue.empty():
-            sleep(0.01)
-        postprocess_thread.abort = True
-        while postprocess_thread.isAlive():
-            postprocess_thread.join(0.01)
-        while not error_queue.empty():
-            sleep(0.01)
-        error_thread.abort = True
-        while error_thread.isAlive():
-            error_thread.join(0.01)
-
-        logger.info("Upload task execution completed.")
-
-    except (SystemExit, Exception):
-        logger.error("Aborting all threads...")
-        for thread in threading_enumerate():
-            thread.abort = True
-        raise
-    finally:
-        # Reset of singleton task in the module.
-        ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
+    pass
 
 def exec_upload_csv_task(csv_path=None, resume=False):
     """
@@ -466,7 +410,9 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             recordCount = 0
             for row in reader: # For each line do the work.
                 if headerline == True:
+                    batch.ErrorCode = "CSV File Format Error."
                     orderlist = model.setCSVFieldNames(row)
+                    batch.ErrorCode = ""
                     headerline = False
                     continue
 
@@ -488,7 +434,6 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             batch.RecordCount = recordCount
             model.commit()
         logger.debug('Records all put into db.')
-
 
         for thread in object_threads:
             thread.start()
@@ -516,7 +461,10 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
 
     except ClientException:
         error_queue.put('Upload failed outside of the worker thread.')
-        
+    except IngestServiceException as ex:
+        print("IngestServiceException caught")
+        error_queue.put('Upload failed outside of the worker thread.')
+
     finally:
         model.commit()
 
@@ -539,7 +487,7 @@ def main():
         logger.debug("DB file: {0}".format(db_file))
     model.setup(db_file)
     atexit.register(model.commit)
-    exec_upload_task(args.root_path)
+    exec_upload_csv_task(args.root_path)
 
 if __name__ == '__main__':
     main()
