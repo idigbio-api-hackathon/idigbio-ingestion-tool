@@ -24,8 +24,8 @@ DIR_TYPE = "dir_type"
 INPUT_CSV_FIELDNAMES = [
 	"idigbio:OriginalFileName", "idigbio:MediaGUID", "idigbio:Description", "idigbio:LanguageCode", 
     "idigbio:Title", "idigbio:DigitalizationDevice", "idigbio:NominalPixelResolution", "idigbio:Magnification", 
-    "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld"
+    "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld", "idigbio:CollectionObjectGUID"
 ]
 
-IMAGES_TABLENAME = 'imagesV8_1'
-BATCHES_TABLENAME = 'batchesV8_1'
+IMAGES_TABLENAME = 'imagesV8_2'
+BATCHES_TABLENAME = 'batchesV8_2'

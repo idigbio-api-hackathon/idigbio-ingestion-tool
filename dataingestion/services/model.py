@@ -118,6 +118,10 @@ class ImageRecord(Base):
     '''
     http://rs.tdwg.org/dwc/terms/informationWithheld
     '''
+    CollectionObjectGUID = Column(String)
+    '''
+    Specimen ID.
+    '''
     media_md5 = Column(String)
     '''
     Checksum of the media object accessible via MediaUrl, using MD5.
@@ -156,8 +160,8 @@ class ImageRecord(Base):
     #batch_id = Column(Integer, ForeignKey(__batches_tablename__+'.id', onupdate="cascade"))
 
     def __init__(self, path, pid, r_md5, error, batch, 
-        desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, m_md5, mime_type,
-        m_size, ctime, f_owner, metadata):
+        desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, col_obj_guid, 
+        m_md5, mime_type, m_size, ctime, f_owner, metadata):
         self.path = path
         self.providerid = pid
         self.md5 = r_md5
@@ -172,6 +176,7 @@ class ImageRecord(Base):
         self.ocr_output = ocr_output
         self.ocr_tech = ocr_tech
         self.info_withheld = info_withheld
+        self.CollectionObjectGUID = col_obj_guid
         self.media_md5 = m_md5
         self.mime_type = mime_type
         self.media_size = m_size
@@ -207,7 +212,6 @@ class UploadBatch(Base):
     FundingPurpose = Column(String)
 
     RecordCount = Column(Integer)
-
     ErrorCode = Column(String)
 
     md5 = Column(String) # The md5 of the CSV file + uuid.
@@ -285,6 +289,7 @@ def generate_record(csvrow, orderlist, rs_uuid):
     ocr_output = ""
     ocr_tech = ""
     info_withheld = ""
+    col_obj_guid = ""
     file_error = None
     mime_type = ""
     media_size = ""
@@ -318,6 +323,8 @@ def generate_record(csvrow, orderlist, rs_uuid):
             ocr_tech = csvrow[index]
         elif elem == 10:
             info_withheld = csvrow[index]
+        elif elem == 11:
+            col_obj_guid = csvrow[index]
         index = index + 1
 
     recordmd5 = hashlib.md5()
@@ -333,6 +340,7 @@ def generate_record(csvrow, orderlist, rs_uuid):
     recordmd5.update(ocr_output)
     recordmd5.update(ocr_tech)
     recordmd5.update(info_withheld)
+    recordmd5.update(col_obj_guid)
 
     allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
     if not allowed_files.match(mediapath): # This file is not allowed.
@@ -367,7 +375,7 @@ def generate_record(csvrow, orderlist, rs_uuid):
     #logger.debug('generate_record done')
 
     return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_error,desc,lang,title,digi,pix,
-        mag,ocr_output,ocr_tech,info_withheld,filemd5.hexdigest(),mime_type,media_size,ctime, 
+        mag,ocr_output,ocr_tech,info_withheld,col_obj_guid, filemd5.hexdigest(),mime_type,media_size,ctime, 
         owner,mbuffer)
 
 # decorator
@@ -381,14 +389,14 @@ def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
     #logger.debug('add_or_load_image')
     logger.debug("add_or_load_image")
     (mediapath,mediaproviderid,recordmd5,file_error,desc,lang,title,digi,pix,mag,ocr_output,ocr_tech,
-        info_withheld,filemd5,mime_type,media_size,ctime,owner,metadata) = generate_record(csvrow, 
+        info_withheld,col_obj_guid,filemd5,mime_type,media_size,ctime,owner,metadata) = generate_record(csvrow, 
         orderlist, rs_uuid)
 
     record = session.query(ImageRecord).filter_by(md5=recordmd5).first()
     if record is None: # New record. Add the record.
         record = ImageRecord(mediapath, mediaproviderid, recordmd5, file_error, batch, 
-            desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, filemd5, mime_type,
-            media_size, ctime, owner, metadata)
+            desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, col_obj_guid, 
+            filemd5, mime_type, media_size, ctime, owner, metadata)
         session.add(record)
         logger.debug("add_or_load_image done: New record.")
         #logger.debug('add_or_load_image: new record added')
@@ -403,8 +411,8 @@ def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
         return record
 
 @check_session
-def add_upload_batch(path, loginID, license, licenseStatementUrl, licenseLogoUrl,
-    recordset_guid, recordset_uuid, tasktype, keyword, proID, pubID, fundingSource, fundingPurpose):
+def add_upload_batch(path, loginID, license, licenseStatementUrl, licenseLogoUrl, recordset_guid, 
+    recordset_uuid, tasktype, keyword, proID, pubID, fundingSource, fundingPurpose):
     start_time = datetime.now()
     with open(path, 'rb') as f:
         md5value = md5_file(f)
@@ -426,18 +434,7 @@ def add_upload_batch(path, loginID, license, licenseStatementUrl, licenseLogoUrl
         keyword, proID, pubID, fundingSource, fundingPurpose)
     session.add(newrecord)
     return newrecord
-    '''
-    if record is None: # No duplicate record.
-        newrecord = UploadBatch(path, loginID, license, licenseStatementUrl, licenseLogoUrl,
-            recordset_guid, recordset_uuid, start_time, md5value.hexdigest(), tasktype, 
-            keyword, proID, pubID, fundingSource, fundingPurpose)
-        session.add(newrecord)
-        return newrecord
-    else:
-        record.id = record.id + 1
-        session.add(newrecord)
-        return record # Otherwise, just return the existing record + 1. You still need to process it.
-    '''
+
 @check_session
 def get_imagerecords_by_batchid(batch_id):
     batch_id = int(batch_id)
@@ -459,7 +456,8 @@ def get_batch_details(batch_id):
         ImageRecord.mr_uuid, ImageRecord.ma_uuid, ImageRecord.comments, ImageRecord.upload_time,
         ImageRecord.url, ImageRecord.description, ImageRecord.language_code, ImageRecord.title,
         ImageRecord.digitalization_device, ImageRecord.pixel_resolution, ImageRecord.magnification,
-        ImageRecord.ocr_output, ImageRecord.ocr_tech, ImageRecord.info_withheld, ImageRecord.media_md5,
+        ImageRecord.ocr_output, ImageRecord.ocr_tech, ImageRecord.info_withheld, 
+        ImageRecord.CollectionObjectGUID, ImageRecord.media_md5,
         ImageRecord.mime_type, ImageRecord.media_size, ImageRecord.file_ctime, ImageRecord.file_owner,
         ImageRecord.mr_etag, UploadBatch.RecordSetUUID, UploadBatch.iDigbioProvidedByGUID,
         UploadBatch.MediaContentKeyword, UploadBatch.FundingSource, UploadBatch.FundingPurpose,
@@ -467,7 +465,7 @@ def get_batch_details(batch_id):
         UploadBatch.RightsLicenseLogoUrl, UploadBatch.iDigbioProviderGUID, UploadBatch.RightsLicense, 
         UploadBatch.CSVfilePath, UploadBatch.RecordSetGUID, ImageRecord.batch_id
         ).filter(ImageRecord.batch_id == batch_id).filter(UploadBatch.id == batch_id
-        ).order_by(ImageRecord.id) # 25 elements.
+        ).order_by(ImageRecord.id) # 26 elements.
     
     logger.debug("Image record count: " + str(query.count()))
     #for item in query:

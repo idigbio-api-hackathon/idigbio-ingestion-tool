@@ -547,6 +547,7 @@ renderMediaRecordHistory = function(data) {
             { "sTitle": "OcrOutput", "bVisible": false },
             { "sTitle": "OcrTechnology", "bVisible": false },
             { "sTitle": "InformationWithheld", "bVisible": false },
+            { "sTitle": "CollectionObjectGUID", "bVisible": false },
             { "sTitle": "MediaMD5", "bVisible": false },
             { "sTitle": "MimeType", "bVisible": false },
             { "sTitle": "MediaSizeInBytes", "bVisible": false },
@@ -598,11 +599,11 @@ renderMediaRecordHistory = function(data) {
                 "sButtonText": 'CSV(Complete)',
                 "sFieldBoundary": '"',
                 "sFieldSeperator": ',',
-                "sFileName": 'iDigBio-result.csv'
+                "sFileName": 'iDigBio-history.csv'
             },
             {
                 "sExtends": 'pdf',
-                "sTitle": 'iDigBio-result',
+                "sTitle": 'iDigBio-history',
                 "sButtonText": 'PDF(Selective)',
                 "mColumns": "visible"
             }]
@@ -634,6 +635,7 @@ renderResult = function(data) {
             { "sTitle": "OcrOutput", "bVisible": false },
             { "sTitle": "OcrTechnology", "bVisible": false },
             { "sTitle": "InformationWithheld", "bVisible": false },
+            { "sTitle": "CollectionObjectGUID", "bVisible": false },
             { "sTitle": "MediaMD5", "bVisible": false },
             { "sTitle": "MimeType", "bVisible": false },
             { "sTitle": "MediaSizeInBytes", "bVisible": false },
