@@ -12,20 +12,29 @@ from dataingestion.services.ingestion_manager import IngestServiceException
 
 logger = logging.getLogger('iDigBioSvc.csv_generator')
 
+
 def get_files(imagepath):
 	allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
 	filenameset = []
 	
 	if isdir(imagepath): # This is a dir.
+		
+		file_count = 0
 		for dirpath, dirnames, filenames in os.walk(imagepath):
 			for file_name in filenames:
+				file_count = file_count + 1
+				if file_count > constants.G_FILE_NUMBER_LIMIT:
+					logger.error("File number is higher than the limit: " 
+						+ str(constants.G_FILE_NUMBER_LIMIT))
+					raise IngestServiceException("File number is higher than the limit: " 
+						+ str(constants.G_FILE_NUMBER_LIMIT))
+				
 				if not allowed_files.match(file_name):
 					continue
 				subpath = join(dirpath, file_name)
 				filenameset.append(subpath)
-			for dir_name in dirnames:
-				subdir = join(dirpath, dir_name)
-				filenameset = filenameset + get_files(subdir)
+
+	
 	else: # This is a single file.
 		if allowed_files.match(imagepath):
 			filenameset.append(imagepath)
@@ -34,7 +43,7 @@ def get_files(imagepath):
 def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
 	guidset = []
 	if guid_syntax is None or guid_syntax == "":
-		logger.debug("GUID Syntax is empty.")
+		logger.error("GUID Syntax is empty.")
 		raise IngestServiceException("GUID Syntax is empty.")
 	if guid_syntax == "hash":
 		for index in range(len(filenameset)):
@@ -50,7 +59,7 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
 				guid_postfix = filenameset[index]
 			guidset.append(guid_prefix + guid_postfix)
 	else:
-		logger.debug("Error: guid_syntax is not defined: " + guid_syntax)
+		logger.error("Error: guid_syntax is not defined: " + guid_syntax)
 		raise IngestServiceException("GUID Syntax not defined: " + guid_syntax)
 	return guidset
 
@@ -63,11 +72,11 @@ def generate_csv():
 	if not exists(imagedir):
 		logger.error("IngestServiceException: " + imagedir + " is not a valid path.")
 		raise IngestServiceException(imagedir + " is not a valid path.")
+	
 	filenameset = get_files(imagedir)
 	if not filenameset:
 		logger.error("IngestServiceException: No valid media file is in the path.")
 		raise IngestServiceException("No valid media file is in the path.")
-	print(filenameset)
 
 	# Find the headerline and commonvalues.
 	headerline = ["idigbio:OriginalFileName", "idigbio:MediaGUID"]
@@ -128,7 +137,7 @@ def generate_csv():
 	guid_prefix = user_config.get_user_config(user_config.G_GUID_PREFIX)
 
 	guidset = get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue)
-	print(guidset)
+	#print(guidset)
 
 	# Form the output stream
 	outputstream = []
@@ -139,13 +148,13 @@ def generate_csv():
 		tmp.append(guidset[index])
 		outputstream.append(tmp + commonvalue)
 		index = index + 1
-		print(outputstream)
+		#print(outputstream)
 
 	# Write the CSV file.
 	try:
 		if targetfile is None or targetfile == "":
 			if isdir(imagedir):
-				targetfile = join(imagedir, user_config.G_DEFAULT_CSV_OUTPUT_NAME)
+				targetfile = join(imagedir, constants.G_DEFAULT_CSV_OUTPUT_NAME)
 			else:
 				imagedir = dirname(imagedir)
 				targetfile = join(imagedir, user_config.G_DEFAULT_CSV_OUTPUT_NAME)

@@ -134,7 +134,7 @@ initMainUI = function() {
             });
         }
         else {
-            showAlert('The upload directory cannot be empty.', "", "", "#alert-container-2");
+            showAlert('Error: The upload directory cannot be empty.', "", "", "#alert-container-2");
         }
     })
     
@@ -151,11 +151,11 @@ initMainUI = function() {
     $('#g-flip-opt-fields').click(function(event) {
         if ($('#g-opt-fields').hasClass("hide")) {
             $('#g-opt-fields').removeClass("hide");
-            $('#g-filp-opt-fields-text').text("Hide Optional Fields");
+            $('#g-filp-opt-fields-text').text("Hide Other Fields");
         }
         else {
             $('#g-opt-fields').addClass("hide");
-            $('#g-filp-opt-fields-text').text("Show Optional Fields");
+            $('#g-filp-opt-fields-text').text("Show Other Fields");
         }
     });
 }

@@ -87,10 +87,8 @@ class GenerateCSV(object):
     exposed = True
     def GET(self):
         try:
-            print("111")
             result = csv_generator.generate_csv() # Return the path of the saved file.
             resultdump = json.dumps(result)
-            print("555")
             return resultdump
         except IngestServiceException as ex:
             logger.error("GenerateCSV: error.")
