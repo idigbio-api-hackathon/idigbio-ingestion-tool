@@ -27,5 +27,7 @@ INPUT_CSV_FIELDNAMES = [
     "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld", "idigbio:CollectionObjectGUID"
 ]
 
+G_DEFAULT_CSV_OUTPUT_NAME = 'media_records.csv'
+
 IMAGES_TABLENAME = 'imagesV8_2'
 BATCHES_TABLENAME = 'batchesV8_2'

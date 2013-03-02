@@ -12,7 +12,7 @@ upload requests.
 import cherrypy
 import Queue, os
 from dataingestion.task_queue import BackgroundTaskQueue
-from dataingestion.services import model, ingestion_manager, constants, api_client
+from dataingestion.services import model, ingestion_manager, constants, api_client, csv_generator
 from dataingestion.services.user_config import get_user_config, set_user_config, rm_user_config
 from datetime import datetime, timedelta
 
@@ -70,6 +70,9 @@ def get_result():
 
 def get_history(table_id):
     return ingestion_manager.get_history(table_id)
+
+def generate_csv():
+    return csv_generator.generate_csv()
 
 def get_last_batch_info():
     '''

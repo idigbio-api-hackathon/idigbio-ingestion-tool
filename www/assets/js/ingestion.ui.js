@@ -25,13 +25,15 @@ var IMAGE_LICENSES = {
 };
 
 var GUID_SYNTAXES = {
+    "hash": "GUID = hash of record information",
     "filename": "GUID = \"{GUID Prefix}/{File Name}\"",
-    "full-path": "GUID = \"{GUID Prefix}/{Full Path}\""
+    "fullpath": "GUID = \"{GUID Prefix}/{Full Path}\""
 }
 
 initMainUI = function() {
     showLastBatchInfo();
-    initCsvUploadUI();
+    initCsvLicenseSelector();
+    initGUIDSyntaxSelector();
 
     $("body").tooltip({
         selector: '[rel=tooltip]'
@@ -59,13 +61,6 @@ initMainUI = function() {
             $(element).closest('.control-group').removeClass('error');
         },
         rules: {
-            imagelicense: {
-                required: {
-                    depends: function(element) {
-                        return $("#imagelicense").val() != '';
-                    }
-                }
-            },
             rsguid: {
                 required: true
             },
@@ -86,11 +81,63 @@ initMainUI = function() {
             setPreference('fundingSource', $('#fundingSource').val())
             setPreference('fundingPurpose', $('#fundingPurpose').val())
             postCsvUpload("new");
-        } else {
+        }
+        else {
             showAlert('The Image License, Record Set GUID and CSV File Path cannot be empty.');
         }
     });
 
+
+    // Set up csv-generation-form
+    $('#csv-generation-form').validate({
+        onfocusout: false,
+        onkeyup: false,
+        onsubmit: false,
+        errorPlacement: function(error, element) {},
+        highlight: function(element) {
+            $(element).closest('.control-group').addClass('error');
+        },
+        unhighlight: function(element) {
+            $(element).closest('.control-group').removeClass('error');
+        },
+        rules: {
+            gimagedir: {
+                required: true
+            }
+        }
+    });
+    
+    $('#csv-generation-form').submit(function(event) {
+        event.preventDefault();
+        if ($('#csv-generation-form').valid()) {
+            setPreference('g-imagedir', $('#gimagedir').val())
+            setPreference('g-guidsyntax', $('#g-guidsyntax-dropdown').val())
+            setPreference('g-guidprefix', $('#g-guidprefix').val())
+            setPreference('g-save-path', $('#g-save-path').val())
+            setPreference('g-desc', $('#g-desc').val())
+            setPreference('g-lang', $('#g-lang').val())
+            setPreference('g-title', $('#g-title').val())
+            setPreference('g-digdev', $('#g-digdev').val())
+            setPreference('g-pixres', $('#g-pixres').val())
+            setPreference('g-mag', $('#g-mag').val())
+            setPreference('g-ocr-output', $('#g-ocr-output').val())
+            setPreference('g-ocr-tech', $('#g-ocr-tech').val())
+            setPreference('g-info-wh', $('#g-info-wh').val())
+            setPreference('g-col-obj-guid', $('#g-col-obj-guid').val())
+
+            $.getJSON('/services/generatecsv', function(targetpath) {
+                showAlert("The CSV file is successfully saved to: " + targetpath, "", 
+                    "alert-success", "#alert-container-2");
+            })
+            .error(function(data) {
+                showAlert("Error: " + data.responseText, "", "", "#alert-container-2");
+            });
+        }
+        else {
+            showAlert('The upload directory cannot be empty.', "", "", "#alert-container-2");
+        }
+    })
+    
     $('#refresh-bh-button').click(function(event) {
         $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
     });
@@ -100,11 +147,19 @@ initMainUI = function() {
     });
 
     $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
+    
+    $('#g-flip-opt-fields').click(function(event) {
+        if ($('#g-opt-fields').hasClass("hide")) {
+            $('#g-opt-fields').removeClass("hide");
+            $('#g-filp-opt-fields-text').text("Hide Optional Fields");
+        }
+        else {
+            $('#g-opt-fields').addClass("hide");
+            $('#g-filp-opt-fields-text').text("Show Optional Fields");
+        }
+    });
 }
 
-initCsvUploadUI = function() {
-    initCsvLicenseSelector();
-}
 
 checkAuthentication = function() {
     blockUI();
@@ -211,6 +266,7 @@ initCsvLicenseSelector = function() {
             value[1], "</option>"].join("");
         $("#csv-license-dropdown").append(option);
     });
+    $("#csv-license-dropdown option[value='']").remove();
     
     $("#csv-license-dropdown").change(function(e) {
         var licenseName = $("#csv-license-dropdown").val();
@@ -220,6 +276,29 @@ initCsvLicenseSelector = function() {
                 "\" target=\"_blank\">definition</a>)."].join(""), 
             null, "alert-info");
         setPreference('imagelicense', licenseName);
+    });
+}
+
+initGUIDSyntaxSelector = function() {
+    $.each(GUID_SYNTAXES, function(key, value) {
+        var option = ["<option value=\"", key, "\">", value, "</option>"].join("");
+        $("#g-guidsyntax-dropdown").append(option);
+    });
+    $("#g-guidsyntax-dropdown option[value='']").remove();
+    
+    $("#g-guidsyntax-dropdown").change(function(e) {
+        var syntaxName = $("#g-guidsyntax-dropdown").val();
+        setPreference('g-guidsyntax', syntaxName);
+        if (syntaxName == "hash") {
+            if (! $('#g-guidprefix-group').hasClass("hide")) {
+                $("#g-guidprefix-group").addClass('hide');
+            }
+        }
+        else {
+            if ($('#g-guidprefix-group').hasClass("hide")) {
+                $('#g-guidprefix-group').removeClass("hide");
+            }
+        }
     });
 }
 
@@ -389,10 +468,6 @@ updateProgress = function() {
             $("#csv-upload-button").attr('disabled', false);
             $("#csv-upload-button").removeClass('disabled');
 
-
-//            $("#logout-btn").attr('disabled', false);
-//            $("#logout-btn").removeClass('disabled');
-            
             if (progressObj.fails > 0 || progressObj.total == 0) {
                 if (progressObj.fails > 0) {
                     var errMsg = ["<p><strong>Warning!</strong> ",
@@ -466,25 +541,6 @@ renderBatchHistory = function(data) {
         "bSort": true,
         "bInfo": true,
         "bAutoWidth": false,
-        /*
-        "oTableTools": {
-            "sSwfPath": "assets/TableTools/swf/copy_csv_xls_pdf.swf",
-            "aButtons": [
-            {
-                "sExtends": "csv",
-                "sButtonText": 'CSV(Complete)',
-                "sFieldBoundary": '"',
-                "sFieldSeperator": ',',
-                "sFileName": 'iDigBio-batch-history.csv'
-            },
-            {
-                "sExtends": 'pdf',
-                "sTitle": 'iDigBio',
-                "sButtonText": 'PDF(Selective)',
-                "mColumns": "visible"
-            }]
-        },
-        */
         "bDestroy" : true,
         "sPaginationType": "bootstrap"
     });

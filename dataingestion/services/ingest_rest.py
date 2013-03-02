@@ -5,13 +5,12 @@
 # This software may be used and distributed according to the terms of the
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 
-from dataingestion.services import ingest_service
 #from dataingestion.services import mock_ingest_svc as ingest_service
 import cherrypy, json, logging
 from dataingestion.services.ingestion_manager import IngestServiceException
 from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
-from dataingestion.services import constants
+from dataingestion.services import constants, ingest_service, csv_generator
 
 logger = logging.getLogger('iDigBioSvc.ingest_rest')
 
@@ -84,6 +83,19 @@ class History(object):
         except IngestServiceException as ex:
             raise JsonHTTPError(409, str(ex))
 
+class GenerateCSV(object):
+    exposed = True
+    def GET(self):
+        try:
+            print("111")
+            result = csv_generator.generate_csv() # Return the path of the saved file.
+            resultdump = json.dumps(result)
+            print("555")
+            return resultdump
+        except IngestServiceException as ex:
+            logger.error("GenerateCSV: error.")
+            raise JsonHTTPError(409, str(ex))
+
 class Authentication(object):
     '''
     REST resource that signs in the user.
@@ -140,6 +152,7 @@ class DataIngestionService(object):
         self.progress = ProgressStatus()
         self.csv = CsvIngestionService()
         self.history = History()
+        self.generatecsv = GenerateCSV()
 
     def GET(self):
         return '<html><body>Ingestion Service is running.</body></html>'

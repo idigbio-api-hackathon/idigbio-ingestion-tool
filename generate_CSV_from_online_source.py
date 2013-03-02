@@ -11,20 +11,22 @@ else:
 
 acceptable_fields = ["idigbio:OriginalFileName", "idigbio:MediaGUID", "idigbio:Description", "idigbio:LanguageCode", 
     "idigbio:Title", "idigbio:DigitalizationDevice", "idigbio:NominalPixelResolution", "idigbio:Magnification", 
-    "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld"]
+    "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld", "idigbio:CollectionObjectGUID"]
 
-field_values = ["", "", "Scanned herbarium sheet with secimen collected West of Plant City 4 miles from Mango \
-	ct., on Hwy 92.", "en", "Ilex glabra from FSU", "Canon Supershot 2000", "128mm", "4x", "This is OCR output.", "Tesseract version \
-	3.01 on Windows, latin character set", "location information not given for endangered species, contact my@email"]
+field_values = ["", "", "Scanned herbarium sheet with secimen collected West of Plant City 4 miles from Mango ct., on Hwy 92.", 
+	"en", "Ilex glabra from FSU", "Canon Supershot 2000", "128mm", "4x", "This is OCR output.", 
+	"Tesseract version 3.01 on Windows, latin character set", 
+	"location information not given for endangered species, contact my@email", "Specimen ID is here."]
 
-acceptable_fields_print = ["idigbio:OriginalFileName (Required)", "idigbio:MediaGUID (Required)", "idigbio:Description", "idigbio:LanguageCode", 
-    "idigbio:Title", "idigbio:DigitalizationDevice", "idigbio:NominalPixelResolution", "idigbio:Magnification", 
-    "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld"]
+acceptable_fields_print = ["idigbio:OriginalFileName (Required)", "idigbio:MediaGUID (Required)", "idigbio:Description", 
+	"idigbio:LanguageCode", "idigbio:Title", "idigbio:DigitalizationDevice", "idigbio:NominalPixelResolution", 
+	"idigbio:Magnification", "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld", 
+	"idigbio:CollectionObjectGUID"]
 
 TIMEOUT=5
 MAX_NUM = 1000000
 
-num_records = 2
+num_records = 5
 file_url = "http://www.acis.ufl.edu/~yonggang/idigbio/dataset/"
 file_list_name = "file_list"
 csv_name = "test_input.csv"
@@ -110,7 +112,7 @@ except OSError as err:
 	pass
 
 url = file_url + file_list_name
-print("File list URL: " + url)
+print("Getting file list from: " + url)
 
 files = retrieveFileList(url)
 
