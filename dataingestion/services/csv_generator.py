@@ -12,7 +12,6 @@ from dataingestion.services.ingestion_manager import IngestServiceException
 
 logger = logging.getLogger('iDigBioSvc.csv_generator')
 
-
 def get_files(imagepath):
 	allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
 	filenameset = []
@@ -63,78 +62,82 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
 		raise IngestServiceException("GUID Syntax not defined: " + guid_syntax)
 	return guidset
 
-def generate_csv():
-	
-	imagedir = user_config.get_user_config(user_config.G_IMAGE_DIR)
-	targetfile = user_config.get_user_config(user_config.G_SAVE_PATH)
+def gen_csv(dic):
 
 	# Find all the media files.
+	imagedir = ""
+	if dic.has_key(user_config.G_IMAGE_DIR):
+		imagedir = dic[user_config.G_IMAGE_DIR]
 	if not exists(imagedir):
 		logger.error("IngestServiceException: " + imagedir + " is not a valid path.")
-		raise IngestServiceException(imagedir + " is not a valid path.")
-	
+		raise IngestServiceException("\"" + imagedir + "\" is not a valid path.")
 	filenameset = get_files(imagedir)
 	if not filenameset:
 		logger.error("IngestServiceException: No valid media file is in the path.")
 		raise IngestServiceException("No valid media file is in the path.")
-
+	
 	# Find the headerline and commonvalues.
 	headerline = ["idigbio:OriginalFileName", "idigbio:MediaGUID"]
 	commonvalue = []
 
-	description = user_config.get_user_config(user_config.G_DESCRIPTION)
-	if description is not None and description != "":
+	# description
+	if dic.has_key(user_config.G_DESCRIPTION) and dic[user_config.G_DESCRIPTION] != '':
+		commonvalue.append(dic[user_config.G_DESCRIPTION])
 		headerline.append("idigbio:Description")
-		commonvalue.append(description)
-	
-	language_code = user_config.get_user_config(user_config.G_LANGUAGE_CODE)
-	if language_code is not None and language_code != "":
+
+	# language code
+	if dic.has_key(user_config.G_LANGUAGE_CODE) and dic[user_config.G_LANGUAGE_CODE] != '':
+		commonvalue.append(dic[user_config.G_LANGUAGE_CODE])
 		headerline.append("idigbio:LanguageCode")
-		commonvalue.append(language_code)
-	
-	title = user_config.get_user_config(user_config.G_TITLE)
-	if title is not None and title != "":
+
+	# title
+	if dic.has_key(user_config.G_TITLE) and dic[user_config.G_TITLE] != '':
+		commonvalue.append(dic[user_config.G_TITLE])
 		headerline.append("idigbio:Title")
-		commonvalue.append(title)
 	
-	digi_device = user_config.get_user_config(user_config.G_DIGI_DEVICE)
-	if digi_device is not None and digi_device != "":
+	# digitalization_device
+	if dic.has_key(user_config.G_DIGI_DEVICE) and dic[user_config.G_DIGI_DEVICE] != '':
+		commonvalue.append(dic[user_config.G_DIGI_DEVICE])
 		headerline.append("idigbio:DigitalizationDevice")
-		commonvalue.append(digi_device)
 
-	pix_resolution = user_config.get_user_config(user_config.G_PIX_RESOLUTION)
-	if pix_resolution is not None and pix_resolution != "":
+	# pixel resolution
+	if dic.has_key(user_config.G_PIX_RESOLUTION) and dic[user_config.G_PIX_RESOLUTION] != '':
+		commonvalue.append(dic[user_config.G_PIX_RESOLUTION])
 		headerline.append("idigbio:NominalPixelResolution")
-		commonvalue.append(pix_resolution)
 
-	magnification = user_config.get_user_config(user_config.G_MAGNIFICATION)
-	if magnification is not None and magnification != "":
+	# magnification
+	if dic.has_key(user_config.G_MAGNIFICATION) and dic[user_config.G_MAGNIFICATION] != '':
+		commonvalue.append(dic[user_config.G_MAGNIFICATION])
 		headerline.append("idigbio:Magnification")
-		commonvalue.append(magnification)
 
-	ocr_output = user_config.get_user_config(user_config.G_OCR_OUTPUT)
-	if ocr_output is not None and ocr_output != "":
+	# OCR output
+	if dic.has_key(user_config.G_OCR_OUTPUT) and dic[user_config.G_OCR_OUTPUT] != '':
+		commonvalue.append(dic[user_config.G_OCR_OUTPUT])
 		headerline.append("idigbio:OcrOutput")
-		commonvalue.append(ocr_output)
 
-	ocr_tech = user_config.get_user_config(user_config.G_OCR_TECH)
-	if ocr_tech is not None and ocr_tech != "":
+	# OCR technology
+	if dic.has_key(user_config.G_OCR_TECH) and dic[user_config.G_OCR_TECH] != '':
+		commonvalue.append(dic[user_config.G_OCR_TECH])
 		headerline.append("idigbio:OcrTechnology")
-		commonvalue.append(ocr_tech)
 
-	info_withheld = user_config.get_user_config(user_config.G_INFO_WITHHELD)
-	if info_withheld is not None and info_withheld != "":
+	# information withheld
+	if dic.has_key(user_config.G_INFO_WITHHELD) and dic[user_config.G_INFO_WITHHELD] != '':
+		commonvalue.append(dic[user_config.G_INFO_WITHHELD])
 		headerline.append("idigbio:InformationWithheld")
-		commonvalue.append(info_withheld)
 
-	col_obj_guid = user_config.get_user_config(user_config.G_COLLECTION_OBJ_GUID)
-	if col_obj_guid is not None and col_obj_guid != "":
+	# Collection Object GUID
+	if dic.has_key(user_config.G_COLLECTION_OBJ_GUID) and dic[user_config.G_COLLECTION_OBJ_GUID] != '':
+		commonvalue.append(dic[user_config.G_COLLECTION_OBJ_GUID])
 		headerline.append("idigbio:CollectionObjectGUID")
-		commonvalue.append(col_obj_guid)
 
 	# Find the media GUIDs.
-	guid_syntax = user_config.get_user_config(user_config.G_GUID_SYNTAX)
-	guid_prefix = user_config.get_user_config(user_config.G_GUID_PREFIX)
+	if dic.has_key(user_config.G_GUID_SYNTAX):
+		guid_syntax = dic[user_config.G_GUID_SYNTAX]
+	else:
+		raise IngestServiceException("GUID syntax is missing.")
+
+	if dic.has_key(user_config.G_GUID_PREFIX):
+		guid_prefix = dic[user_config.G_GUID_PREFIX]
 
 	guidset = get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue)
 	#print(guidset)
@@ -151,8 +154,11 @@ def generate_csv():
 		#print(outputstream)
 
 	# Write the CSV file.
+	targetfile = ""
+	if dic.has_key(user_config.G_SAVE_PATH):
+		targetfile = dic[user_config.G_SAVE_PATH]
 	try:
-		if targetfile is None or targetfile == "":
+		if targetfile == "":
 			if isdir(imagedir):
 				targetfile = join(imagedir, constants.G_DEFAULT_CSV_OUTPUT_NAME)
 			else:

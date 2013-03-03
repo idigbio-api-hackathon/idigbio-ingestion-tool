@@ -110,6 +110,7 @@ initMainUI = function() {
     $('#csv-generation-form').submit(function(event) {
         event.preventDefault();
         if ($('#csv-generation-form').valid()) {
+            /*
             setPreference('g-imagedir', $('#gimagedir').val())
             setPreference('g-guidsyntax', $('#g-guidsyntax-dropdown').val())
             setPreference('g-guidprefix', $('#g-guidprefix').val())
@@ -124,13 +125,42 @@ initMainUI = function() {
             setPreference('g-ocr-tech', $('#g-ocr-tech').val())
             setPreference('g-info-wh', $('#g-info-wh').val())
             setPreference('g-col-obj-guid', $('#g-col-obj-guid').val())
+            */
+            //var dict = [];
+            //dict.push({ Key:"g-imagedir", Value: $('#gimagedir').val() });
+            //dict.push({ Key:"g-guidsyntax", Value: $('#g-guidsyntax-dropdown').val() });
+            //dict.push({ Key:"g-guidprefix", Value: $('#g-guidprefix').val() });
+            //$.post('/services/generatecsv', { dic : dict }, function() { }, 'json');
 
-            $.getJSON('/services/generatecsv', function(targetpath) {
-                showAlert("The CSV file is successfully saved to: " + targetpath, "", 
-                    "alert-success", "#alert-container-2");
-            })
-            .error(function(data) {
-                showAlert("Error: " + data.responseText, "", "", "#alert-container-2");
+            var values = 
+                "{\'g-imagedir\':\'" + $('#gimagedir').val() + 
+                "\',\'g-guidsyntax\':\'" + $('#g-guidsyntax-dropdown').val() +
+                "\',\'g-guidprefix\':\'" + $('#g-guidprefix').val() +
+                "\',\'g-save-path\':\'" + $('#g-save-path').val() +
+                "\',\'g-desc\':\'" + $('#g-desc').val() +
+                "\',\'g-lang\':\'" + $('#g-lang').val() +
+                "\',\'g-desc\':\'" + $('#g-desc').val() +
+                "\',\'g-title\':\'" + $('#g-title').val() +
+                "\',\'g-digdev\':\'" + $('#g-digdev').val() +
+                "\',\'g-pixres\':\'" + $('#g-pixres').val() +
+                "\',\'g-mag\':\'" + $('#g-mag').val() +
+                "\',\'g-ocr-output\':\'" + $('#g-ocr-output').val() +
+                "\',\'g-ocr-tech\':\'" + $('#g-ocr-tech').val() +
+                "\',\'g-info-wh\':\'" + $('#g-info-wh').val() +
+                "\',\'g-col-obj-guid\':\'" + $('#g-col-obj-guid').val() +
+                "\'}";
+                
+            $.ajax({
+                type: "POST",
+                url: "/services/generatecsv",
+                data: "values=" + values,
+                success: function(targetpath) {
+                    showAlert("The CSV file is successfully saved to: " + targetpath, "", 
+                        "alert-success", "#alert-container-2");
+                },
+                error: function(data) {
+                    showAlert("Error: " + data.responseText, "", "", "#alert-container-2");
+                }
             });
         }
         else {

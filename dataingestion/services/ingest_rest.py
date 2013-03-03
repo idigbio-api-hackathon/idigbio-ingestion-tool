@@ -6,7 +6,7 @@
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 
 #from dataingestion.services import mock_ingest_svc as ingest_service
-import cherrypy, json, logging
+import cherrypy, json, logging, ast
 from dataingestion.services.ingestion_manager import IngestServiceException
 from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
@@ -84,12 +84,13 @@ class History(object):
             raise JsonHTTPError(409, str(ex))
 
 class GenerateCSV(object):
+
     exposed = True
-    def GET(self):
+    
+    def POST(self, values):
         try:
-            result = csv_generator.generate_csv() # Return the path of the saved file.
-            resultdump = json.dumps(result)
-            return resultdump
+            dic = ast.literal_eval(values)
+            return csv_generator.gen_csv(dic)
         except IngestServiceException as ex:
             logger.error("GenerateCSV: error.")
             raise JsonHTTPError(409, str(ex))
