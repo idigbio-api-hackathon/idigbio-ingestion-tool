@@ -154,26 +154,26 @@ initMainUI = function() {
                 url: "/services/generatecsv",
                 data: "values=" + values,
                 success: function(targetpath) {
-                    showAlert("The CSV file is successfully saved to: " + targetpath, "", 
-                        "alert-success", "#alert-container-2");
+                    showAlert2("The CSV file is successfully saved to: " + targetpath, "", 
+                        "alert-success");
                 },
                 error: function(data) {
-                    showAlert("Error: " + data.responseText, "", "", "#alert-container-2");
+                    showAlert2("Error: " + data.responseText, "", "");
                 }
             });*/
             
             $.post("/services/generatecsv", { values: values }, 'json')
             .done(function(targetpath) {
-                showAlert("The CSV file is successfully saved to: " + targetpath, "", 
-                        "alert-success", "#alert-container-2");
+                showAlert2("The CSV file is successfully saved to: " + targetpath, "", 
+                        "alert-success");
             })
             .fail(function(data) {
-                    showAlert("Error: " + data.responseText, "", "", "#alert-container-2");
+                showAlert2("Error: " + data.responseText, "", "");
             });
 
         }
         else {
-            showAlert('Error: The upload directory cannot be empty.', "", "", "#alert-container-2");
+            showAlert2('Error: The upload directory cannot be empty.', "", "");
         }
     })
     
@@ -440,10 +440,10 @@ showLastBatchInfo = function() {
  * @param {String} [alertType] The alert type, i.e. Bootstrap class, default to 
  *   alert-error.
  */
-showAlert = function(message, additionalElement, alertType, container) {
+showAlert = function(message, additionalElement, alertType) {
     additionalElement = additionalElement || "";
     alertType = alertType || "alert-error";
-    container = container || "#alert-container";
+    container = "#alert-container";
     
     var alert_html =
         ['<div class="alert alert-block fade span10" id="upload-alert">',
@@ -457,6 +457,32 @@ showAlert = function(message, additionalElement, alertType, container) {
     $("#upload-alert").addClass(alertType);
     $("#alert-text").html(message);
     $("#alert-extra").html(additionalElement);
+}
+
+/**
+ * Display an alert message in the designated alert container.
+ * @param {HTML string} message 
+ * @param {HTML string} [additionalElement] Additional element(s) in the second row.
+ * @param {String} [alertType] The alert type, i.e. Bootstrap class, default to 
+ *   alert-error.
+ */
+showAlert2 = function(message, additionalElement, alertType) {
+    additionalElement = additionalElement || "";
+    alertType = alertType || "alert-error";
+    container = "#alert-container-2";
+    
+    var alert_html =
+        ['<div class="alert alert-block fade span10" id="upload-alert-2">',
+        '<button class="close" data-dismiss="alert">&times;</button>',
+        '<p id="alert-text-2">',
+        '<div id="alert-extra-2">',
+        '</div>'].join('\n');
+    $(container).html(alert_html);
+    $("#upload-alert-2").show();
+    $("#upload-alert-2").addClass('in');
+    $("#upload-alert-2").addClass(alertType);
+    $("#alert-text-2").html(message);
+    $("#alert-extra-2").html(additionalElement);
 }
 
 updateProgress = function() {

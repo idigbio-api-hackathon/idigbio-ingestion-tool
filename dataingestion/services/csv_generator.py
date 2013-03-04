@@ -67,7 +67,8 @@ def gen_csv(dic):
 	# Find all the media files.
 	imagedir = ""
 	if dic.has_key(user_config.G_IMAGE_DIR):
-		imagedir = dic[user_config.G_IMAGE_DIR]
+		# To make special notations like '\' working.
+		imagedir = dic[user_config.G_IMAGE_DIR].encode('string-escape')
 	if not exists(imagedir):
 		logger.error("IngestServiceException: " + imagedir + " is not a valid path.")
 		raise IngestServiceException("\"" + imagedir + "\" is not a valid path.")
@@ -156,7 +157,7 @@ def gen_csv(dic):
 	# Write the CSV file.
 	targetfile = ""
 	if dic.has_key(user_config.G_SAVE_PATH):
-		targetfile = dic[user_config.G_SAVE_PATH]
+		targetfile = dic[user_config.G_SAVE_PATH].encode('string-escape')
 	try:
 		if targetfile == "":
 			if isdir(imagedir):
