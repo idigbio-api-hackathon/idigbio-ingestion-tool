@@ -131,7 +131,6 @@ initMainUI = function() {
             //dict.push({ Key:"g-guidsyntax", Value: $('#g-guidsyntax-dropdown').val() });
             //dict.push({ Key:"g-guidprefix", Value: $('#g-guidprefix').val() });
             //$.post('/services/generatecsv', { dic : dict }, function() { }, 'json');
-
             var values = 
                 "{\'g-imagedir\':\'" + $('#gimagedir').val() + 
                 "\',\'g-guidsyntax\':\'" + $('#g-guidsyntax-dropdown').val() +
@@ -149,7 +148,7 @@ initMainUI = function() {
                 "\',\'g-info-wh\':\'" + $('#g-info-wh').val() +
                 "\',\'g-col-obj-guid\':\'" + $('#g-col-obj-guid').val() +
                 "\'}";
-                
+            /*
             $.ajax({
                 type: "POST",
                 url: "/services/generatecsv",
@@ -161,7 +160,17 @@ initMainUI = function() {
                 error: function(data) {
                     showAlert("Error: " + data.responseText, "", "", "#alert-container-2");
                 }
+            });*/
+            
+            $.post("/services/generatecsv", { values: values }, 'json')
+            .done(function(targetpath) {
+                showAlert("The CSV file is successfully saved to: " + targetpath, "", 
+                        "alert-success", "#alert-container-2");
+            })
+            .fail(function(data) {
+                    showAlert("Error: " + data.responseText, "", "", "#alert-container-2");
             });
+
         }
         else {
             showAlert('Error: The upload directory cannot be empty.', "", "", "#alert-container-2");
