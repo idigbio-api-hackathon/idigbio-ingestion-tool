@@ -90,7 +90,6 @@ class GenerateCSV(object):
     def POST(self, values):
         try:
             dic = ast.literal_eval(values) # Parse the string to dictionary.
-            print(dic)
             return csv_generator.gen_csv(dic)
         except IngestServiceException as ex:
             logger.error("GenerateCSV: error.")

@@ -97,7 +97,6 @@ def main():
     import tempfile
     f = tempfile.NamedTemporaryFile(suffix='.txt', delete=False)
     f_path = f.name
-    print f_path
     f.close()
     conf = UserConfig(f_path)
     conf.account_uuid = 'id1'

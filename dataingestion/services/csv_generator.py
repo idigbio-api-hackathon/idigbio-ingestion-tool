@@ -143,7 +143,6 @@ def gen_csv(dic):
 	guidset = get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue)
 	#print(guidset)
 
-	print(commonvalue)
 	# Form the output stream
 	outputstream = []
 	index = 0

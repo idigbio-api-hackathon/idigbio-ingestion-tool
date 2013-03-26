@@ -417,7 +417,6 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                     continue
 
                 # Get the image record
-                print(orderlist)
                 image_record = model.add_or_load_image(batch, row, orderlist, recordset_uuid, constants.CSV_TYPE)
 
                 fn = partial(ongoing_upload_task.increment, 'total_count')
