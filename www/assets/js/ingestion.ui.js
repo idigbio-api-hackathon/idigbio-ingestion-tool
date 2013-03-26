@@ -110,27 +110,6 @@ initMainUI = function() {
     $('#csv-generation-form').submit(function(event) {
         event.preventDefault();
         if ($('#csv-generation-form').valid()) {
-            /*
-            setPreference('g-imagedir', $('#gimagedir').val())
-            setPreference('g-guidsyntax', $('#g-guidsyntax-dropdown').val())
-            setPreference('g-guidprefix', $('#g-guidprefix').val())
-            setPreference('g-save-path', $('#g-save-path').val())
-            setPreference('g-desc', $('#g-desc').val())
-            setPreference('g-lang', $('#g-lang').val())
-            setPreference('g-title', $('#g-title').val())
-            setPreference('g-digdev', $('#g-digdev').val())
-            setPreference('g-pixres', $('#g-pixres').val())
-            setPreference('g-mag', $('#g-mag').val())
-            setPreference('g-ocr-output', $('#g-ocr-output').val())
-            setPreference('g-ocr-tech', $('#g-ocr-tech').val())
-            setPreference('g-info-wh', $('#g-info-wh').val())
-            setPreference('g-col-obj-guid', $('#g-col-obj-guid').val())
-            */
-            //var dict = [];
-            //dict.push({ Key:"g-imagedir", Value: $('#gimagedir').val() });
-            //dict.push({ Key:"g-guidsyntax", Value: $('#g-guidsyntax-dropdown').val() });
-            //dict.push({ Key:"g-guidprefix", Value: $('#g-guidprefix').val() });
-            //$.post('/services/generatecsv', { dic : dict }, function() { }, 'json');
             var values = 
                 "{\'g-imagedir\':\'" + $('#gimagedir').val() + 
                 "\',\'g-guidsyntax\':\'" + $('#g-guidsyntax-dropdown').val() +
@@ -148,22 +127,11 @@ initMainUI = function() {
                 "\',\'g-info-wh\':\'" + $('#g-info-wh').val() +
                 "\',\'g-col-obj-guid\':\'" + $('#g-col-obj-guid').val() +
                 "\'}";
-            /*
-            $.ajax({
-                type: "POST",
-                url: "/services/generatecsv",
-                data: "values=" + values,
-                success: function(targetpath) {
-                    showAlert2("The CSV file is successfully saved to: " + targetpath, "", 
-                        "alert-success");
-                },
-                error: function(data) {
-                    showAlert2("Error: " + data.responseText, "", "");
-                }
-            });*/
             
             $.post("/services/generatecsv", { values: values }, 'json')
             .done(function(targetpath) {
+                targetpath = targetpath.replace(/\\\\/g, "\\"); // Make sure the "\\" is replaced with "\". 
+
                 showAlert2("The CSV file is successfully saved to: " + targetpath, "", 
                         "alert-success");
             })
