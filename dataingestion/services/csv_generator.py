@@ -68,7 +68,7 @@ def gen_csv(dic):
 	imagedir = ""
 	if dic.has_key(user_config.G_IMAGE_DIR):
 		# To make special notations like '\' working.
-		imagedir = dic[user_config.G_IMAGE_DIR].encode('string-escape')
+		imagedir = dic[user_config.G_IMAGE_DIR]
 	if not exists(imagedir):
 		logger.error("IngestServiceException: " + imagedir + " is not a valid path.")
 		raise IngestServiceException("\"" + imagedir + "\" is not a valid path.")
@@ -143,6 +143,7 @@ def gen_csv(dic):
 	guidset = get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue)
 	#print(guidset)
 
+	print(commonvalue)
 	# Form the output stream
 	outputstream = []
 	index = 0
@@ -157,7 +158,7 @@ def gen_csv(dic):
 	# Write the CSV file.
 	targetfile = ""
 	if dic.has_key(user_config.G_SAVE_PATH):
-		targetfile = dic[user_config.G_SAVE_PATH].encode('string-escape')
+		targetfile = dic[user_config.G_SAVE_PATH]
 	try:
 		if targetfile == "":
 			if isdir(imagedir):

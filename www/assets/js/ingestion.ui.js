@@ -111,21 +111,20 @@ initMainUI = function() {
         event.preventDefault();
         if ($('#csv-generation-form').valid()) {
             var values = 
-                "{\'g-imagedir\':\'" + $('#gimagedir').val() + 
-                "\',\'g-guidsyntax\':\'" + $('#g-guidsyntax-dropdown').val() +
-                "\',\'g-guidprefix\':\'" + $('#g-guidprefix').val() +
-                "\',\'g-save-path\':\'" + $('#g-save-path').val() +
-                "\',\'g-desc\':\'" + $('#g-desc').val() +
-                "\',\'g-lang\':\'" + $('#g-lang').val() +
-                "\',\'g-desc\':\'" + $('#g-desc').val() +
-                "\',\'g-title\':\'" + $('#g-title').val() +
-                "\',\'g-digdev\':\'" + $('#g-digdev').val() +
-                "\',\'g-pixres\':\'" + $('#g-pixres').val() +
-                "\',\'g-mag\':\'" + $('#g-mag').val() +
-                "\',\'g-ocr-output\':\'" + $('#g-ocr-output').val() +
-                "\',\'g-ocr-tech\':\'" + $('#g-ocr-tech').val() +
-                "\',\'g-info-wh\':\'" + $('#g-info-wh').val() +
-                "\',\'g-col-obj-guid\':\'" + $('#g-col-obj-guid').val() +
+                "{\'g-imagedir\':\'" + processFieldValue('#gimagedir') + 
+                "\',\'g-guidsyntax\':\'" + processFieldValue('#g-guidsyntax-dropdown') +
+                "\',\'g-guidprefix\':\'" + processFieldValue('#g-guidprefix') +
+                "\',\'g-save-path\':\'" + processFieldValue('#g-save-path') +
+                "\',\'g-desc\':\'" + processFieldValue('#g-desc') +
+                "\',\'g-lang\':\'" + processFieldValue('#g-lang') +
+                "\',\'g-title\':\'" + processFieldValue('#g-title') +
+                "\',\'g-digdev\':\'" + processFieldValue('#g-digdev') +
+                "\',\'g-pixres\':\'" + processFieldValue('#g-pixres') +
+                "\',\'g-mag\':\'" + processFieldValue('#g-mag') +
+                "\',\'g-ocr-output\':\'" + processFieldValue('#g-ocr-output') +
+                "\',\'g-ocr-tech\':\'" + processFieldValue('#g-ocr-tech') +
+                "\',\'g-info-wh\':\'" + processFieldValue('#g-info-wh') +
+                "\',\'g-col-obj-guid\':\'" + processFieldValue('#g-col-obj-guid') +
                 "\'}";
             
             $.post("/services/generatecsv", { values: values }, 'json')
@@ -801,4 +800,9 @@ getPreference = function(name, callback) {
 
 setPreference = function(name, val) {
     $.post('/services/config', { name: name, value: val }, function() { }, 'json');
+}
+
+// Process the special values like \, ', ". Note that " is replaced with '.
+processFieldValue = function(name) {
+    return $(name).val().replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,"\\'")
 }
