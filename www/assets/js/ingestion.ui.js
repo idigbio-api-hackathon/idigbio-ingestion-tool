@@ -26,8 +26,8 @@ var IMAGE_LICENSES = {
 
 var GUID_SYNTAXES = {
     "hash": "GUID = hash of record information",
-    "filename": "GUID = \"{GUID Prefix}/{File Name}\"",
-    "fullpath": "GUID = \"{GUID Prefix}/{Full Path}\""
+    "filename": "GUID = \"{GUID Prefix}{File Name}\"",
+    "fullpath": "GUID = \"{GUID Prefix}{Full Path}\""
 }
 
 initMainUI = function() {
@@ -130,7 +130,7 @@ initMainUI = function() {
             
             $.post("/services/generatecsv", { values: values }, 'json')
             .done(function(targetpath) {
-                targetpath = targetpath.replace(/\\\\/g, "\\"); // Make sure the "\\" is replaced with "\". 
+                targetpath = targetpath.replace(/\\\\/g, "\\"); // Make sure the "\\" is replaced with "\".
 
                 showAlert2("The CSV file is successfully saved to: " + targetpath, "", 
                         "alert-success");
