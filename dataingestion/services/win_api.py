@@ -83,15 +83,7 @@ def look_up_account_sid(sid):
 
 def get_file_owner(filename):
     request = _OWNER_SECURITY_INFORMATION
-
     sd = get_file_security(filename, request)
     sid = get_security_descriptor_owner(sd)
     name, domain, sid_type = look_up_account_sid(sid)
-
-    print("File: {0}".format(filename))
-    if name is not None:
-        print("owner: {0}\ntype: {1}\ndomain: {2}".format(
-              name, _SID_TYPES[sid_type], domain))
-    else:
-        print('Error')
-    return name
+    return domain + "\\" + name

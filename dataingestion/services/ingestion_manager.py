@@ -173,10 +173,10 @@ def get_history(table_id):
     else:
         return model.get_batch_details(table_id)
 
-def exec_upload_task(root_path=None, resume=False):
+def exec_upload_task(values=None, resume=False):
     pass
 
-def exec_upload_csv_task(csv_path=None, resume=False):
+def exec_upload_csv_task(values=None, resume=False):
     """
     Execute either a new upload task or resume last unsuccessfuly upload task
     from the DB.
@@ -212,7 +212,7 @@ def exec_upload_csv_task(csv_path=None, resume=False):
 
     try:
         try:
-            _upload_csv(ongoing_upload_task, resume, csv_path)
+            _upload_csv(ongoing_upload_task, resume, values)
         except (ClientException, IOError):
             error_queue.put(str(IOError))
         while not postprocess_queue.empty():
@@ -237,29 +237,65 @@ def exec_upload_csv_task(csv_path=None, resume=False):
         # Reset of singleton task in the module.
         ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
 
-def _make_idigbio_metadata(path):
-    metadata = {}
-
-    license_key = user_config.get_user_config(user_config.IMAGE_LICENSE)
-
-    license_ = constants.IMAGE_LICENSES[license_key]
-    metadata["xmpRights:usageTerms"] = license_[0]
-    metadata["xmpRights:webStatement"] = license_[2]
-    metadata["ac:licenseLogoURL"] = license_[3]
-    # The suffix has already been checked so that extension must be in the
-    # dictionary.
-    extension = os.path.splitext(path)[1].lstrip('.').lower()
-    metadata["idigbio:mediaType"] = constants.EXTENSION_MEDIA_TYPES[extension]
-    return metadata
-
-# Upload all the image files within a path.
-def _upload(ongoing_upload_task, root_path=None, resume=False):
-    pass
-
-def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
+def _upload_csv(ongoing_upload_task, resume=False, values=None):
     object_queue = ongoing_upload_task.object_queue
     postprocess_queue = ongoing_upload_task.postprocess_queue
     error_queue = ongoing_upload_task.error_queue
+
+    def _make_idigbio_metadata(image_record):
+        logger.debug("_make_idigbio_metadata")
+        metadata = {}
+        metadata["xmpRights:usageTerms"] = batch.RightsLicense;
+        metadata["xmpRights:webStatement"] = batch.RightsLicenseStatementUrl
+        metadata["ac:licenseLogoURL"] = batch.RightsLicenseLogoUrl
+        # The suffix has already been checked so that extension must be in the
+        # dictionary.
+        metadata["idigbio:MimeType"] = image_record.MimeType
+        if image_record.Description != None:
+            metadata["idigbio:Description"] = image_record.Description
+        if image_record.LanguageCode != None:
+            metadata["idigbio:LanguageCode"] = image_record.LanguageCode
+        if image_record.Title != None:
+            metadata["idigbio:Title"] = image_record.Title
+        if image_record.DigitalizationDevice != None:
+            metadata["idigbio:DigitalizationDevice"] = image_record.DigitalizationDevice
+        if image_record.NominalPixelResolution != None:
+            metadata["idigbio:NominalPixelResolution"] = image_record.NominalPixelResolution
+        if image_record.Magnification != None:
+            metadata["idigbio:Magnification"] = image_record.Magnification
+        if image_record.OcrOutput != None:
+            metadata["idigbio:OcrOutput"] = image_record.OcrOutput
+        if image_record.OcrTechnology != None:
+            metadata["idigbio:OcrTechnology"] = image_record.OcrTechnology
+        if image_record.InformationWithheld != None:
+            metadata["idigbio:InformationWithheld"] = image_record.InformationWithheld
+        if image_record.CollectionObjectGUID != None:
+            metadata["idigbio:CollectionObjectGUID"] = image_record.CollectionObjectGUID
+        
+        logger.debug("_make_idigbio_metadata done")
+        return metadata
+
+    def _make_dataset_metadata(RightsLicense, iDigbioProvidedByGUID, RecordSetGUID, CSVfilePath,
+        MediaContentKeyword, iDigbioProviderGUID, iDigbioPublisherGUID, FundingSource, FundingPurpose):
+        logger.debug("_make_dataset_metadata")
+        metadata = {}
+        metadata["idigbio:RightsLicense"] = RightsLicense # Licence.
+        metadata["idigbio:iDigbioProvidedByGUID"] = iDigbioProvidedByGUID # Log in information.
+        metadata["idigbio:RecordSetGUID"] = RecordSetGUID # Record Set GUID.
+        metadata["idigbio:CSVfilePath"] = CSVfilePath # CSV file path.
+        if MediaContentKeyword != None:
+            metadata["idigbio:MediaContentKeyword"] = MediaContentKeyword
+        if iDigbioProviderGUID != None:
+            metadata["idigbio:iDigbioProviderGUID"] = iDigbioProviderGUID
+        if iDigbioPublisherGUID != None:
+            metadata["idigbio:iDigbioPublisherGUID"] = iDigbioPublisherGUID
+        if FundingSource != None:
+            metadata["idigbio:FundingSource"] = FundingSource
+        if FundingPurpose != None:
+            metadata["idigbio:FundingPurpose"] = FundingPurpose
+        
+        logger.debug("_make_dataset_metadata done")
+        return metadata
 
     # This function is passed to the threads.
     def _csv_job(image_record, conn):
@@ -269,51 +305,52 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                 raise ClientException("Batch record is None.")
             if image_record is None:
                 raise ClientException("image_recod is None.")
-            logger.debug("Media path: " + image_record.path)
-            if image_record.file_error is not None:
-                raise ClientException(image_record.file_error)
-            if image_record.mr_uuid is None:
+            logger.debug("OriginalFileName: " + image_record.OriginalFileName)
+            if image_record.FileError is not None:
+                raise ClientException(image_record.FileError)
+            if image_record.MediaRecordUUID is None:
                 # Post mediarecord.
-                logger.debug("image_record.mr_uuid is None. So post media record.")
-                image_record.batch_id = batch.id
+                logger.debug("image_record.MediaRecordUUID is None. So post media record.")
+                image_record.BatchID = batch.id
                 owner_uuid = user_config.try_get_user_config('owneruuid')
-                mediapath = image_record.path
-                mediaproviderid = image_record.providerid
-                metadata = _make_idigbio_metadata(mediapath)
+                mediapath = image_record.OriginalFileName
+                mediaproviderid = image_record.MediaGUID
+#                metadata = _make_idigbio_metadata(mediapath)
+                metadata = _make_idigbio_metadata(image_record)
                 record_uuid, mr_etag, mr_str = conn.post_mediarecord( # mr_str is the return from server
-                    recordset_uuid, mediapath, mediaproviderid, metadata, owner_uuid)
-                image_record.mr_uuid = record_uuid
-                image_record.mr_record = mr_str
-                image_record.mr_etag = mr_etag
+                    RecordSetUUID, mediapath, mediaproviderid, metadata, owner_uuid)
+                image_record.MediaRecordUUID = record_uuid
+                image_record.MediaRecordContent = mr_str
+                image_record.etag = mr_etag
                 model.commit()
                 logger.debug("Media record posted. mr_uuid="+ str(record_uuid))
             
             # First, change the batch ID to this one. This field is overwriten.
-            image_record.batch_id = str(batch.id)
+            image_record.BatchID = str(batch.id)
             # Post image to API.
             # ma_str is the return from server
-            ma_str = conn.post_media(image_record.path, image_record.mr_uuid)
-            image_record.ma_record = ma_str
+            ma_str = conn.post_media(image_record.OriginalFileName, image_record.MediaRecordUUID)
+            image_record.MediaAPContent = ma_str
             result_obj = json.loads(ma_str)
 
             url = result_obj["idigbio:links"]["media"][0]
             ma_uuid = result_obj['idigbio:uuid']
 
-            image_record.ma_uuid = ma_uuid
+            image_record.MediaAPUUID = ma_uuid
 
             # img_etag is not stored in the db.
             img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
 
-            if img_etag and image_record.media_md5 == img_etag:
-                image_record.upload_time = str(datetime.utcnow())
-                image_record.url = url
+            if img_etag and image_record.MediaMD5 == img_etag: # Check the image integrity.
+                image_record.UploadTime = str(datetime.utcnow())
+                image_record.MediaURL = url
             else:
                 raise ClientException('Upload failed because local MD5 does not match the eTag or no eTag is returned.')
 
             if conn.attempts > 1:
-                logger.debug('%s [after %d attempts]' % (image_record.path, conn.attempts))
+                logger.debug('%s [after %d attempts]' % (image_record.OriginalFileName, conn.attempts))
             else:
-                logger.debug('%s [after %d attempts]' % (image_record.path, conn.attempts))
+                logger.debug('%s [after %d attempts]' % (image_record.OriginalFileName, conn.attempts))
             
             # Increment the success_count by 1.
             fn = partial(ongoing_upload_task.increment, 'success_count')
@@ -351,8 +388,8 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
             if oldbatch.finish_time:
                 raise IngestServiceException("Last batch already finished, why resume?")
             # Assign local variables with values in DB.
-            csv_path = oldbatch.CSVfilePath
-            recordset_uuid = oldbatch.RecordSetUUID
+            CSVfilePath = oldbatch.CSVfilePath
+            RecordSetUUID = oldbatch.RecordSetUUID
             #batch.id = batch.id + 1
             batch = model.add_upload_batch(
                 oldbatch.CSVfilePath, oldbatch.iDigbioProvidedByGUID, oldbatch.RightsLicense, 
@@ -361,30 +398,37 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                 oldbatch.iDigbioProviderGUID, oldbatch.iDigbioPublisherGUID, oldbatch.FundingSource, 
                 oldbatch.FundingPurpose)
             model.commit()
-        elif csv_path: # Not resume, and csv_path is provided. It is a new upload.
+        elif values: # Not resume, and CSVfilePath is provided. It is a new upload.
+            CSVfilePath = values[user_config.CSV_PATH]
             logger.debug("Start a new csv batch.")
-            recordset_guid = user_config.get_user_config(user_config.RECORDSET_ID) # Temporary provider ID
-            # TODO: Receive provider id from UI.
-            logger.debug('ingestion_manager._upload_csv:post_recordset')
-            recordset_uuid = conn.post_recordset(recordset_guid)
-            logger.debug('ingestion_manager._upload_csv:got uuid, put into db.')
 
+            RecordSetGUID = values[user_config.RECORDSET_GUID] # Temporary provider ID
             iDigbioProvidedByGUID = user_config.get_user_config(user_config.IDIGBIOPROVIDEDBYGUID)
-            RightsLicense = user_config.get_user_config(user_config.IMAGE_LICENSE)
+            RightsLicense = values[user_config.RIGHTS_LICENSE]
             license_ = constants.IMAGE_LICENSES[RightsLicense]
             RightsLicenseStatementUrl = license_[2]
             RightsLicenseLogoUrl = license_[3]
-            keyword = user_config.get_user_config(user_config.MEDIACONTENT_KEYWORD)
-            providerID = user_config.get_user_config(user_config.IDIGBIO_PROVIDER_GUID)
-            publisherID = user_config.get_user_config(user_config.IDIGBIO_PUBLISHER_GUID)
-            fundingSource = user_config.get_user_config(user_config.FUNDING_SOURCE)
-            fundingPurpose = user_config.get_user_config(user_config.FUNDING_PURPOSE)
+            MediaContentKeyword = values[user_config.MEDIACONTENT_KEYWORD]
+            iDigbioProviderGUID = values[user_config.IDIGBIO_PROVIDER_GUID]
+            iDigbioPublisherGUID = values[user_config.IDIGBIO_PUBLISHER_GUID]
+            FundingSource = values[user_config.FUNDING_SOURCE]
+            FundingPurpose = values[user_config.FUNDING_PURPOSE]
 
-            batch = model.add_upload_batch(csv_path, iDigbioProvidedByGUID, RightsLicense, 
-                RightsLicenseStatementUrl, RightsLicenseLogoUrl, recordset_guid, 
-                recordset_uuid, constants.CSV_TYPE, keyword, providerID, publisherID, fundingSource, 
-                fundingPurpose)
+            # Upload the batch.
+            logger.debug('ingestion_manager._upload_csv:post_recordset')
+            metadata = _make_dataset_metadata(RightsLicense, iDigbioProvidedByGUID, 
+                RecordSetGUID, CSVfilePath, MediaContentKeyword, iDigbioProviderGUID, 
+                iDigbioPublisherGUID, FundingSource, FundingPurpose)
+            RecordSetUUID = conn.post_recordset(RecordSetGUID, metadata)
+            logger.debug('ingestion_manager._upload_csv:got uuid, put into db.')
+
+            # Insert into the database.
+            batch = model.add_upload_batch(CSVfilePath, iDigbioProvidedByGUID, RightsLicense, 
+                RightsLicenseStatementUrl, RightsLicenseLogoUrl, RecordSetGUID, 
+                RecordSetUUID, constants.CSV_TYPE, MediaContentKeyword, iDigbioProviderGUID, 
+                iDigbioPublisherGUID, FundingSource, FundingPurpose)
             model.commit()
+
             logger.debug('ingestion_manager._upload_csv:got uuid, committed into db.')
         else:
             raise IngestServiceException("CSV path is not specified.")
@@ -402,7 +446,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
         # In current version, the row is simply [path, providerid].
         logger.debug('Put all records from CSV file into db.')
         # Read from the CSV file.
-        with open(csv_path, 'rb') as csvfile:
+        with open(CSVfilePath, 'rb') as csvfile:
             csv.register_dialect('mydialect', delimiter=',', quotechar='"', skipinitialspace=True)
             reader = csv.reader(csvfile, 'mydialect')
             headerline = True
@@ -417,7 +461,7 @@ def _upload_csv(ongoing_upload_task, resume=False, csv_path=None):
                     continue
 
                 # Get the image record
-                image_record = model.add_or_load_image(batch, row, orderlist, recordset_uuid, constants.CSV_TYPE)
+                image_record = model.add_or_load_image(batch, row, orderlist, RecordSetUUID, constants.CSV_TYPE)
 
                 fn = partial(ongoing_upload_task.increment, 'total_count')
                 postprocess_queue.put(fn)

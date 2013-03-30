@@ -73,14 +73,19 @@ initMainUI = function() {
     $('#csv-upload-form').submit(function(event) {
         event.preventDefault();
         if ($('#csv-upload-form').valid()) {
-            setPreference('rsguid', $('#rsguid').val())
-            setPreference('imagelicense', $('#csv-license-dropdown').val())
-            setPreference('mediaContentKeyword', $('#mediaContentKeyword').val())
-            setPreference('iDigbioProviderGUID', $('#csv-owneruuid').val())
-            setPreference('iDigbioPublisherGUID', $('#iDigbioPublisherGUID').val())
-            setPreference('fundingSource', $('#fundingSource').val())
-            setPreference('fundingPurpose', $('#fundingPurpose').val())
-            postCsvUpload("new");
+            var values = 
+                "{\'CSVfilePath\':\'" + processFieldValue('#csv-path') + 
+                "\',\'RecordSetGUID\':\'" + processFieldValue('#rsguid') +
+                "\',\'RightsLicense\':\'" + processFieldValue('#csv-license-dropdown') +
+                "\',\'MediaContentKeyword\':\'" + processFieldValue('#mediaContentKeyword') +
+                "\',\'iDigbioProviderGUID\':\'" + processFieldValue('#iDigbioProviderGUID') +
+                "\',\'iDigbioPublisherGUID\':\'" + processFieldValue('#iDigbioPublisherGUID') +
+                "\',\'fundingSource\':\'" + processFieldValue('#fundingSource') +
+                "\',\'fundingPurpose\':\'" + processFieldValue('#fundingPurpose') +
+                "\'}";
+            showAlert('Good1.');
+            postCsvUpload("new", values);
+            showAlert('Good2.');
         }
         else {
             showAlert('The Image License, Record Set GUID and CSV File Path cannot be empty.');
@@ -294,7 +299,7 @@ initGUIDSyntaxSelector = function() {
     
     $("#g-guidsyntax-dropdown").change(function(e) {
         var syntaxName = $("#g-guidsyntax-dropdown").val();
-        setPreference('g-guidsyntax', syntaxName);
+//        setPreference('g-guidsyntax', syntaxName);
         if (syntaxName == "hash") {
             if (! $('#g-guidprefix-group').hasClass("hide")) {
                 $("#g-guidprefix-group").addClass('hide');
@@ -308,7 +313,7 @@ initGUIDSyntaxSelector = function() {
     });
 }
 
-postCsvUpload = function(action) {
+postCsvUpload = function(action, values) {
     // Reset the elements
     $("#result-table-container").removeClass('in');
     $("#result-table-container").removeClass('hide');
@@ -329,8 +334,8 @@ postCsvUpload = function(action) {
         $('#mediaContentKeyword').attr('disabled', true);
         $("#mediaContentKeyword").addClass('disabled');
 
-        $('#csv-owneruuid').attr('disabled', true);
-        $("#csv-owneruuid").addClass('disabled');
+        $('#iDigbioProviderGUID').attr('disabled', true);
+        $("#iDigbioProviderGUID").addClass('disabled');
 
         $('#iDigbioPublisherGUID').attr('disabled', true);
         $("#iDigbioPublisherGUID").addClass('disabled');
@@ -359,10 +364,7 @@ postCsvUpload = function(action) {
     
     // now send the form and wait to hear back
     if (action == "new") {
-        var csvPath = $('#csv-path').val();
-
-        $.post('/services/csv', { csvPath: csvPath }, callback, 
-                'json')
+        $.post('/services/csv', { values: values }, callback, 'json')
         .error(function(data) {
             var errMsg = "<strong>Error! </strong>" + data.responseText;
             showAlert(errMsg)
@@ -485,8 +487,8 @@ updateProgress = function() {
             $('#mediaContentKeyword').attr('disabled', false);
             $("#mediaContentKeyword").removeClass('disabled');
 
-            $('#csv-owneruuid').attr('disabled', false);
-            $("#csv-owneruuid").removeClass('disabled');
+            $('#iDigbioProviderGUID').attr('disabled', false);
+            $("#iDigbioProviderGUID").removeClass('disabled');
 
             $('#iDigbioPublisherGUID').attr('disabled', false);
             $("#iDigbioPublisherGUID").removeClass('disabled');

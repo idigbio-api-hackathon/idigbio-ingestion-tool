@@ -103,9 +103,7 @@ class Authentication(object):
     
     def GET(self):
         try:
-#            cherrypy.log.error("ingest_rest.Authentication")
             ret = ingest_service.authenticated()
-#            cherrypy.log.error('ingest_rest.Authentication:', str(ret))
             return json.dumps(ret)
         except Exception as ex:
             cherrypy.log.error('ingest_rest.Authentication:')
@@ -160,7 +158,7 @@ class DataIngestionService(object):
         """
         Ingest data.
         """
-        cherrypy.log.error("POST dir request received.", self.__class__.__name__)
+        logger.debug("POST dir request received.", self.__class__.__name__)
         if rootPath is None:
             return self._resume()
         else:
@@ -185,19 +183,20 @@ class CsvIngestionService(object):
     def GET(self):
         return '<html><body>CSV ingestion Service is running.</body></html>'
 
-    def POST(self, csvPath=None):
+    def POST(self, values=None):
         """
         Ingest csv data.
         """
-        cherrypy.log.error("POST csv request received.", self.__class__.__name__)
-        if csvPath is None:
+#        logger.debug("POST csv request received.", self.__class__.__name__)
+        if values is None:
             return self._resume()
         else:
-            return self._upload(csvPath)
+            dic = ast.literal_eval(values) # Parse the string to dictionary.
+            return self._upload(dic)
 
-    def _upload(self, csvPath):
+    def _upload(self, values):
         try:
-            ingest_service.start_upload(csvPath, constants.CSV_TYPE)
+            ingest_service.start_upload(values, constants.CSV_TYPE)
         except ValueError as ex:
             raise JsonHTTPError(409, str(ex))
 

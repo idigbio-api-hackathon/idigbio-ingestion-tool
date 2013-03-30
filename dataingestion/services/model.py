@@ -16,9 +16,13 @@ from sqlalchemy.types import TypeDecorator, Unicode
 import logging, hashlib, argparse, os, time, struct, re
 from datetime import datetime
 from dataingestion.services import constants
-#import pwd
-#from PIL import Image
-#from PIL.ExifTags import TAGS
+
+if os.name == 'posix':
+    import pwd
+elif os.name == 'nt':
+    from dataingestion.services import win_api
+from PIL import Image
+from PIL.ExifTags import TAGS
 
 __images_tablename__ = constants.IMAGES_TABLENAME
 __batches_tablename__ = constants.BATCHES_TABLENAME
@@ -38,83 +42,83 @@ class ImageRecord(Base):
     __tablename__ = __images_tablename__
 
     id = Column(Integer, primary_key=True)
-    path = Column(String)
+    OriginalFileName = Column(String)
     '''
     Path does not have to be unique as there can be multiple 
     unrelated */USBVolumne1/DCIM/Image1.JPG*s.
     '''
-    file_error = Column(String)
+    FileError = Column(String)
     '''
     Indicates if the given path is a valid file.
     '''
-    providerid = Column(String)
+    MediaGUID = Column(String)
     '''
-    providerid is unique for each media record within the record set.
+    MediaGUID (providerid) is unique for each media record within the record set.
     '''
-    mr_uuid = Column(String)
+    MediaRecordUUID = Column(String)
     '''
     The UUID of the *media record* for this image. 
     '''
-    ma_uuid = Column(String)
+    MediaAPUUID = Column(String)
     '''
     The UUID of the *media AP* for this image.
     '''
-    md5 = Column(String, index=True, unique=True)
+    AllMD5 = Column(String, index=True, unique=True)
     '''
-    This md5 is got from "record set uuid + CSV record line + media file hash".
+    Hash got from "record set uuid + CSV record line + media file hash".
     '''
-    comments = Column(String)
+    Comments = Column(String)
     '''
-    Comments.
+    Any comments that is given by users.
     '''
-    upload_time = Column(String)
+    UploadTime = Column(String)
     '''
     The UTC time measured by the local machine. 
     None if the image is not uploaded.
     '''
-    url = Column(String)
+    MediaURL = Column(String)
 
-    mr_record = Column(types.BLOB)
+    MediaRecordContent = Column(types.BLOB)
     '''
     MadiaRecord record in JSON String
     '''
-    ma_record = Column(types.BLOB)
+    MediaAPContent = Column(types.BLOB)
     '''
     MadiaAP record in JSON String
     '''
-    description = Column(String)
+    Description = Column(String)
     '''
     http://purl.org/dc/terms/description
     '''
-    language_code = Column(String)
+    LanguageCode = Column(String)
     '''
     http://purl.org/dc/terms/language
     '''
-    title = Column(String)
+    Title = Column(String)
     '''
     http://purl.org/dc/terms/title
     '''
-    digitalization_device = Column(String)
+    DigitalizationDevice = Column(String)
     '''
     http://rs.tdwg.org/ac/terms/captureDevice
     '''
-    pixel_resolution = Column(String)
+    NominalPixelResolution = Column(String)
     '''
     e.g., 128micrometer
     '''
-    magnification = Column(String)
+    Magnification = Column(String)
     '''
     4x, 100x
     '''
-    ocr_output = Column(String)
+    OcrOutput = Column(String)
     '''
     Output of the process of applying OCR to the multimedia object.
     '''
-    ocr_tech = Column(String)
+    OcrTechnology = Column(String)
     '''
     Tesseract version 3.01 on Windows, latin character set.
     '''
-    info_withheld = Column(String)
+    InformationWithheld = Column(String)
     '''
     http://rs.tdwg.org/dwc/terms/informationWithheld
     '''
@@ -122,72 +126,72 @@ class ImageRecord(Base):
     '''
     Specimen ID.
     '''
-    media_md5 = Column(String)
+    MediaMD5 = Column(String)
     '''
     Checksum of the media object accessible via MediaUrl, using MD5.
     '''
-    mime_type = Column(String)
+    MimeType = Column(String)
     '''
     Technical type (format) of digital multimedia object. 
     When using the image ingestion appliance, this is automatically filled based on the 
     extension of the filename.
     '''
-    media_size = Column(String)
+    MediaSizeInBytes = Column(String)
     '''
     Size in bytes of the multimedia resource accessible through the MediaUrl. 
     Derived from the object when using the ingestion appliance.
     '''
-    file_ctime = Column(String)
+    ProviderCreatedTimeStamp = Column(String)
     '''
-    ProviderCreatedTimeStamp, Date and time when the record was originally created on the provider data management system.
+    Date and time when the record was originally created on the provider data management system.
     '''
-    file_owner = Column(String)
+    providerCreatedByGUID = Column(String)
     '''
-    providerCreatedByGUID
+    File owner
     '''
-    media_metadata = Column(types.BLOB)
+    MediaMetadata = Column(types.BLOB)
     '''
     Blob of text containing metadata about the media (e.g., from EXIF, IPTC). 
     Derived from the object when using the ingestion appliance.
     '''
-    mr_etag = Column(String)
+    etag = Column(String)
     '''
     Returned by server.
     '''
 
-    # Changed because batch_id may be changed to map to other elements in batch table.
-    batch_id = Column(Integer)
-    #batch_id = Column(Integer, ForeignKey(__batches_tablename__+'.id', onupdate="cascade"))
+    # Changed because BatchID may be changed to map to other elements in batch table.
+    BatchID = Column(Integer)
+    #BatchID = Column(Integer, ForeignKey(__batches_tablename__+'.id', onupdate="cascade"))
 
     def __init__(self, path, pid, r_md5, error, batch, 
         desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, col_obj_guid, 
         m_md5, mime_type, m_size, ctime, f_owner, metadata):
-        self.path = path
-        self.providerid = pid
-        self.md5 = r_md5
-        self.file_error = error
-        self.batch_id = batch.id
-        self.description = desc
-        self.language_code = lang
-        self.title = title
-        self.digitalization_device = digi
-        self.pixel_resolution = pix
-        self.magnification = mag
-        self.ocr_output = ocr_output
-        self.ocr_tech = ocr_tech
-        self.info_withheld = info_withheld
+        self.OriginalFileName = path
+        self.MediaGUID = pid
+        self.AllMD5 = r_md5
+        self.FileError = error
+        self.BatchID = batch.id
+        self.Description = desc
+        self.LanguageCode = lang
+        self.Title = title
+        self.DigitalizationDevice = digi
+        self.NominalPixelResolution = pix
+        self.Magnification = mag
+        self.OcrOutput = ocr_output
+        self.ocrTechnology = ocr_tech
+        self.InformationWithheld = info_withheld
         self.CollectionObjectGUID = col_obj_guid
-        self.media_md5 = m_md5
-        self.mime_type = mime_type
-        self.media_size = m_size
-        self.file_ctime = ctime
-        self.file_owner = f_owner
-        self.media_metadata = metadata
+        self.MediaMD5 = m_md5
+        self.MimeType = mime_type
+        self.MediaSizeInBytes = m_size
+        self.ProviderCreatedTimeStamp = ctime
+        self.providerCreatedByGUID = f_owner
+        self.MediaMetadata = metadata
 
 class UploadBatch(Base):
     '''
     Represents a batch which is the operation executed when the user clicks the 
-    "Upload" button. 
+    "Upload" button.
     
     .. note:: When a batch fails and is resumed, the same batch record and 
        recordset id are reused.
@@ -214,7 +218,7 @@ class UploadBatch(Base):
     RecordCount = Column(Integer)
     ErrorCode = Column(String)
 
-    md5 = Column(String) # The md5 of the CSV file + uuid.
+    AllMD5 = Column(String) # The md5 of the CSV file + uuid.
     # images = relationship(ImageRecord, backref="batch") # All images associated with the batches in the table.
     
     def __init__(self, path, loginID, license, licenseStatementUrl, licenseLogoUrl,
@@ -227,7 +231,7 @@ class UploadBatch(Base):
         self.RecordSetGUID = rs_guid
         self.RecordSetUUID = rs_uuid
         self.start_time = s_time
-        self.md5 = md5
+        self.AllMD5 = md5
         self.batchtype = btype
         self.MediaContentKeyword = kw
         self.iDigbioProviderGUID = proID
@@ -362,17 +366,20 @@ def generate_record(csvrow, orderlist, rs_uuid):
         media_size = os.path.getsize(mediapath)
         ctime = time.ctime(os.path.getmtime(mediapath))
 
-        #owner = pwd.getpwuid(os.stat(mediapath).st_uid)[0]
-        #logger.debug('777')
+        if os.name == 'posix':
+            owner = pwd.getpwuid(os.stat(mediapath).st_uid)[0]
+        elif os.name == 'nt':
+            owner = win_api.get_file_owner(mediapath)
 
-        #exifinfo = Image.open(mediapath)._getexif()
-        #logger.debug('888')
-        #for tag, value in exifinfo.items():
-        #    decoded = TAGS.get(tag, tag)
-        #    metadata[decoded] = value
-        #logger.debug('999')
-        #mbuffer = str(metadata)
-    #logger.debug('generate_record done')
+        exifinfo = Image.open(mediapath)._getexif()
+
+        metadata = {}
+        for tag, value in exifinfo.items():
+            decoded = TAGS.get(tag, tag)
+            metadata[decoded] = value
+        
+        mbuffer = str(metadata)
+#        print(mbuffer) # Print the media metadata.
 
     return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_error,desc,lang,title,digi,pix,
         mag,ocr_output,ocr_tech,info_withheld,col_obj_guid, filemd5.hexdigest(),mime_type,media_size,ctime, 
@@ -389,10 +396,10 @@ def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
     #logger.debug('add_or_load_image')
     logger.debug("add_or_load_image")
     (mediapath,mediaproviderid,recordmd5,file_error,desc,lang,title,digi,pix,mag,ocr_output,ocr_tech,
-        info_withheld,col_obj_guid,filemd5,mime_type,media_size,ctime,owner,metadata) = generate_record(csvrow, 
-        orderlist, rs_uuid)
+        info_withheld,col_obj_guid,filemd5,mime_type,media_size,ctime,owner,
+        metadata) = generate_record(csvrow, orderlist, rs_uuid)
 
-    record = session.query(ImageRecord).filter_by(md5=recordmd5).first()
+    record = session.query(ImageRecord).filter_by(AllMD5=recordmd5).first()
     if record is None: # New record. Add the record.
         record = ImageRecord(mediapath, mediaproviderid, recordmd5, file_error, batch, 
             desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, col_obj_guid, 
@@ -401,12 +408,12 @@ def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
         logger.debug("add_or_load_image done: New record.")
         #logger.debug('add_or_load_image: new record added')
         return record
-    elif record.upload_time: # Found the duplicate record, already uploaded.
-        #record.batch_id = batch.id
+    elif record.UploadTime: # Found the duplicate record, already uploaded.
+        #record.BatchID = batch.id
         logger.debug("add_or_load_image done: Already done.")
         return None
     else: # Found the duplicate record, but not uploaded or file not found.
-        record.batch_id = batch.id
+        record.BatchID = batch.id
         logger.debug("add_or_load_image done: Record not finished.")
         return record
 
@@ -438,7 +445,7 @@ def add_upload_batch(path, loginID, license, licenseStatementUrl, licenseLogoUrl
 @check_session
 def get_imagerecords_by_batchid(batch_id):
     batch_id = int(batch_id)
-    imagerecords = session.query(ImageRecord).filter_by(batch_id=batch_id)
+    imagerecords = session.query(ImageRecord).filter_by(BatchID=batch_id)
     return imagerecords
 
 @check_session
@@ -452,19 +459,19 @@ def get_batch_details(batch_id):
     batch_id = int(batch_id)
     
     query = session.query(
-        ImageRecord.path, ImageRecord.file_error, ImageRecord.providerid, 
-        ImageRecord.mr_uuid, ImageRecord.ma_uuid, ImageRecord.comments, ImageRecord.upload_time,
-        ImageRecord.url, ImageRecord.description, ImageRecord.language_code, ImageRecord.title,
-        ImageRecord.digitalization_device, ImageRecord.pixel_resolution, ImageRecord.magnification,
-        ImageRecord.ocr_output, ImageRecord.ocr_tech, ImageRecord.info_withheld, 
-        ImageRecord.CollectionObjectGUID, ImageRecord.media_md5,
-        ImageRecord.mime_type, ImageRecord.media_size, ImageRecord.file_ctime, ImageRecord.file_owner,
-        ImageRecord.mr_etag, UploadBatch.RecordSetUUID, UploadBatch.iDigbioProvidedByGUID,
+        ImageRecord.OriginalFileName, ImageRecord.FileError, ImageRecord.MediaGUID, 
+        ImageRecord.MediaRecordUUID, ImageRecord.MediaAPUUID, ImageRecord.Comments, ImageRecord.UploadTime,
+        ImageRecord.MediaURL, ImageRecord.Description, ImageRecord.LanguageCode, ImageRecord.Title,
+        ImageRecord.DigitalizationDevice, ImageRecord.NominalPixelResolution, ImageRecord.Magnification,
+        ImageRecord.OcrOutput, ImageRecord.OcrTechnology, ImageRecord.InformationWithheld, 
+        ImageRecord.CollectionObjectGUID, ImageRecord.MediaMD5, ImageRecord.MimeType, 
+        ImageRecord.MediaSizeInBytes, ImageRecord.ProviderCreatedTimeStamp, ImageRecord.providerCreatedByGUID,
+        ImageRecord.etag, UploadBatch.RecordSetUUID, UploadBatch.iDigbioProvidedByGUID,
         UploadBatch.MediaContentKeyword, UploadBatch.FundingSource, UploadBatch.FundingPurpose,
         UploadBatch.iDigbioPublisherGUID, UploadBatch.RightsLicenseStatementUrl, 
         UploadBatch.RightsLicenseLogoUrl, UploadBatch.iDigbioProviderGUID, UploadBatch.RightsLicense, 
-        UploadBatch.CSVfilePath, UploadBatch.RecordSetGUID, ImageRecord.batch_id
-        ).filter(ImageRecord.batch_id == batch_id).filter(UploadBatch.id == batch_id
+        UploadBatch.CSVfilePath, UploadBatch.RecordSetGUID, ImageRecord.BatchID
+        ).filter(ImageRecord.BatchID == batch_id).filter(UploadBatch.id == batch_id
         ).order_by(ImageRecord.id) # 26 elements.
     
     logger.debug("Image record count: " + str(query.count()))
@@ -472,7 +479,7 @@ def get_batch_details(batch_id):
     #    for elem in item:
     #        logger.debug(elem)
 
-    #query = session.query(ImageRecord).filter_by(batch_id=batch_id)
+    #query = session.query(ImageRecord).filter_by(BatchID=batch_id)
     return query.all()
 
 def get_all_batches():

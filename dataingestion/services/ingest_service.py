@@ -12,7 +12,7 @@ upload requests.
 import cherrypy
 import Queue, os
 from dataingestion.task_queue import BackgroundTaskQueue
-from dataingestion.services import model, ingestion_manager, constants, api_client, csv_generator
+from dataingestion.services import model, ingestion_manager, constants, api_client, csv_generator, user_config
 from dataingestion.services.user_config import get_user_config, set_user_config, rm_user_config
 from datetime import datetime, timedelta
 
@@ -23,12 +23,12 @@ singleton_task.start()
 THRESHOLD_TIME = 2 # sec
 
 # Be careful tasktype is the first argument.
-def _upload_task(tasktype, path):
+def _upload_task(tasktype, values):
     authenticate(get_user_config('accountuuid'), get_user_config('apikey'))
     if tasktype == constants.DIR_TYPE:
-        ingestion_manager.exec_upload_task(path)
+        ingestion_manager.exec_upload_task(values)
     else:
-        ingestion_manager.exec_upload_csv_task(path)
+        ingestion_manager.exec_upload_csv_task(values)
     cherrypy.log("Upload task finished.",  __name__)
 
 def _resume_task(tasktype):
@@ -39,18 +39,19 @@ def _resume_task(tasktype):
         ingestion_manager.exec_upload_csv_task(resume=True)
     cherrypy.log("Resume task finished.", __name__)
 
-def start_upload(path, tasktype):
+def start_upload(values, tasktype):
     """
     Start the upload tasks and then return.
     :Return: True if a task is added to the queue. False if queue is full.
     """
     # Initial checks before the task is added to the queue.
+    path = values[user_config.CSV_PATH]
     if not os.path.exists(path):
         raise ValueError("CSV file does not exist.")
     elif os.path.isdir(path):
         raise ValueError("The CSV path is a directory.")
 
-    _start(_upload_task, tasktype, path)
+    _start(_upload_task, tasktype, values)
 
 def start_resume(tasktype):
     _start(_resume_task, tasktype)

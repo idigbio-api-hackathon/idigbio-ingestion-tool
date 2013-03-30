@@ -43,9 +43,11 @@ def build_url(collection, entity_uuid=None, subcollection=None):
     return ret
 
 
-def _post_recordset(provider_id):
+def _post_recordset(provider_id, metadata):
     data = {"idigbio:data": {"ac:variant": "IngestionTool"},
             "idigbio:providerId": provider_id}
+    data["idigbio:data"] = dict(data["idigbio:data"].items() + metadata.items())
+
     url = build_url("recordsets")
     logger.debug("POSTing recordset. POST URL: %s" % url)
     try:
@@ -75,8 +77,8 @@ def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner
     Returns the UUID of the Media Record and the raw MR JSON String as a tuple.
     '''
     data = {"idigbio:data": {"ac:variant": "IngestionTool", 
-                             "idigbio:localpath": path,
-                             "idigbio:mediaGUID": provider_id,
+                             "idigbio:OriginalFileName": path,
+                             "idigbio:MediaGUID": provider_id,
                              "idigbio:relationships": {"recordset": recordset_uuid}},
             "idigbio:providerId": provider_id }
     data["idigbio:data"] = dict(data["idigbio:data"].items() + idigbio_metadata.items())
@@ -281,8 +283,8 @@ class Connection(object):
             if reset_func:
                 reset_func(func, *args, **kwargs)
                 
-    def post_recordset(self, provider_id):
-        return self._retry(None, _post_recordset, provider_id)
+    def post_recordset(self, provider_id, metadata):
+        return self._retry(None, _post_recordset, provider_id, metadata)
     
     def post_mediarecord(self, recordset_uuid, path, provider_id, idigbio_metadata, 
                          owner_uuid=None):

@@ -5,13 +5,16 @@ import ConfigParser
 CONFIG_SECTION = 'iDigBio'
 DISABLE_CHECK = "devmode_disable_startup_service_check"
 IDIGBIOPROVIDEDBYGUID = 'accountuuid'
-RECORDSET_ID = 'rsguid'
-IMAGE_LICENSE = 'imagelicense'
-MEDIACONTENT_KEYWORD = 'mediaContentKeyword'
+
+CSV_PATH = 'CSVfilePath'
+RECORDSET_GUID = 'RecordSetGUID'
+RIGHTS_LICENSE = 'RightsLicense'
+MEDIACONTENT_KEYWORD = 'MediaContentKeyword'
 IDIGBIO_PROVIDER_GUID = 'iDigbioProviderGUID'
 IDIGBIO_PUBLISHER_GUID = 'iDigbioPublisherGUID'
 FUNDING_SOURCE = 'fundingSource'
 FUNDING_PURPOSE = 'fundingPurpose'
+
 G_IMAGE_DIR = 'g-imagedir'
 G_GUID_SYNTAX = 'g-guidsyntax'
 G_GUID_PREFIX = 'g-guidprefix'
