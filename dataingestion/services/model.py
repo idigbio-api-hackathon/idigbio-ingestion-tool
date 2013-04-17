@@ -373,16 +373,14 @@ def generate_record(csvrow, orderlist, rs_uuid):
 
         exifinfo = Image.open(mediapath)._getexif()
         if (exifinfo is None):
-            logger.error("File metadata error: " + mediapath)
-            file_error = "File metadata error."
+            logger.debug("File metadata is malformed: " + mediapath)
+            mbuffer = ""
         else:
             metadata = {}
             for tag, value in exifinfo.items():
                 decoded = TAGS.get(tag, tag)
                 metadata[decoded] = value
-        
-        mbuffer = str(metadata)
-#        print(mbuffer) # Print the media metadata.
+            mbuffer = str(metadata)
 
     logger.debug('generate_record done.')
     return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_error,desc,lang,title,digi,pix,
