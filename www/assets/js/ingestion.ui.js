@@ -83,9 +83,7 @@ initMainUI = function() {
                 "\',\'fundingSource\':\'" + processFieldValue('#fundingSource') +
                 "\',\'fundingPurpose\':\'" + processFieldValue('#fundingPurpose') +
                 "\'}";
-            showAlert('Good1.');
             postCsvUpload("new", values);
-            showAlert('Good2.');
         }
         else {
             showAlert('The Image License, Record Set GUID and CSV File Path cannot be empty.');
@@ -116,7 +114,8 @@ initMainUI = function() {
         event.preventDefault();
         if ($('#csv-generation-form').valid()) {
             var values = 
-                "{\'g-imagedir\':\'" + processFieldValue('#gimagedir') + 
+                "{\'g-imagedir\':\'" + processFieldValue('#gimagedir') +
+                "\',\'g-recursive\':\'" + $('#g-recursive-cb').is(":checked") +
                 "\',\'g-guidsyntax\':\'" + processFieldValue('#g-guidsyntax-dropdown') +
                 "\',\'g-guidprefix\':\'" + processFieldValue('#g-guidprefix') +
                 "\',\'g-save-path\':\'" + processFieldValue('#g-save-path') +
@@ -132,17 +131,7 @@ initMainUI = function() {
                 "\',\'g-col-obj-guid\':\'" + processFieldValue('#g-col-obj-guid') +
                 "\'}";
             
-            $.post("/services/generatecsv", { values: values }, 'json')
-            .done(function(targetpath) {
-                targetpath = targetpath.replace(/\\\\/g, "\\"); // Make sure the "\\" is replaced with "\".
-
-                showAlert2("The CSV file is successfully saved to: " + targetpath, "", 
-                        "alert-success");
-            })
-            .fail(function(data) {
-                showAlert2("Error: " + data.responseText, "", "");
-            });
-
+            postCsvGeneration(values);
         }
         else {
             showAlert2('Error: The upload directory cannot be empty.', "", "");
@@ -353,7 +342,7 @@ postCsvUpload = function(action, values) {
 //        $("#logout-btn").addClass('disabled');
                
         // Clean up UI.
-        $("#upload-alert").alert('close');
+//        $("#upload-alert").alert('close');
         
         // Show progress bar in animation
         $(".progress-primary").addClass('active');
@@ -376,6 +365,72 @@ postCsvUpload = function(action, values) {
             showAlert(errMsg);
         });
     }
+}
+
+postCsvGeneration = function(values) {
+    // Reset the elements
+    $("#progressbar-container-csvgen").removeClass('in');
+    $("#progressbar-container-csvgen").removeClass('hide');
+    
+    var callback = function(targetpath){
+        // Disable inputs
+        $('#gimagedir').attr('disabled', true);
+        $("#gimagedir").addClass('disabled');
+
+        $("#g-recursive-cb").attr('disabled', true);
+        $("#g-recursive-cb").addClass('disabled');
+
+        $('#g-guidsyntax-dropdown').attr('disabled', true);
+        $("#g-guidsyntax-dropdown").addClass('disabled');
+
+        $('#g-guidprefix').attr('disabled', true);
+        $("#g-guidprefix").addClass('disabled');
+        
+        $('#g-save-path').attr('disabled', true);
+        $("#g-save-path").addClass('disabled');
+
+        $('#g-desc').attr('disabled', true);
+        $("#g-desc").addClass('disabled');
+
+        $('#g-lang').attr('disabled', true);
+        $("#g-lang").addClass('disabled');
+
+        $('#g-title').attr('disabled', true);
+        $("#g-title").addClass('disabled');
+
+        $('#g-digdev').attr('disabled', true);
+        $("#g-digdev").addClass('disabled');
+
+        $("#g-pixres").attr('disabled', true);
+        $("#g-pixres").addClass('disabled');
+        
+        $("#g-mag").attr('disabled', true);
+        $("#g-mag").addClass('disabled');
+
+        $("#g-ocr-output").attr('disabled', true);
+        $("#g-ocr-output").addClass('disabled');
+
+        $("#g-ocr-tech").attr('disabled', true);
+        $("#g-ocr-tech").addClass('disabled');
+
+        $("#g-info-wh").attr('disabled', true);
+        $("#g-info-wh").addClass('disabled');
+
+        $("#g-col-obj-guid").attr('disabled', true);
+        $("#g-col-obj-guid").addClass('disabled');
+
+        $("#csv-generate-button").attr('disabled', true);
+        $("#csv-generate-button").addClass('disabled');
+        
+        // Show progress bar in animation
+        $(".progress-primary").addClass('active');
+        $("#progressbar-container-csvgen").addClass('in');
+
+        setTimeout("updateCSVGenProgress()", 100);
+    };
+    
+    // now send the form and wait to hear back
+    $.post("/services/generatecsv", { values: values }, callback, 'json');
 }
 
 showLastBatchInfo = function() {
@@ -539,6 +594,79 @@ updateProgress = function() {
         
         // Calls itself again after 4000ms.
         setTimeout("updateProgress()", 4000);
+    });
+}
+
+
+updateCSVGenProgress = function() {
+    var url = '/services/csvgenprogress';
+    
+    $.getJSON(url, function(progressObj) {
+        
+        $("#progresstext2").text("Processed: " + progressObj.count + " files.");
+        
+        if (progressObj.result != 0) {
+            $(".progress-primary").toggleClass('active');
+
+            $('#gimagedir').attr('disabled', false);
+            $("#gimagedir").removeClass('disabled');
+
+            $("#g-recursive-cb").attr('disabled', false);
+            $("#g-recursive-cb").removeClass('disabled');
+
+            $('#g-guidsyntax-dropdown').attr('disabled', false);
+            $("#g-guidsyntax-dropdown").removeClass('disabled');
+
+            $('#g-guidprefix').attr('disabled', false);
+            $("#g-guidprefix").removeClass('disabled');
+            
+            $('#g-save-path').attr('disabled', false);
+            $("#g-save-path").removeClass('disabled');
+
+            $('#g-desc').attr('disabled', false);
+            $("#g-desc").removeClass('disabled');
+
+            $('#g-lang').attr('disabled', false);
+            $("#g-lang").removeClass('disabled');
+
+            $('#g-title').attr('disabled', false);
+            $("#g-title").removeClass('disabled');
+
+            $('#g-digdev').attr('disabled', false);
+            $("#g-digdev").removeClass('disabled');
+
+            $("#g-pixres").attr('disabled', false);
+            $("#g-pixres").removeClass('disabled');
+            
+            $("#g-mag").attr('disabled', false);
+            $("#g-mag").removeClass('disabled');
+
+            $("#g-ocr-output").attr('disabled', false);
+            $("#g-ocr-output").removeClass('disabled');
+
+            $("#g-ocr-tech").attr('disabled', false);
+            $("#g-ocr-tech").removeClass('disabled');
+
+            $("#g-info-wh").attr('disabled', false);
+            $("#g-info-wh").removeClass('disabled');
+
+            $("#g-col-obj-guid").attr('disabled', false);
+            $("#g-col-obj-guid").removeClass('disabled');
+
+            $("#csv-generate-button").attr('disabled', false);
+            $("#csv-generate-button").removeClass('disabled');
+
+            if (progressObj.result == 1) {
+                targetfile = progressObj.targetfile.replace(/\\\\/g, "\\"); // Make sure the "\\" is replaced with "\".
+                showAlert2("The CSV file is successfully saved to: " +
+                    targetfile, "", "alert-success");
+            } else {
+                showAlert2("Error: " + progressObj.error, "", "alert-error");
+            }
+        } else { // Not finished.
+            // Calls itself again after 100ms.
+            setTimeout("updateCSVGenProgress()", 100);
+        }
     });
 }
 

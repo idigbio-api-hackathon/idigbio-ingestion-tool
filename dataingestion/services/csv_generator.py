@@ -5,44 +5,63 @@
 # This software may be used and distributed according to the terms of the
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 
-import re, os, logging, csv, hashlib
+import re, os, logging, csv, hashlib, threading
 from os.path import isdir, join, dirname, split, exists
 from dataingestion.services import user_config, constants
 from dataingestion.services.ingestion_manager import IngestServiceException
+from time import sleep
 
 logger = logging.getLogger('iDigBioSvc.csv_generator')
 
-def get_files(imagepath):
+class Status:
+	def __init__(self):
+		self.count = 0
+		self.result = 0
+		self.error = None
+		self.dic = None
+		self.targetfile = None
+
+status = Status()
+
+def get_files(imagepath, recursive):
+
 	allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
 	filenameset = []
 	
+	status.count = 0
+	status.result = 0
 	if isdir(imagepath): # This is a dir.
-		
-		file_count = 0
-		for dirpath, dirnames, filenames in os.walk(imagepath):
-			for file_name in filenames:
-				file_count = file_count + 1
-				if file_count > constants.G_FILE_NUMBER_LIMIT:
-					logger.error("File number is higher than the limit: " 
-						+ str(constants.G_FILE_NUMBER_LIMIT))
-					raise IngestServiceException("File number is higher than the limit: " 
-						+ str(constants.G_FILE_NUMBER_LIMIT))
-				
-				if not allowed_files.match(file_name):
-					continue
-				subpath = join(dirpath, file_name)
-				filenameset.append(subpath)
+		if (recursive == 'true'):
+			for dirpath, dirnames, filenames in os.walk(imagepath):
+				for file_name in filenames:
+					if not allowed_files.match(file_name):
+						continue
+					status.count =  status.count + 1
+					subpath = join(dirpath, file_name)
+					filenameset.append(subpath)
+		else:
+			for file_name in os.listdir(imagepath):
+				if os.path.isfile(join(imagepath, file_name)):
+					if not allowed_files.match(file_name):
+						continue
+					status.count =  status.count + 1
+					subpath = join(imagepath, file_name)
+					filenameset.append(subpath)
 
-	
 	else: # This is a single file.
 		if allowed_files.match(imagepath):
 			filenameset.append(imagepath)
+		else:
+			status.result = 1
+
 	return filenameset
 
 def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
 	guidset = []
 	if guid_syntax is None or guid_syntax == "":
 		logger.error("GUID Syntax is empty.")
+		status.result = -1
+		status.error = "GUID Syntax is empty."
 		raise IngestServiceException("GUID Syntax is empty.")
 	if guid_syntax == "hash":
 		for index in range(len(filenameset)):
@@ -59,22 +78,33 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
 			guidset.append(guid_prefix + guid_postfix)
 	else:
 		logger.error("Error: guid_syntax is not defined: " + guid_syntax)
+		status.result = -1
+		status.error = "GUID Syntax not defined: " + guid_syntax
 		raise IngestServiceException("GUID Syntax not defined: " + guid_syntax)
+
 	return guidset
 
-def gen_csv(dic):
+def gen_csv():
 
 	# Find all the media files.
 	imagedir = ""
+	dic = status.dic
 	if dic.has_key(user_config.G_IMAGE_DIR):
 		# To make special notations like '\' working.
 		imagedir = dic[user_config.G_IMAGE_DIR]
 	if not exists(imagedir):
 		logger.error("IngestServiceException: " + imagedir + " is not a valid path.")
+		status.result = -1
+		status.error = "\"" + imagedir + "\" is not a valid path."
 		raise IngestServiceException("\"" + imagedir + "\" is not a valid path.")
-	filenameset = get_files(imagedir)
+	
+	# This process takes the most amount of time:
+	filenameset = get_files(imagedir, dic[user_config.G_RECURSIVE])
+
 	if not filenameset:
 		logger.error("IngestServiceException: No valid media file is in the path.")
+		status.result = -1
+		status.error = "No valid media file is in the path."
 		raise IngestServiceException("No valid media file is in the path.")
 	
 	# Find the headerline and commonvalues.
@@ -135,13 +165,15 @@ def gen_csv(dic):
 	if dic.has_key(user_config.G_GUID_SYNTAX):
 		guid_syntax = dic[user_config.G_GUID_SYNTAX]
 	else:
+		logger.error("GUID syntax is missing.")
+		status.result = -1
+		status.error = "GUID syntax is missing."
 		raise IngestServiceException("GUID syntax is missing.")
 
 	if dic.has_key(user_config.G_GUID_PREFIX):
 		guid_prefix = dic[user_config.G_GUID_PREFIX]
 
 	guidset = get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue)
-	#print(guidset)
 
 	# Form the output stream
 	outputstream = []
@@ -152,12 +184,37 @@ def gen_csv(dic):
 		tmp.append(guidset[index])
 		outputstream.append(tmp + commonvalue)
 		index = index + 1
-		#print(outputstream)
 
 	# Write the CSV file.
+	try:
+		with open(status.targetfile, 'wb') as csvfile:
+			csvwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+			csvwriter.writerow(headerline)
+			csvwriter.writerows(outputstream)
+			status.result = 1
+	except IOError as ex:
+		logger.error("Cannot write to output file: " + status.targetfile)
+		status.result = -1
+		status.error = "Cannot write to output file: " + status.targetfile
+		raise IngestServiceException("Cannot write to output file: " + status.targetfile)
+
+# Get the target file path from the given information.
+def get_tagetfile():
+	imagedir = ""
+	dic = status.dic
+	if dic.has_key(user_config.G_IMAGE_DIR):
+		# To make special notations like '\' working.
+		imagedir = dic[user_config.G_IMAGE_DIR]
+	if not exists(imagedir):
+		logger.error("IngestServiceException: " + imagedir + " is not a valid path.")
+		status.error = "\"" + imagedir + "\" is not a valid path."
+		status.result = -1
+		raise IngestServiceException("\"" + imagedir + "\" is not a valid path.")
+
 	targetfile = ""
 	if dic.has_key(user_config.G_SAVE_PATH):
 		targetfile = dic[user_config.G_SAVE_PATH]
+		status.targetfile = targetfile
 	try:
 		if targetfile == "":
 			if isdir(imagedir):
@@ -166,11 +223,28 @@ def gen_csv(dic):
 				imagedir = dirname(imagedir)
 				targetfile = join(imagedir, user_config.G_DEFAULT_CSV_OUTPUT_NAME)
 			logger.debug("targetfile=" + targetfile)
-
-		with open(targetfile, 'wb') as csvfile:
-			csvwriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
-			csvwriter.writerow(headerline)
-			csvwriter.writerows(outputstream)
+			status.targetfile = targetfile
 	except IOError as ex:
-		raise IngestServiceException("Cannot write to output file: " + targetfile)
-	return targetfile
+		logger.error("Output file is not a valid path: " + targetfile)
+		status.result = -1
+		status.error = "Output file is not a valid path: " + targetfile
+		raise IngestServiceException("Output file is not a valid path: " + targetfile)
+
+# Run as a separate thread.
+def run_gencsv(dic):
+	status.dic = dic
+	status.count = 0
+	status.result = 0
+	status.error = None
+	status.targetfile = None
+	
+	get_tagetfile()
+	t = threading.Thread(target=gen_csv)
+	t.daemon = True
+	t.start()
+
+def check_progress():
+	"""
+	Return (count, result, targetfile name).
+	"""
+	return (status.count, status.result, status.targetfile, status.error)

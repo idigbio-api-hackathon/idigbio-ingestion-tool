@@ -16,6 +16,7 @@ FUNDING_SOURCE = 'fundingSource'
 FUNDING_PURPOSE = 'fundingPurpose'
 
 G_IMAGE_DIR = 'g-imagedir'
+G_RECURSIVE = 'g-recursive'
 G_GUID_SYNTAX = 'g-guidsyntax'
 G_GUID_PREFIX = 'g-guidprefix'
 G_SAVE_PATH = 'g-save-path'

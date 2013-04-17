@@ -304,8 +304,6 @@
 
           <!-- Tab 3: the CSV generator . -->
           <div class="tab-pane" id="generator-tab">
-
-
             <!-- Required panel. -->
             <form id='csv-generation-form' class="form-horizontal span10">
               <div class="row-fluid span10">
@@ -317,6 +315,15 @@
                       <input type="text" data-provide="typeahead" class="span8"
                         id="gimagedir" name="gimagedir" placeholder="The directory or file path containing all your images."
                         rel="tooltip" data-title='e.g. C:\\Users\bob\Pictures\ or /Users/alice/Pictures/'>
+                    </div>
+                  </div>
+
+                  <div class="control-group">
+                    <label class="control-label" for="g-recursive-cb"></label>
+                    <div class="controls controls-row">
+                      <label class="checkbox">
+                        <input type="checkbox" id="g-recursive-cb"> Also Search Files in the Sub-directories.
+                      </label>
                     </div>
                   </div>
 
@@ -466,9 +473,13 @@
 
             </form>
 
-            <!-- Alert. -->
-            <div class="span11" id="alert-container-2"></div>
+            <!-- Progress bar, row 3. -->
+            <div class="fade hide span6" id="progressbar-container-csvgen">
+              <div id="progresstext2">&nbsp;</div>
+            </div>
 
+            <!-- Alert, row 3. -->
+            <div class="span11" id="alert-container-2"></div>
           </div>
         </div>
 

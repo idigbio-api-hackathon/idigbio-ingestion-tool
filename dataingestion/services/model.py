@@ -243,8 +243,8 @@ session = None
 
 def setCSVFieldNames(headerline):
     orderlist = [] # The order of the input fields in constants.INPUT_CSV_FILENAMES.
-    logger.debug("The format of input CSV file:")
-    logger.debug(headerline)
+#    logger.debug("The format of input CSV file:")
+#    logger.debug(headerline)
     for elem in headerline:
         if elem in constants.INPUT_CSV_FIELDNAMES:
             orderlist.append(constants.INPUT_CSV_FIELDNAMES.index(elem))
@@ -358,7 +358,7 @@ def generate_record(csvrow, orderlist, rs_uuid):
             with open(mediapath, 'rb') as f:
                 filemd5 = md5_file(f)
         except IOError as err:
-            logger.debug("The file "+mediapath+" cannot be found.")
+            logger.error("The file " + mediapath + " cannot be found.")
             file_error = "File not found."
 
     if file_error == None:
@@ -372,15 +372,19 @@ def generate_record(csvrow, orderlist, rs_uuid):
             owner = win_api.get_file_owner(mediapath)
 
         exifinfo = Image.open(mediapath)._getexif()
-
-        metadata = {}
-        for tag, value in exifinfo.items():
-            decoded = TAGS.get(tag, tag)
-            metadata[decoded] = value
+        if (exifinfo is None):
+            logger.error("File metadata error: " + mediapath)
+            file_error = "File metadata error."
+        else:
+            metadata = {}
+            for tag, value in exifinfo.items():
+                decoded = TAGS.get(tag, tag)
+                metadata[decoded] = value
         
         mbuffer = str(metadata)
 #        print(mbuffer) # Print the media metadata.
 
+    logger.debug('generate_record done.')
     return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_error,desc,lang,title,digi,pix,
         mag,ocr_output,ocr_tech,info_withheld,col_obj_guid, filemd5.hexdigest(),mime_type,media_size,ctime, 
         owner,mbuffer)

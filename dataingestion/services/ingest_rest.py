@@ -26,7 +26,6 @@ class BatchInfo(object):
     REST resource that represents info of a batch upload.
     '''
     exposed = True
-
     def GET(self):
         '''
         Currently only return info about the last batch.
@@ -43,7 +42,6 @@ class IngestionResult(object):
     REST resource that represents the result of an upload batch. 
     '''
     exposed = True
-
     def GET(self):
         try:
             result = ingest_service.get_result()
@@ -57,7 +55,6 @@ class UserConfig(object):
     REST resource that represents the user config.
     '''
     exposed = True
-    
     def GET(self, name):
         try:
             return json.dumps(ingest_service.get_user_config(name))
@@ -84,23 +81,19 @@ class History(object):
             raise JsonHTTPError(409, str(ex))
 
 class GenerateCSV(object):
-
     exposed = True
-    
     def POST(self, values):
         try:
             dic = ast.literal_eval(values) # Parse the string to dictionary.
-            return csv_generator.gen_csv(dic)
+            csv_generator.run_gencsv(dic)
         except IngestServiceException as ex:
-            logger.error("GenerateCSV: error.")
-            raise JsonHTTPError(409, str(ex))
+            pass # Do not process it, as the exception can be captured by CSVGenProgress.
 
 class Authentication(object):
     '''
     REST resource that signs in the user.
     '''
     exposed = True
-    
     def GET(self):
         try:
             ret = ingest_service.authenticated()
@@ -132,12 +125,24 @@ class ProgressStatus(object):
         except IngestServiceException as ex:
             raise JsonHTTPError(409, str(ex))
 
+class CSVGenProgress(object):
+    exposed = True
+    def GET(self):
+        """
+        Get CSV Generation status.
+        """
+        try:
+            count, result, targetfile, error = csv_generator.check_progress()
+            return json.dumps(dict(count=count, result=result, targetfile=targetfile,
+            error=error))
+        except IngestServiceException as ex:
+            raise JsonHTTPError(409, str(ex))
+
 class DataIngestionService(object):
     """
     The root RESTful web service exposed through CherryPy at /services
     """
     exposed = True
-
     def __init__(self):
         '''
         self.{attr} is answers the request to URL path /services/{attr}.
@@ -150,6 +155,7 @@ class DataIngestionService(object):
         self.csv = CsvIngestionService()
         self.history = History()
         self.generatecsv = GenerateCSV()
+        self.csvgenprogress = CSVGenProgress()
 
     def GET(self):
         return '<html><body>Ingestion Service is running.</body></html>'
@@ -179,7 +185,6 @@ class DataIngestionService(object):
 
 class CsvIngestionService(object):
     exposed = True
-    
     def GET(self):
         return '<html><body>CSV ingestion Service is running.</body></html>'
 
