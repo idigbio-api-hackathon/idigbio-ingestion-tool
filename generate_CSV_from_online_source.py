@@ -26,7 +26,7 @@ acceptable_fields_print = ["idigbio:OriginalFileName (Required)", "idigbio:Media
 TIMEOUT=5
 MAX_NUM = 1000000
 
-num_records = 5
+num_records = 1000
 file_url = "http://www.acis.ufl.edu/~yonggang/idigbio/dataset/"
 file_list_name = "file_list"
 csv_name = "test_input.csv"

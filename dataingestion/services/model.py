@@ -280,7 +280,7 @@ def md5_file(f, block_size=2 ** 20):
     return md5
 
 def generate_record(csvrow, orderlist, rs_uuid):
-    logger.debug('generate_record')
+    logger.debug('Generating image record...')
     
     mediapath = ""
     mediaproviderid = ""
@@ -382,7 +382,7 @@ def generate_record(csvrow, orderlist, rs_uuid):
                 metadata[decoded] = value
             mbuffer = str(metadata)
 
-    logger.debug('generate_record done.')
+    logger.debug('Generating image record done.')
     return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_error,desc,lang,title,digi,pix,
         mag,ocr_output,ocr_tech,info_withheld,col_obj_guid, filemd5.hexdigest(),mime_type,media_size,ctime, 
         owner,mbuffer)
@@ -395,8 +395,7 @@ def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
     :rtype: ImageRecord or None.
     .. note:: Image identity is not determined by path but rather by its MD5.
     '''
-    #logger.debug('add_or_load_image')
-    logger.debug("add_or_load_image")
+    logger.debug("Updating ImageRecord...")
     (mediapath,mediaproviderid,recordmd5,file_error,desc,lang,title,digi,pix,mag,ocr_output,ocr_tech,
         info_withheld,col_obj_guid,filemd5,mime_type,media_size,ctime,owner,
         metadata) = generate_record(csvrow, orderlist, rs_uuid)
@@ -407,16 +406,16 @@ def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
             desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, col_obj_guid, 
             filemd5, mime_type, media_size, ctime, owner, metadata)
         session.add(record)
-        logger.debug("add_or_load_image done: New record.")
+        logger.debug("Updating ImageRecord done: New record.")
         #logger.debug('add_or_load_image: new record added')
         return record
     elif record.UploadTime: # Found the duplicate record, already uploaded.
         #record.BatchID = batch.id
-        logger.debug("add_or_load_image done: Already done.")
+        logger.debug("Updating ImageRecord done: Already uploaded and done.")
         return None
     else: # Found the duplicate record, but not uploaded or file not found.
         record.BatchID = batch.id
-        logger.debug("add_or_load_image done: Record not finished.")
+        logger.debug("Updating ImageRecord done: Record not fully finished.")
         return record
 
 @check_session

@@ -24,16 +24,9 @@ var IMAGE_LICENSES = {
     "CC BY-NC-SA": ["CC BY-NC-SA", "(Attribution-NonCommercial-ShareAlike)", "http://creativecommons.org/licenses/by-nc-sa/3.0/"]
 };
 
-var GUID_SYNTAXES = {
-    "hash": "GUID = hash of record information",
-    "filename": "GUID = \"{GUID Prefix}{File Name}\"",
-    "fullpath": "GUID = \"{GUID Prefix}{Full Path}\""
-}
-
 initMainUI = function() {
     showLastBatchInfo();
     initCsvLicenseSelector();
-    initGUIDSyntaxSelector();
 
     $("body").tooltip({
         selector: '[rel=tooltip]'
@@ -90,76 +83,9 @@ initMainUI = function() {
         }
     });
 
-
-    // Set up csv-generation-form
-    $('#csv-generation-form').validate({
-        onfocusout: false,
-        onkeyup: false,
-        onsubmit: false,
-        errorPlacement: function(error, element) {},
-        highlight: function(element) {
-            $(element).closest('.control-group').addClass('error');
-        },
-        unhighlight: function(element) {
-            $(element).closest('.control-group').removeClass('error');
-        },
-        rules: {
-            gimagedir: {
-                required: true
-            }
-        }
-    });
-    
-    $('#csv-generation-form').submit(function(event) {
-        event.preventDefault();
-        if ($('#csv-generation-form').valid()) {
-            var values = 
-                "{\'g-imagedir\':\'" + processFieldValue('#gimagedir') +
-                "\',\'g-recursive\':\'" + $('#g-recursive-cb').is(":checked") +
-                "\',\'g-guidsyntax\':\'" + processFieldValue('#g-guidsyntax-dropdown') +
-                "\',\'g-guidprefix\':\'" + processFieldValue('#g-guidprefix') +
-                "\',\'g-save-path\':\'" + processFieldValue('#g-save-path') +
-                "\',\'g-desc\':\'" + processFieldValue('#g-desc') +
-                "\',\'g-lang\':\'" + processFieldValue('#g-lang') +
-                "\',\'g-title\':\'" + processFieldValue('#g-title') +
-                "\',\'g-digdev\':\'" + processFieldValue('#g-digdev') +
-                "\',\'g-pixres\':\'" + processFieldValue('#g-pixres') +
-                "\',\'g-mag\':\'" + processFieldValue('#g-mag') +
-                "\',\'g-ocr-output\':\'" + processFieldValue('#g-ocr-output') +
-                "\',\'g-ocr-tech\':\'" + processFieldValue('#g-ocr-tech') +
-                "\',\'g-info-wh\':\'" + processFieldValue('#g-info-wh') +
-                "\',\'g-col-obj-guid\':\'" + processFieldValue('#g-col-obj-guid') +
-                "\'}";
-            
-            postCsvGeneration(values);
-        }
-        else {
-            showAlert2('Error: The upload directory cannot be empty.', "", "");
-        }
-    })
-    
-    $('#refresh-bh-button').click(function(event) {
-        $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
-    });
-
-    $('#history-tab-button').click(function(event) {
-        $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
-    });
-
-    $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
-    
-    $('#g-flip-opt-fields').click(function(event) {
-        if ($('#g-opt-fields').hasClass("hide")) {
-            $('#g-opt-fields').removeClass("hide");
-            $('#g-filp-opt-fields-text').text("Hide Other Fields");
-        }
-        else {
-            $('#g-opt-fields').addClass("hide");
-            $('#g-filp-opt-fields-text').text("Show Other Fields");
-        }
-    });
+    initHistoryUI();
+    initCSVGenUI();
 }
-
 
 checkAuthentication = function() {
     blockUI();
@@ -279,29 +205,6 @@ initCsvLicenseSelector = function() {
     });
 }
 
-initGUIDSyntaxSelector = function() {
-    $.each(GUID_SYNTAXES, function(key, value) {
-        var option = ["<option value=\"", key, "\">", value, "</option>"].join("");
-        $("#g-guidsyntax-dropdown").append(option);
-    });
-    $("#g-guidsyntax-dropdown option[value='']").remove();
-    
-    $("#g-guidsyntax-dropdown").change(function(e) {
-        var syntaxName = $("#g-guidsyntax-dropdown").val();
-//        setPreference('g-guidsyntax', syntaxName);
-        if (syntaxName == "hash") {
-            if (! $('#g-guidprefix-group').hasClass("hide")) {
-                $("#g-guidprefix-group").addClass('hide');
-            }
-        }
-        else {
-            if ($('#g-guidprefix-group').hasClass("hide")) {
-                $('#g-guidprefix-group').removeClass("hide");
-            }
-        }
-    });
-}
-
 postCsvUpload = function(action, values) {
     // Reset the elements
     $("#result-table-container").removeClass('in');
@@ -367,72 +270,6 @@ postCsvUpload = function(action, values) {
     }
 }
 
-postCsvGeneration = function(values) {
-    // Reset the elements
-    $("#progressbar-container-csvgen").removeClass('in');
-    $("#progressbar-container-csvgen").removeClass('hide');
-    
-    var callback = function(targetpath){
-        // Disable inputs
-        $('#gimagedir').attr('disabled', true);
-        $("#gimagedir").addClass('disabled');
-
-        $("#g-recursive-cb").attr('disabled', true);
-        $("#g-recursive-cb").addClass('disabled');
-
-        $('#g-guidsyntax-dropdown').attr('disabled', true);
-        $("#g-guidsyntax-dropdown").addClass('disabled');
-
-        $('#g-guidprefix').attr('disabled', true);
-        $("#g-guidprefix").addClass('disabled');
-        
-        $('#g-save-path').attr('disabled', true);
-        $("#g-save-path").addClass('disabled');
-
-        $('#g-desc').attr('disabled', true);
-        $("#g-desc").addClass('disabled');
-
-        $('#g-lang').attr('disabled', true);
-        $("#g-lang").addClass('disabled');
-
-        $('#g-title').attr('disabled', true);
-        $("#g-title").addClass('disabled');
-
-        $('#g-digdev').attr('disabled', true);
-        $("#g-digdev").addClass('disabled');
-
-        $("#g-pixres").attr('disabled', true);
-        $("#g-pixres").addClass('disabled');
-        
-        $("#g-mag").attr('disabled', true);
-        $("#g-mag").addClass('disabled');
-
-        $("#g-ocr-output").attr('disabled', true);
-        $("#g-ocr-output").addClass('disabled');
-
-        $("#g-ocr-tech").attr('disabled', true);
-        $("#g-ocr-tech").addClass('disabled');
-
-        $("#g-info-wh").attr('disabled', true);
-        $("#g-info-wh").addClass('disabled');
-
-        $("#g-col-obj-guid").attr('disabled', true);
-        $("#g-col-obj-guid").addClass('disabled');
-
-        $("#csv-generate-button").attr('disabled', true);
-        $("#csv-generate-button").addClass('disabled');
-        
-        // Show progress bar in animation
-        $(".progress-primary").addClass('active');
-        $("#progressbar-container-csvgen").addClass('in');
-
-        setTimeout("updateCSVGenProgress()", 100);
-    };
-    
-    // now send the form and wait to hear back
-    $.post("/services/generatecsv", { values: values }, callback, 'json');
-}
-
 showLastBatchInfo = function() {
     $.getJSON('/services/batch', function(batch) {
         if (batch.Empty) {
@@ -481,32 +318,6 @@ showAlert = function(message, additionalElement, alertType) {
     $("#upload-alert").addClass(alertType);
     $("#alert-text").html(message);
     $("#alert-extra").html(additionalElement);
-}
-
-/**
- * Display an alert message in the designated alert container.
- * @param {HTML string} message 
- * @param {HTML string} [additionalElement] Additional element(s) in the second row.
- * @param {String} [alertType] The alert type, i.e. Bootstrap class, default to 
- *   alert-error.
- */
-showAlert2 = function(message, additionalElement, alertType) {
-    additionalElement = additionalElement || "";
-    alertType = alertType || "alert-error";
-    container = "#alert-container-2";
-    
-    var alert_html =
-        ['<div class="alert alert-block fade span10" id="upload-alert-2">',
-        '<button class="close" data-dismiss="alert">&times;</button>',
-        '<p id="alert-text-2">',
-        '<div id="alert-extra-2">',
-        '</div>'].join('\n');
-    $(container).html(alert_html);
-    $("#upload-alert-2").show();
-    $("#upload-alert-2").addClass('in');
-    $("#upload-alert-2").addClass(alertType);
-    $("#alert-text-2").html(message);
-    $("#alert-extra-2").html(additionalElement);
 }
 
 updateProgress = function() {
@@ -594,240 +405,6 @@ updateProgress = function() {
         
         // Calls itself again after 4000ms.
         setTimeout("updateProgress()", 4000);
-    });
-}
-
-
-updateCSVGenProgress = function() {
-    var url = '/services/csvgenprogress';
-    
-    $.getJSON(url, function(progressObj) {
-        
-        $("#progresstext2").text("Processed: " + progressObj.count + " files.");
-        
-        if (progressObj.result != 0) {
-            $(".progress-primary").toggleClass('active');
-
-            $('#gimagedir').attr('disabled', false);
-            $("#gimagedir").removeClass('disabled');
-
-            $("#g-recursive-cb").attr('disabled', false);
-            $("#g-recursive-cb").removeClass('disabled');
-
-            $('#g-guidsyntax-dropdown').attr('disabled', false);
-            $("#g-guidsyntax-dropdown").removeClass('disabled');
-
-            $('#g-guidprefix').attr('disabled', false);
-            $("#g-guidprefix").removeClass('disabled');
-            
-            $('#g-save-path').attr('disabled', false);
-            $("#g-save-path").removeClass('disabled');
-
-            $('#g-desc').attr('disabled', false);
-            $("#g-desc").removeClass('disabled');
-
-            $('#g-lang').attr('disabled', false);
-            $("#g-lang").removeClass('disabled');
-
-            $('#g-title').attr('disabled', false);
-            $("#g-title").removeClass('disabled');
-
-            $('#g-digdev').attr('disabled', false);
-            $("#g-digdev").removeClass('disabled');
-
-            $("#g-pixres").attr('disabled', false);
-            $("#g-pixres").removeClass('disabled');
-            
-            $("#g-mag").attr('disabled', false);
-            $("#g-mag").removeClass('disabled');
-
-            $("#g-ocr-output").attr('disabled', false);
-            $("#g-ocr-output").removeClass('disabled');
-
-            $("#g-ocr-tech").attr('disabled', false);
-            $("#g-ocr-tech").removeClass('disabled');
-
-            $("#g-info-wh").attr('disabled', false);
-            $("#g-info-wh").removeClass('disabled');
-
-            $("#g-col-obj-guid").attr('disabled', false);
-            $("#g-col-obj-guid").removeClass('disabled');
-
-            $("#csv-generate-button").attr('disabled', false);
-            $("#csv-generate-button").removeClass('disabled');
-
-            if (progressObj.result == 1) {
-                targetfile = progressObj.targetfile.replace(/\\\\/g, "\\"); // Make sure the "\\" is replaced with "\".
-                showAlert2("The CSV file is successfully saved to: " +
-                    targetfile, "", "alert-success");
-            } else {
-                showAlert2("Error: " + progressObj.error, "", "alert-error");
-            }
-        } else { // Not finished.
-            // Calls itself again after 100ms.
-            setTimeout("updateCSVGenProgress()", 100);
-        }
-    });
-}
-
-renderBatchHistory = function(data) {
-    if ($('#batch-history-table-container').hasClass('hide')) {
-        $('#batch-history-table-container').removeClass('hide');
-        $('#batch-history-table-container').addClass('in');
-    }
-
-    var bht = $('#batch-history-table').dataTable({
-        "aaData": data,
-        "aoColumns": [
-            { "sTitle": "ID", "sWidth": "5%" },
-            { "sTitle": "CSVfilePath", "sWidth": "35%" },
-            { "sTitle": "iDigbioProvidedByGUID", "bVisible": false },
-            { "sTitle": "RightsLicense", "bVisible": false },
-            { "sTitle": "RightsLicenseStatementUrl", "bVisible": false },
-            { "sTitle": "RightsLicenseLogoUrl", "bVisible": false },
-            { "sTitle": "RecordSetGUID", "sWidth": "12%" },
-            { "sTitle": "RecordSetUUID", "bVisible": false },
-            { "sTitle": "start_time", "sWidth": "15%" },
-            { "sTitle": "finish_time", "sWidth": "15%" },
-            { "sTitle": "MediaContentKeyword", "bVisible": false },
-            { "sTitle": "iDigbioProviderGUID", "bVisible": false },
-            { "sTitle": "iDigbioPublisherGUID", "bVisible": false },
-            { "sTitle": "FundingSource", "bVisible": false },
-            { "sTitle": "FundingPurpose", "bVisible": false },
-            { "sTitle": "Records", "sWidth": "8%" }
-        ],
-        "sDom": "<'row'<'span5'l><'span6'p>>tr<'row'<'span6'i>>",
-        "bPaginate": true,
-        "bLengthChange": true,
-        "bFilter": false,
-        "bSort": true,
-        "bInfo": true,
-        "bAutoWidth": false,
-        "bDestroy" : true,
-        "sPaginationType": "bootstrap"
-    });
-    
-    // We do the row selection here outside datatable, 
-    // because the dataTable is not doing well in supporting row selections.
-    $('#batch-history-table').delegate('tbody > tr > td', 'click', function (event)
-    {
-        /*
-        if ($(this.parentNode).hasClass('row_selected')) {
-            $(this.parentNode).removeClass('success');
-            $(this.parentNode).removeClass('row_selected');
-
-            if ($('#image-history-table-container').hasClass('in')) {
-                $('#image-history-table-container').removeClass('in');
-                $('#image-history-table-container').addClass('hide');
-            }
-        }
-        else {*/
-            $(bht.fnSettings().aoData).each(function (){
-                $(this.nTr).removeClass('success');
-                $(this.nTr).removeClass('row_selected');
-            });
-
-            if (! $(this.parentNode).hasClass('row_selected')) {
-                $(this.parentNode).addClass('success');
-                $(this.parentNode).addClass('row_selected');
-            }
-            
-            var aData = bht.fnGetData( this.parentNode );//get data of the clicked row
-
-            $.getJSON('/services/history', { table_id: aData[0] }, renderMediaRecordHistory);
-            $('#image-history-table-description').text("Batch ID: " + aData[0]);
-        //}
-    });
-}
-
-renderMediaRecordHistory = function(data) {
-    if ($('#image-history-table-container').hasClass('hide')) {
-        $('#image-history-table-container').removeClass('hide');
-        $('#image-history-table-container').addClass('in');
-    };
-    $('#image-history-table').dataTable({
-        "aaData": data,
-        "aoColumns": [
-            { "sTitle": "OriginalFileName", "sWidth": "42%" },
-            { "sTitle": "MediaError", "bVisible": false },
-            { "sTitle": "MediaGUID", "bVisible": false },
-            { "sTitle": "MediaRecordUUID", "bVisible": false },
-            { "sTitle": "MediaAccessUUID", "bVisible": false },
-            { "sTitle": "Comments", "bVisible": false },
-            { "sTitle": "UploadTime", "bVisible": false },
-            { "sTitle": "MediaURL", "bVisible": false },
-            { "sTitle": "Description", "bVisible": false },
-            { "sTitle": "LanguageCode", "bVisible": false },
-            { "sTitle": "Title", "bVisible": false },
-            { "sTitle": "DigitalizationDevice", "bVisible": false },
-            { "sTitle": "NominalPixelResolution", "bVisible": false },
-            { "sTitle": "Magnification", "bVisible": false },
-            { "sTitle": "OcrOutput", "bVisible": false },
-            { "sTitle": "OcrTechnology", "bVisible": false },
-            { "sTitle": "InformationWithheld", "bVisible": false },
-            { "sTitle": "CollectionObjectGUID", "bVisible": false },
-            { "sTitle": "MediaMD5", "bVisible": false },
-            { "sTitle": "MimeType", "bVisible": false },
-            { "sTitle": "MediaSizeInBytes", "bVisible": false },
-            { "sTitle": "ProviderCreatedTimeStamp", "bVisible": false },
-            { "sTitle": "providerCreatedByGUID", "bVisible": false },
-            { "sTitle": "MediaRecordEtag", "bVisible": false },
-            { "sTitle": "RecordSetUUID", "bVisible": false },
-            { "sTitle": "iDigbioProvidedByGUID", "bVisible": false },
-            { "sTitle": "MediaContentKeyword", "bVisible": false },
-            { "sTitle": "FundingSource", "bVisible": false },
-            { "sTitle": "FundingPurpose", "bVisible": false },
-            { "sTitle": "iDigbioPublisherGUID", "bVisible": false },
-            { "sTitle": "RightsLicenseStatementUrl", "bVisible": false },
-            { "sTitle": "RightsLicenseLogoUrl", "bVisible": false },
-            { "sTitle": "iDigbioProviderGUID", "bVisible": false },
-            { "sTitle": "RightsLicense", "bVisible": false },
-            { "sTitle": "CSVfilePath", "bVisible": false },
-            { "sTitle": "RecordSetGUID", "bVisible": false },
-            {
-                "sTitle": "Online Path or Error Message",
-                "sWidth": "58%",
-                "fnRender": function(obj) {
-                    file_error = obj.aData[1]; // It is given as an array.
-                    url = obj.aData[7];
-                    var text;
-                    if (file_error != null) {
-                        text = "<span class=\"label label-important\">" + file_error + "</span>"
-                    } else if (url == null) {
-                        text = "<span class=\"label label-important\">This image is not successfully uploaded.</span>"
-                    } else {
-                        text = '<a target="_blank" href="' + url + '">'+ url + '</a>';
-                    }
-                    return text;
-                }
-            } // 33 elements.
-        ],
-        "sDom": "<'row'<'span3'l><'span3'T><'span5'p>>t<'row'<'span6'i>>",
-        "bPaginate": true,
-        "bLengthChange": true,
-        "bFilter": false,
-        "bSort": true,
-        "bInfo": true,
-        "bAutoWidth": false,
-        "oTableTools": {
-            "sSwfPath": "assets/TableTools/swf/copy_csv_xls_pdf.swf",
-            "aButtons": [
-            {
-                "sExtends": "csv",
-                "sButtonText": 'CSV(Complete)',
-                "sFieldBoundary": '"',
-                "sFieldSeperator": ',',
-                "sFileName": 'iDigBio-history.csv'
-            },
-            {
-                "sExtends": 'pdf',
-                "sTitle": 'iDigBio-history',
-                "sButtonText": 'PDF(Selective)',
-                "mColumns": "visible"
-            }]
-        },
-        "bDestroy" : true,
-        "sPaginationType": "bootstrap"
     });
 }
 
