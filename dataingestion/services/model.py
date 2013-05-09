@@ -216,6 +216,8 @@ class UploadBatch(Base):
     FundingPurpose = Column(String)
 
     RecordCount = Column(Integer)
+    SkipCount = Column(Integer)
+    FailCount = Column(Integer)
     ErrorCode = Column(String)
 
     AllMD5 = Column(String) # The md5 of the CSV file + uuid.
@@ -492,8 +494,9 @@ def get_all_batches():
         UploadBatch.RightsLicenseLogoUrl, UploadBatch.RecordSetGUID, UploadBatch.RecordSetUUID,
         UploadBatch.start_time, UploadBatch.finish_time, UploadBatch.MediaContentKeyword,
         UploadBatch.iDigbioProviderGUID, UploadBatch.iDigbioPublisherGUID, UploadBatch.FundingSource,
-        UploadBatch.FundingPurpose, UploadBatch.RecordCount
-        ).order_by(UploadBatch.id) # 16 elements
+        UploadBatch.FundingPurpose, UploadBatch.RecordCount, UploadBatch.FailCount, 
+        UploadBatch.SkipCount
+        ).order_by(UploadBatch.id) # 18 elements
     
     logger.debug("Batch count: " + str(query.count()))
     logger.debug("get_all_batches done")
@@ -505,17 +508,19 @@ def get_all_batches():
             item = str(origitem)
             if index == 8:
                 item = item[0:item.index('.')]
-            if index == 9:
-                try:
-                    item = item[0:item.index('.')]
-                except ValueError as ex:
-                    item = "Not successfully finished."
+            #if index == 9:
+            #    try:
+            #        item = item[0:item.index('.')]
+            #        item = "Successful"
+            #    except ValueError as ex:
+            #        item = "Failed"
             #if index == 15:
             #    if origitem is None:
             #        item = "0" # No record.
             newelem.append(str(item))
             index = index + 1
         ret.append(newelem)
+    #print(ret)
     return ret
 
 @check_session

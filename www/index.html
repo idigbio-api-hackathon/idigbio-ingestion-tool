@@ -44,9 +44,12 @@
           <div class="nav-collapse">
             <ul class="nav">
               <li class="active"><a href="/">Home</a></li>
-              <li><a target="_blank" href="https://github.com/iDigBio/idigbio-ingestion-tool/wiki">Docs</a></li>
+              <li><a target="_blank" href="https://www.idigbio.org/wiki/index.php/CYWG_iDigBio_Image_Ingestion_Appliance">Docs</a></li>
             </ul>
-            <button id="logout-btn" class="btn btn-warning pull-right" type="button">Logout</button>
+            <div class="pull-right">
+              <span id="account-uuid-text"></span>
+              <button id="logout-btn" class="btn btn-warning" type="button">Logout</button>
+            </div>
           </div><!--/.nav-collapse -->
         </div>
       </div>
@@ -145,6 +148,12 @@
       <!--[if (gte IE 10)|!(IE)]><!-->
       <div id="upload-dashboard" class="js-required">
       <!--<![endif]-->
+          <div class="breadcrumb">
+            <div class="row">
+              <div class="span11">If you do not have the CSV file for your medias, please generate one from sketch (your medias should be within one directory) using the <b>"Generate CSV"</b> tab. Please use the <b>"Upload Via CSV"</b> tab to upload your media through a CSV file to the server. The <b>"Upload History"</b> shows the details of all the previous uploads.
+              </div>
+            </div>
+          </div>
         <ul class="nav nav-tabs">
           <li class="active">
             <a href="#upload-tab" data-toggle="tab">Upload Via CSV</a>
@@ -178,16 +187,16 @@
                   <label class="control-label" for="rsguid">Record Set GUID *</label>
                   <div class="controls controls-row">
                     <input type="text" data-provide="typeahead" class="span8"
-                      id="rsguid" name="rsguid" placeholder="Record Set GUID"
-                      rel="tooltip" data-title='This is the GUID for this record set.'>
+                      id="rsguid" name="rsguid" placeholder="Give an identifier for all the meidas in the record set."
+                      rel="tooltip" data-title='This can be a common attribute or prefix for all records in the set. It can also be the path to the CSV file.'>
                   </div>
                 </div>
 
                 <div class="control-group">
-                  <label class="control-label" for="csv-path">CSV File Path *</label>
+                  <label class="control-label" for="csv-path">CSV File Full Path *</label>
                   <div class='controls controls-row'>
                     <input type="text" data-provide="typeahead" class="span8"
-                      id="csv-path" placeholder="Paste CSV path&hellip;"
+                      id="csv-path" placeholder="This should be the full path including the CSV file name."
                       rel="tooltip" name="csv-path"
                       data-title='e.g. /Users/you/collection.csv'>
                   </div>
@@ -197,7 +206,7 @@
                   <label class="control-label" for="mediaContentKeyword">Media Content Keyword</label>
                   <div class='controls controls-row'>
                     <input type="text" data-provide="typeahead" class="span8"
-                      id="mediaContentKeyword" placeholder="Optional"
+                      id="mediaContentKeyword" placeholder="Optional, use ',' as the separator."
                       rel="tooltip" name="mediaContentKeyword"
                       data-title='Should indicate "Label" or "FieldBook" for a photograph of a label or field book, "PhysicalSpecimen" or "LivingSpecimen" for a photograph of a specimen, "Illustration" for a man-made drawing, and so on.'>
                   </div>
@@ -218,7 +227,7 @@
                     <input type="text" data-provide="typeahead" class="span8"
                       id="iDigbioPublisherGUID" placeholder="Optional"
                       rel="tooltip" name="iDigbioPublisherGUID"
-                      data-title='Relates this record set to the organization (Organization Concept) that is publishing the data on behalf of the source provider.'>
+                      data-title='Relates this record set to the organization that is publishing the data on behalf of the source provider.'>
                   </div>
                 </div>
 
@@ -242,6 +251,13 @@
                   </div>
                 </div>
 
+                <div class="control-group">
+                  <label class="control-label"></label>
+                  <div class='controls controls-row'>
+                    Note: Fields with * are mandatory.
+                  </div>
+                </div>
+
                 <div class='controls controls-row'>
 
                   <div class='span3'>
@@ -254,7 +270,7 @@
                   <div class='span3'>
                     <a href="#CSVFileFormatModal" id="csv-file-format-button" role="button" class="btn btn-inverse btn-block" data-toggle="modal">
                       <i class="icon-list-alt icon-white"></i>
-                      <span>CSV format</span>
+                      <span>CSV file format</span>
                     </a>
                   </div>
 
@@ -351,6 +367,13 @@
                       <input type="text" data-provide="typeahead" class="span8"
                         id="g-save-path" name="g-save-path" placeholder="If left blank, the file will be saved to the image directory."
                         rel="tooltip" data-title='The directory path that you want to save your CSV file.'>
+                    </div>
+                  </div>
+
+                  <div class="control-group">
+                    <label class="control-label"></label>
+                    <div class='controls controls-row'>
+                      Note: Fields with * are mandatory.
                     </div>
                   </div>
                 
@@ -460,6 +483,7 @@
                   </div>
 
                 </div>
+
               </div>
 
               <div class='controls controls-row'>
@@ -591,7 +615,39 @@
       <hr>
 
       <footer class="text-centered">
-        <p>&copy; iDigBio 2012</p>
+        <a href="https://www.idigbio.org/contact/David%20Jennings" target="_blank">
+          David Jennings
+        </a>, Project Manager • 
+        <a href="https://www.idigbio.org/contact/Cathy%20Bester" target="_blank">
+          Cathy Bester
+        </a>, Program Assistant • Dickinson Hall • Gainesville, FL 32611 • 
+        <a href="tel:352-273-1906" value="+13522731906" target="_blank">
+          352-273-1906
+        </a>
+        <br>
+          iDigBio is funded by a grant from the National Science
+          Foundation's Advancing Digitization of Biodiversity
+          Collections Program (#EF1115210)
+        </br>
+        <a href="http://www.facebook.com/iDigBio" target="_blank">Like iDigBio on Facebook</a> |<a href="https://twitter.com/iDigBio" target="_blank">Follow iDigbio on Twitter</a>
+
+        <p>Use of this website is subject to iDigBio's 
+          <a href="https://www.idigbio.org/content/idigbio-terms-use-policy" target="_blank">
+            Terms of Use
+          </a> and 
+          <a href="https://www.idigbio.org/content/idigbio-service-level-agreement-sla" target="_blank">
+            Service Level Agreement
+          </a>.
+          <br>
+            This page uses 
+            <a href="http://www.google.com/analytics" target="_blank">
+              Google Analytics
+            </a> • 
+            <a href="http://www.google.com/intl/en_ALL/privacypolicy.html" target="_blank">
+              Google Privacy Policy
+            </a>
+          </br>
+          &copy; Copyright 2013
       </footer>
 
     </div> <!-- /container -->
@@ -609,7 +665,6 @@
     <script type="text/javascript" charset="utf8" src="assets/TableTools/js/TableTools.min.js"></script>
     <script type="text/javascript" charset="utf8" src="assets/DataTables/js/DT-bootstrap.js"></script>
     <!-- Site-specific JS -->
-    <script src="assets/js/ingestion.dir.js"></script>
     <script src="assets/js/ingestion.ui.js"></script>
     <script src="assets/js/history.ui.js"></script>
     <script src="assets/js/csvgen.ui.js"></script>

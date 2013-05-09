@@ -31,5 +31,5 @@ G_DEFAULT_CSV_OUTPUT_NAME = 'media_records.csv'
 G_FILE_NUMBER_LIMIT = 10000
 # Control the number of directrys traveling through, prevent the problem to be too large.
 
-IMAGES_TABLENAME = 'imagesV8_5'
-BATCHES_TABLENAME = 'batchesV8_5'
+IMAGES_TABLENAME = 'imagesV8_6'
+BATCHES_TABLENAME = 'batchesV8_6'

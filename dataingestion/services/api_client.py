@@ -54,21 +54,19 @@ def _post_recordset(provider_id, metadata):
         response = json.loads(_post_json(url, data))
         logger.debug("POSTing recordset done.")
     except urllib2.HTTPError as e:
-        logger.error("Failed to POST the recordset to server.",
-                              url=url, http_status=e.code, 
-                              http_response_content=e.read(),
-                              reason=provider_id)
+        logger.error("Failed to POST the recordset to server.")
         raise ClientException("Failed to POST the recordset to server.",
                               url=url, http_status=e.code, 
                               http_response_content=e.read(),
                               reason=provider_id)
     except (urllib2.URLError, socket.error, HTTPException) as e:
-        logger.error("{0} caught while POSTing the recordset.".format(type(e)),
-                              reason=str(e), url=url)
+        print("PPP")
+        logger.error("{0} caught while POSTing the recordset.".format(type(e)))
+        print("QQQ")
         raise ClientException("{0} caught while POSTing the recordset.".format(type(e)),
                               reason=str(e), url=url)
-    except IOError as e:
-        logger.error("IOError.")
+    except (IOError, OSError) as e:
+        logger.error("IOError or OSError.")
         raise ClientException("IOError caught.")
     return response['idigbio:uuid']
 
@@ -131,7 +129,6 @@ def _post_json(url, obj):
     """
     content = json.dumps(obj, separators=(',',':'))
 #    logger.debug("content -> " + str(content))
-    
     req = urllib2.Request(url, content, {'Content-Type': 'application/json'})
 
     req.add_header("Authorization", "Basic %s" % auth_string)

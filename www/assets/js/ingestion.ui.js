@@ -1,12 +1,13 @@
 $(document).ready(function() {
-    getPreference('devmode_disable_startup_service_check', function(val) {
-        if (val != 'true') {
-            checkAuthentication();
-        } else {
-            $.unblockUI();
-            initMainUI();
-        }
-    });
+    checkAuthentication();
+//    getPreference('devmode_disable_startup_service_check', function(val) {
+//        if (val != 'true') {
+//            checkAuthentication();
+//        } else {
+//            $.unblockUI();
+//            initMainUI();
+//        }
+//    });
     
     // Certain UI components will be disabled if JS is. This overrides the css
     // that hides them (ingestion.ui.css), making sure they are shown.
@@ -24,12 +25,18 @@ var IMAGE_LICENSES = {
     "CC BY-NC-SA": ["CC BY-NC-SA", "(Attribution-NonCommercial-ShareAlike)", "http://creativecommons.org/licenses/by-nc-sa/3.0/"]
 };
 
+
+
 initMainUI = function() {
     showLastBatchInfo();
     initCsvLicenseSelector();
 
     $("body").tooltip({
         selector: '[rel=tooltip]'
+    });
+
+    $.getJSON('/services/config', { name: "accountuuid"}, function(data) {
+        $('#account-uuid-text').text('Acount UUID: ' + data);
     });
 
     $('#logout-btn').click(function(e) {
@@ -324,7 +331,6 @@ updateProgress = function() {
     var url = '/services/progress';
     
     $.getJSON(url, function(progressObj) {
-        
         var progress = progressObj.total == 0 ? 100 : 
             Math.floor((progressObj.successes + progressObj.fails + 
                 progressObj.skips) / progressObj.total * 100);
@@ -380,13 +386,21 @@ updateProgress = function() {
                     var extra = ['<p><button id="retry-button" type="submit"',
                         'class="btn btn-warning">Retry failed uploads</button></p>'].join("");
                 } else {
+                    /*
                     $.getJSON('/services/batch', function(batch) {
                         var errMsg = ["<p><strong>Warning!</strong> ",
                             batch.ErrorCode,
                             " Please fix it and retry the upload."].join("");
                         showAlert(errMsg, extra, "alert-warning");
-                    });
+                    });*/
+
+                    var errMsg = ["<p><strong>Warning!</strong> ",
+                        "Nothing is uploaded. Maybe the CSV is empty or the network is down? ",
+                        "Please check the folder and network connection and ",
+                        "retry it by clicking the 'Upload' button."].join("");
+                        
                 }
+                showAlert(errMsg, extra, "alert-warning");
                 $("#retry-button").click(function(event) {
                     event.preventDefault();
                     $("#upload-alert").alert('close');
@@ -395,6 +409,10 @@ updateProgress = function() {
                 });
             }
             
+            if(progressObj.fails == 0 && progressObj.total > 0) {
+                showAlert("All images are successfully uploaded!", "", "alert-success");
+            }
+
             if (progressObj.total > 0) {
                 // If we haven't tried one file, no need to get results.
                 $.getJSON('/services/result', renderResult);
@@ -403,8 +421,8 @@ updateProgress = function() {
             return;
         }
         
-        // Calls itself again after 4000ms.
-        setTimeout("updateProgress()", 4000);
+        // Calls itself again after 1000ms.
+        setTimeout("updateProgress ()", 1000);
     });
 }
 

@@ -96,6 +96,7 @@ class Authentication(object):
     exposed = True
     def GET(self):
         try:
+            print("Authenticating ...")
             ret = ingest_service.authenticated()
             return json.dumps(ret)
         except Exception as ex:

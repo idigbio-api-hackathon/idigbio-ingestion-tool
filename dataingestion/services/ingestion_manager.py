@@ -370,10 +370,10 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
             postprocess_queue.put(fn)
             
         except ClientException:
-            logger.error("----------- A CSV job failed -----------------")
+            logger.error("----------- ClientException: A CSV job failed -----------------")
             fn = partial(ongoing_upload_task.increment, 'fails')
+            print(ongoing_upload_task.fails)
             ongoing_upload_task.postprocess_queue.put(fn)
-
             def _abort_if_necessary():
                 if ongoing_upload_task.check_continuous_fails(False):
                     logger.info("Aborting threads because continuous failures exceed the threshold.")
@@ -381,7 +381,7 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
             ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
             raise
         except IOError as err:
-            logger.error("----------- A CSV job failed -----------------")
+            logger.error("----------- IOError: A CSV job failed -----------------")
             if err.errno == ENOENT: # No such file or directory.
                 error_queue.put('Local file %s not found' % repr(mediapath))
                 fn = partial(ongoing_upload_task.increment, 'fails')
@@ -502,6 +502,9 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
             thread.abort = True
             while thread.isAlive():
                 thread.join(0.01)
+
+        batch.FailCount = ongoing_upload_task.fails
+        batch.SkipCount = ongoing_upload_task.skips
 
         was_error = put_errors_from_threads(object_threads)
         if not was_error:
