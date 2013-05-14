@@ -88,6 +88,7 @@ initMainUI = function() {
         else {
             showAlert('The Image License, Record Set GUID and CSV File Path cannot be empty.');
         }
+        $("#upload-alert").hide();
     });
 
     initHistoryUI();
@@ -386,13 +387,6 @@ updateProgress = function() {
                     var extra = ['<p><button id="retry-button" type="submit"',
                         'class="btn btn-warning">Retry failed uploads</button></p>'].join("");
                 } else {
-                    /*
-                    $.getJSON('/services/batch', function(batch) {
-                        var errMsg = ["<p><strong>Warning!</strong> ",
-                            batch.ErrorCode,
-                            " Please fix it and retry the upload."].join("");
-                        showAlert(errMsg, extra, "alert-warning");
-                    });*/
 
                     var errMsg = ["<p><strong>Warning!</strong> ",
                         "Nothing is uploaded. Maybe the CSV is empty or the network is down? ",

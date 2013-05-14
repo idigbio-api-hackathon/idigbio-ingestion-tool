@@ -150,7 +150,7 @@
       <!--<![endif]-->
           <div class="breadcrumb">
             <div class="row">
-              <div class="span11">If you do not have the CSV file for your medias, please generate one from sketch (your medias should be within one directory) using the <b>"Generate CSV"</b> tab. Please use the <b>"Upload Via CSV"</b> tab to upload your media through a CSV file to the server. The <b>"Upload History"</b> shows the details of all the previous uploads.
+              <div class="span11">If you do not have the CSV (Comma Separated Values) file for your media, please create one (your media should be within one directory) using the <b>"Generate CSV"</b> tab. Please use the <b>"Upload Via CSV"</b> tab to upload your media through a CSV file to the server. The <b>"Upload History"</b> shows the details of all previous uploads.
               </div>
             </div>
           </div>
@@ -213,7 +213,7 @@
                 </div>
 
                 <div class="control-group">
-                  <label class="control-label" for="owneruuid">iDigbio Provider GUID</label>
+                  <label class="control-label" for="owneruuid">iDigBio Provider GUID</label>
                   <div class="controls controls-row">
                     <input type="text" data-provide="typeahead" class="span8"
                       id="iDigbioProviderGUID" placeholder="Optional" rel="tooltip"
@@ -222,7 +222,7 @@
                 </div>
 
                 <div class="control-group">
-                  <label class="control-label" for="iDigbioPublisherGUID">iDigbio Publisher GUID</label>
+                  <label class="control-label" for="iDigbioPublisherGUID">iDigBio Publisher GUID</label>
                   <div class='controls controls-row'>
                     <input type="text" data-provide="typeahead" class="span8"
                       id="iDigbioPublisherGUID" placeholder="Optional"
@@ -391,6 +391,12 @@
                 </div>
 
                 <div id="g-opt-fields" class="hide">
+
+                  <div class="control-group">
+                    <label class="control-label"></label>
+                    <div class='controls controls-row'>Please note that the values put in the following fields will be applied to all media records in the batch.
+                    </div>
+                  </div>
 
                   <div class="control-group">
                     <label class="control-label" for="g-desc">Description</label>
@@ -615,12 +621,13 @@
       <hr>
 
       <footer class="text-centered">
+        Project Manager: 
         <a href="https://www.idigbio.org/contact/David%20Jennings" target="_blank">
           David Jennings
-        </a>, Project Manager • 
+        </a>| Program Assistant:
         <a href="https://www.idigbio.org/contact/Cathy%20Bester" target="_blank">
           Cathy Bester
-        </a>, Program Assistant • Dickinson Hall • Gainesville, FL 32611 • 
+        </a>| Dickinson Hall, Gainesville, FL 32611 |
         <a href="tel:352-273-1906" value="+13522731906" target="_blank">
           352-273-1906
         </a>
@@ -629,7 +636,7 @@
           Foundation's Advancing Digitization of Biodiversity
           Collections Program (#EF1115210)
         </br>
-        <a href="http://www.facebook.com/iDigBio" target="_blank">Like iDigBio on Facebook</a> |<a href="https://twitter.com/iDigBio" target="_blank">Follow iDigbio on Twitter</a>
+        <a href="http://www.facebook.com/iDigBio" target="_blank">Like iDigBio on Facebook</a> | <a href="https://twitter.com/iDigBio" target="_blank">Follow iDigBio on Twitter</a>
 
         <p>Use of this website is subject to iDigBio's 
           <a href="https://www.idigbio.org/content/idigbio-terms-use-policy" target="_blank">
@@ -639,15 +646,9 @@
             Service Level Agreement
           </a>.
           <br>
-            This page uses 
-            <a href="http://www.google.com/analytics" target="_blank">
-              Google Analytics
-            </a> • 
-            <a href="http://www.google.com/intl/en_ALL/privacypolicy.html" target="_blank">
-              Google Privacy Policy
-            </a>
-          </br>
           &copy; Copyright 2013
+          </br>
+        </p>
       </footer>
 
     </div> <!-- /container -->

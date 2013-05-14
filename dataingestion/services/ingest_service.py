@@ -47,7 +47,7 @@ def start_upload(values, tasktype):
     # Initial checks before the task is added to the queue.
     path = values[user_config.CSV_PATH]
     if not os.path.exists(path):
-        raise ValueError("CSV file does not exist.")
+        raise ValueError("CSV file \"" + path + "\" does not exist.")
     elif os.path.isdir(path):
         raise ValueError("The CSV path is a directory.")
 

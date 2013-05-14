@@ -282,7 +282,7 @@ def md5_file(f, block_size=2 ** 20):
     return md5
 
 def generate_record(csvrow, orderlist, rs_uuid):
-    logger.debug('Generating image record...')
+    logger.debug('Generating image record ...')
     
     mediapath = ""
     mediaproviderid = ""
@@ -365,24 +365,35 @@ def generate_record(csvrow, orderlist, rs_uuid):
 
     if file_error == None:
         recordmd5.update(filemd5.hexdigest())
-        media_size = os.path.getsize(mediapath)
-        ctime = time.ctime(os.path.getmtime(mediapath))
+        try:
+            media_size = os.path.getsize(mediapath)
+            ctime = time.ctime(os.path.getmtime(mediapath))
 
-        if os.name == 'posix':
-            owner = pwd.getpwuid(os.stat(mediapath).st_uid)[0]
-        elif os.name == 'nt':
-            owner = win_api.get_file_owner(mediapath)
+            if os.name == 'posix':
+                owner = pwd.getpwuid(os.stat(mediapath).st_uid)[0]
+            elif os.name == 'nt':
+                owner = win_api.get_file_owner(mediapath)
+            else:
+                logger.error("Operating system not supported:" + os.name)
+        except IOError as err:
+            logger.debug("OS API error.")
 
-        exifinfo = Image.open(mediapath)._getexif()
-        if (exifinfo is None):
+        exifinfo = None
+        try:
+            exifinfo = Image.open(mediapath)._getexif()
+
+            if (exifinfo is None):
+                logger.debug("File metadata is malformed: " + mediapath)
+                mbuffer = ""
+            else:
+                metadata = {}
+                for tag, value in exifinfo.items():
+                    decoded = TAGS.get(tag, tag)
+                    metadata[decoded] = value
+                mbuffer = str(metadata)
+
+        except IOError as err:
             logger.debug("File metadata is malformed: " + mediapath)
-            mbuffer = ""
-        else:
-            metadata = {}
-            for tag, value in exifinfo.items():
-                decoded = TAGS.get(tag, tag)
-                metadata[decoded] = value
-            mbuffer = str(metadata)
 
     logger.debug('Generating image record done.')
     return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_error,desc,lang,title,digi,pix,
@@ -397,7 +408,7 @@ def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
     :rtype: ImageRecord or None.
     .. note:: Image identity is not determined by path but rather by its MD5.
     '''
-    logger.debug("Updating ImageRecord...")
+    logger.debug("Updating image record ...")
     (mediapath,mediaproviderid,recordmd5,file_error,desc,lang,title,digi,pix,mag,ocr_output,ocr_tech,
         info_withheld,col_obj_guid,filemd5,mime_type,media_size,ctime,owner,
         metadata) = generate_record(csvrow, orderlist, rs_uuid)
