@@ -85,7 +85,6 @@ class GenerateCSV(object):
     def POST(self, values):
         try:
             dic = ast.literal_eval(values) # Parse the string to dictionary.
-            print(dic)
             csv_generator.run_gencsv(dic)
         except IngestServiceException as ex:
             pass # Do not process it, as the exception can be captured by CSVGenProgress.
@@ -199,7 +198,6 @@ class CsvIngestionService(object):
             return self._resume()
         else:
             dic = ast.literal_eval(values) # Parse the string to dictionary.
-            print(dic)
             return self._upload(dic)
 
     def _upload(self, values):

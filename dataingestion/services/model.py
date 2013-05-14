@@ -348,37 +348,48 @@ def generate_record(csvrow, orderlist, rs_uuid):
     recordmd5.update(info_withheld)
     recordmd5.update(col_obj_guid)
 
+    name = ""
+    exifinfo = None
+
     allowed_files = re.compile(constants.ALLOWED_FILES, re.IGNORECASE)
     if not allowed_files.match(mediapath): # This file is not allowed.
         file_error = "File type unsupported."
     else:
-        name = os.path.splitext(mediapath)[1].split('.')
-        extension = name[len(name)-1].lower()
-        mime_type = constants.EXTENSION_MEDIA_TYPES[extension]
+        try:
+            name = os.path.splitext(mediapath)[1].split('.')
+            extension = name[len(name)-1].lower()
+            mime_type = constants.EXTENSION_MEDIA_TYPES[extension]
+        except os.error:
+            logger.error("os path splitext error: " + mediapath)
 
         try:
             with open(mediapath, 'rb') as f:
                 filemd5 = md5_file(f)
         except IOError as err:
-            logger.error("The file " + mediapath + " cannot be found.")
+            logger.error("The file " + mediapath + " open error.")
             file_error = "File not found."
 
     if file_error == None:
         recordmd5.update(filemd5.hexdigest())
+        
         try:
             media_size = os.path.getsize(mediapath)
-            ctime = time.ctime(os.path.getmtime(mediapath))
+        except os.error:
+            logger.error("os path getsize error: " + mediapath)
 
-            if os.name == 'posix':
-                owner = pwd.getpwuid(os.stat(mediapath).st_uid)[0]
-            elif os.name == 'nt':
+        ctime = time.ctime(os.path.getmtime(mediapath))
+
+        if os.name == 'posix':
+            owner = pwd.getpwuid(os.stat(mediapath).st_uid)[0]
+        elif os.name == 'nt':
+            try:
                 owner = win_api.get_file_owner(mediapath)
-            else:
-                logger.error("Operating system not supported:" + os.name)
-        except IOError as err:
-            logger.debug("OS API error.")
+            except Exception as err:
+                logger.debug("WIN API error: %s" % err)
+                traceback.print_exc()
+        else:
+            logger.error("Operating system not supported:" + os.name)
 
-        exifinfo = None
         try:
             exifinfo = Image.open(mediapath)._getexif()
 
