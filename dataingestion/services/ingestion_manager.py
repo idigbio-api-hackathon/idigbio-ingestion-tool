@@ -103,11 +103,11 @@ class BatchUploadTask:
         self.tasktype = tasktype
         self.batch = batch
         self.total_count = 0
-        self.object_queue = Queue(10000)
+        self.object_queue = Queue()
         self.status = None
         self.error_msg = None
-        self.postprocess_queue = Queue(10000)
-        self.error_queue = Queue(10000)
+        self.postprocess_queue = Queue()
+        self.error_queue = Queue()
         self.skips = 0
         self.fails = 0
         self.success_count = 0
