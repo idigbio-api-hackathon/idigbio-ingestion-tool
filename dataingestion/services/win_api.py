@@ -78,6 +78,8 @@ def look_up_account_sid(sid):
                              domain, ctypes.byref(cch_domain),
                              ctypes.byref(sid_type)):
             return name.value, domain.value, sid_type.value
+        else:
+            return "", "", ""
 
     return None, None, None
 
