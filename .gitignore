@@ -4,4 +4,5 @@ packaging/build
 .settings
 .project
 .pydevproject
-
+*~
+var/

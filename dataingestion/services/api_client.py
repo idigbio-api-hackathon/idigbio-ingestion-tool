@@ -128,7 +128,7 @@ def _post_json(url, obj):
     :returns: the reponse JSON object.
     """
     content = json.dumps(obj, separators=(',',':'))
-#    logger.debug("content -> " + str(content))
+    logger.debug("content -> " + str(content))
     req = urllib2.Request(url, content, {'Content-Type': 'application/json'})
 
     req.add_header("Authorization", "Basic %s" % auth_string)
