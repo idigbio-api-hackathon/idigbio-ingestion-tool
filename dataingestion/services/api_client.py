@@ -223,7 +223,7 @@ class ClientException(Exception):
 class Connection(object):
     """Convenience class to make requests that will also retry the request"""
 
-    def __init__(self, authurl=None, user=None, key=None, retries=3, preauthurl=None,
+    def __init__(self, authurl=None, user=None, key=None, retries=8, preauthurl=None,
                  preauthtoken=None, snet=False, starting_backoff=1,
                  auth_version="1"):
         """
