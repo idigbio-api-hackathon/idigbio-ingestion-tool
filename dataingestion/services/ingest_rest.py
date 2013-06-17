@@ -120,8 +120,8 @@ class ProgressStatus(object):
         Get ingestion status.
         """
         try:
-            total, skips, successes, fails, finished = ingest_service.check_progress()
-            return json.dumps(dict(total=total, successes=successes, 
+            fatal_server_error, total, skips, successes, fails, finished = ingest_service.check_progress()   
+            return json.dumps(dict(fatal_server_error=fatal_server_error, total=total, successes=successes,  
                                    skips=skips, fails=fails, finished=finished))
         except IngestServiceException as ex:
             raise JsonHTTPError(409, str(ex))

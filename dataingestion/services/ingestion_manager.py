@@ -19,13 +19,14 @@ from sys import exc_info
 from os.path import isdir, join
 from traceback import format_exception
 from errno import ENOENT
-from dataingestion.services.api_client import ClientException, Connection
+from dataingestion.services.api_client import ClientException, Connection, ServerException 
 from dataingestion.services import model, user_config, constants
 
 logger = logging.getLogger('iDigBioSvc.ingestion_manager')
 
 ongoing_upload_task = None
 """ Singleton upload task. """
+fatal_server_error = False 
 
 class IngestServiceException(Exception):
     def __init__(self, msg, reason=''):
@@ -73,6 +74,7 @@ class QueueFunctionThread(Thread):
         self.exc_infos = []
 
     def run(self):
+        global fatal_server_error
         while True:
             try:
                 item = self.queue.get_nowait()
@@ -83,6 +85,10 @@ class QueueFunctionThread(Thread):
                 if self.abort:
                     break
                 sleep(0.01)
+            except ServerException as e: 
+                logger.error("Fatal Server Error Detected") 
+                logger.debug("Fatal Server Error Detected") 
+                fatal_server_error = True
             except Exception as ex:
                 logger.error("Exception caught in a QueueFunctionThread.")
                 self.exc_infos.append(exc_info())
@@ -147,6 +153,7 @@ def get_progress():
     Return (total items, skips, successes, fails).
     """
     task = ongoing_upload_task
+    global fatal_server_error
 
     if task is None:
         logger.error("No ongoing upload task.")
@@ -156,7 +163,7 @@ def get_progress():
         # Things are yet to be added.
         sleep(0.1)
 
-    return (task.total_count, task.skips, task.success_count, task.fails,
+    return (fatal_server_error, task.total_count, task.skips, task.success_count, task.fails, 
         True if task.status == BatchUploadTask.STATUS_FINISHED else False)
 
 def get_result():
@@ -247,6 +254,7 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
     object_queue = ongoing_upload_task.object_queue
     postprocess_queue = ongoing_upload_task.postprocess_queue
     error_queue = ongoing_upload_task.error_queue
+    global fatal_server_error 
 
     def _make_idigbio_metadata(image_record):
         logger.debug("Making iDigBio metadata...")
@@ -495,7 +503,9 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
         #while not object_queue.empty():
         #    sleep(0.01)
         while ((ongoing_upload_task.skips + ongoing_upload_task.success_count + 
-            ongoing_upload_task.fails) != ongoing_upload_task.total_count):
+            ongoing_upload_task.fails) != ongoing_upload_task.total_count): 
+            if fatal_server_error: 
+                raise ServerException  
             sleep(1)
         
         for thread in object_threads:

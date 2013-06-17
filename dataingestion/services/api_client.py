@@ -114,6 +114,11 @@ def _post_media(local_path, entity_uuid):
         logger.debug("POSTing media done.")
         return resp
     except urllib2.HTTPError as e:
+        logger.debug("urllib2.HTTPError caught") 
+        logger.debug("Error code {0}".format(e.code)) 
+        if e.code == 500:  
+            logger.debug("ServerException occurs") 
+            raise ServerException("Fatal Server Exception Detected. HTTP Error code:{0}".format(e.code)) 
         raise ClientException("Failed to POST the media to server.",
                               url=request.get_full_url(), http_status=e.code,
                               http_response_content=e.read(),
@@ -219,6 +224,22 @@ class ClientException(Exception):
                 b += '  [first 60 chars of response] %s' % \
                    self.http_response_content[:200]
         return b and '%s: %s' % (a, b) or a
+
+
+"""
+This class is for Fatal Server Failure at server side. 
+If permanent server failure occurs, the appliance should elegantly finish itself. 
+Added by Kyuho on 06/17/2013
+"""
+class ServerException(Exception): 
+    def __init__(self, msg, http_status=None):
+        Exception.__init__(self, msg)
+        self.msg = msg
+        self.http_status = http_status
+
+    def __str__(self):
+        return self.msg + str(self.http_status) 
+
 
 class Connection(object):
     """Convenience class to make requests that will also retry the request"""

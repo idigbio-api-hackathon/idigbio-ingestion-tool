@@ -345,7 +345,13 @@ updateProgress = function() {
         
         $("#upload-progressbar").width(progress + '%');
         
-        if (progressObj.finished) {
+
+		if (progressObj.fatal_server_error) {
+			var errMsg = ["<p><strong>Warning!</strong> ", 
+						"<p>FATAL SERVER ERROR</p> ", 
+						"<p>Server under maintenance. Try Later</p>", ].join(""); 
+			showAlert(errMsg, extra, "alert-warning");
+        } else if (progressObj.finished) {
             $(".progress-primary").toggleClass('active');
 
             $('#csv-license-dropdown').attr('disabled', false);
