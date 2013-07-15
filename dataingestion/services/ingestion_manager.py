@@ -265,25 +265,25 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
         # The suffix has already been checked so that extension must be in the
         # dictionary.
         metadata["idigbio:MimeType"] = image_record.MimeType
-        if image_record.Description != None:
+        if image_record.Description != None and image_record.Description:
             metadata["idigbio:Description"] = image_record.Description
-        if image_record.LanguageCode != None:
+        if image_record.LanguageCode != None and image_record.LanguageCode:
             metadata["idigbio:LanguageCode"] = image_record.LanguageCode
-        if image_record.Title != None:
+        if image_record.Title != None and image_record.Title:
             metadata["idigbio:Title"] = image_record.Title
-        if image_record.DigitalizationDevice != None:
+        if image_record.DigitalizationDevice != None and image_record.DigitalizationDevice:
             metadata["idigbio:DigitalizationDevice"] = image_record.DigitalizationDevice
-        if image_record.NominalPixelResolution != None:
+        if image_record.NominalPixelResolution != None and image_record.NominalPixelResolution:
             metadata["idigbio:NominalPixelResolution"] = image_record.NominalPixelResolution
-        if image_record.Magnification != None:
+        if image_record.Magnification != None and image_record.Magnification:
             metadata["idigbio:Magnification"] = image_record.Magnification
-        if image_record.OcrOutput != None:
+        if image_record.OcrOutput != None and image_record.OcrOutput:
             metadata["idigbio:OcrOutput"] = image_record.OcrOutput
-        if image_record.OcrTechnology != None:
+        if image_record.OcrTechnology != None and image_record.OcrTechnology:
             metadata["idigbio:OcrTechnology"] = image_record.OcrTechnology
-        if image_record.InformationWithheld != None:
+        if image_record.InformationWithheld != None and image_record.InformationWithheld:
             metadata["idigbio:InformationWithheld"] = image_record.InformationWithheld
-        if image_record.CollectionObjectGUID != None:
+        if image_record.CollectionObjectGUID != None and image_record.CollectionObjectGUID:
             metadata["idigbio:CollectionObjectGUID"] = image_record.CollectionObjectGUID
         
         logger.debug("Making iDigBio metadata done.")

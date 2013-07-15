@@ -84,6 +84,7 @@ def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner
     if owner_uuid:
         data["idigbio:data"]["idigbio:relationships"]["owner"] = owner_uuid
     
+    logger.debug('_post_mediarecord data:{0}'.format(data)) #QHO
     url = build_url("mediarecords")
     logger.debug("POSTing mediarecord...")
     try:
