@@ -88,4 +88,8 @@ def get_file_owner(filename):
     sd = get_file_security(filename, request)
     sid = get_security_descriptor_owner(sd)
     name, domain, sid_type = look_up_account_sid(sid)
-    return domain + "\\" + name
+    if domain or name:  #QHO
+    	return domain + "\\" + name #QHO
+    else: #QHO
+        return None #QHO
+	
