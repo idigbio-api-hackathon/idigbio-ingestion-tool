@@ -351,6 +351,12 @@ updateProgress = function() {
 						"<p>FATAL SERVER ERROR</p> ", 
 						"<p>Server under maintenance. Try Later</p>", ].join(""); 
 			showAlert(errMsg, extra, "alert-warning");
+		} else if (progressObj.input_csv_error) {
+			var errMsg = ["<p><strong>O.o Input CSV FILE ERROR</strong> ", 
+						"<p>Your input CSV file is weird</p> ", 
+						"<p>THis error occurs when your CSV file has different number of columns among rows or any field contains double quatation mark(\")</p>", ].join(""); 
+			showAlert(errMsg, extra, "alert-warning");
+           
         } else if (progressObj.finished) {
             $(".progress-primary").toggleClass('active');
 
@@ -409,7 +415,7 @@ updateProgress = function() {
                 });
             }
             
-            if(progressObj.fails == 0 && progressObj.total > 0) {
+            if(progressObj.fails == 0 && progressObj.total > 0 ) {
                 showAlert("All images are successfully uploaded!", "", "alert-success");
             }
 

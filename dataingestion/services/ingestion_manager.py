@@ -27,8 +27,14 @@ logger = logging.getLogger('iDigBioSvc.ingestion_manager')
 ongoing_upload_task = None
 """ Singleton upload task. """
 fatal_server_error = False 
+input_csv_error = False 
 
 class IngestServiceException(Exception):
+    def __init__(self, msg, reason=''):
+        Exception.__init__(self, msg)
+        self.reason = reason
+
+class InputCSVException(Exception): 
     def __init__(self, msg, reason=''):
         Exception.__init__(self, msg)
         self.reason = reason
@@ -154,6 +160,7 @@ def get_progress():
     """
     task = ongoing_upload_task
     global fatal_server_error
+    global input_csv_error 
 
     if task is None:
         logger.error("No ongoing upload task.")
@@ -163,7 +170,7 @@ def get_progress():
         # Things are yet to be added.
         sleep(0.1)
 
-    return (fatal_server_error, task.total_count, task.skips, task.success_count, task.fails, 
+    return (fatal_server_error, input_csv_error, task.total_count, task.skips, task.success_count, task.fails, 
         True if task.status == BatchUploadTask.STATUS_FINISHED else False)
 
 def get_result():
@@ -197,6 +204,7 @@ def exec_upload_csv_task(values=None, resume=False):
     :return: False is the upload is not executed due to an existing ongoing task.
     """
     global ongoing_upload_task
+    global input_csv_error 
 
     if ongoing_upload_task and ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED:
         # Ongoing task exists
@@ -239,6 +247,9 @@ def exec_upload_csv_task(values=None, resume=False):
             error_thread.join(0.01)
 
         logger.info("Upload task execution completed.")
+    except InputCSVException as e: 
+        logger.debug("Input CSV File error ")  
+        input_csv_error = True
 
     except (SystemExit, Exception):
         logger.error("Error happens in _upload_csv.")
@@ -255,6 +266,7 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
     postprocess_queue = ongoing_upload_task.postprocess_queue
     error_queue = ongoing_upload_task.error_queue
     global fatal_server_error 
+    global input_csv_error 
 
     def _make_idigbio_metadata(image_record):
         logger.debug("Making iDigBio metadata...")
@@ -477,6 +489,16 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
                     headerline = False
                     continue
 
+                # Validity test for each line in CSV file  
+                if len(row) == len(orderlist): 
+                    for col in row: 
+                        if "\"" in col:  
+                            logger.debug("One of CSV field contains \"(Double Quatation)")
+                            raise InputCSVException("One of CSV field contains Double Quatation Mark(\")") 
+                else:
+                    logger.debug("Input CSV File weird. At least one row has different number of columns") 
+                    raise InputCSVException("Input CSV File weird. At least one row has different number of columns") 
+
                 # Get the image record
                 image_record = model.add_or_load_image(batch, row, orderlist, RecordSetUUID, constants.CSV_TYPE)
 
@@ -552,6 +574,9 @@ def main():
     model.setup(db_file)
     atexit.register(model.commit)
     exec_upload_csv_task(args.root_path)
+
+
+
 
 if __name__ == '__main__':
     main()
