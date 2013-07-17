@@ -339,6 +339,7 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
                 raise ClientException(image_record.FileError)
             if image_record.MediaRecordUUID is None:
                 # Post mediarecord.
+                logger.debug("MediaRecordUUID is None") #QHO
                 image_record.BatchID = batch.id
                 owner_uuid = user_config.try_get_user_config('owneruuid')
                 mediapath = image_record.OriginalFileName
