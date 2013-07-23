@@ -116,6 +116,7 @@ class Authentication(object):
 class ProgressStatus(object):
     exposed = True
     def GET(self, **params):
+    #def GET(self):
         """
         Get ingestion status.
         """
