@@ -115,11 +115,15 @@ class Authentication(object):
         
 class ProgressStatus(object):
     exposed = True
+    # **params added by Kyuho in July 23rd 2013 
+    # It is required to accept dummy parameters. 
+    # These dummy parameters requires to disable internet explorer browser cache.
+    # internet explorer does execute $.get when the url is the same for the time being. 
     def GET(self, **params):
         """
         Get ingestion status.
         """
-        print params #QHO
+        #print params #QHO
         try:
             fatal_server_error, input_csv_error, total, skips, successes, fails, finished = ingest_service.check_progress()   
             return json.dumps(dict(fatal_server_error=fatal_server_error, input_csv_error=input_csv_error, total=total, successes=successes,  
