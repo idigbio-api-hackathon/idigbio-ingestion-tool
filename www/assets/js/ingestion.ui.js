@@ -329,6 +329,9 @@ showAlert = function(message, additionalElement, alertType) {
 }
 
 updateProgress = function() {
+    
+    // dummy query string is added not to allow IE retrieve results from its browser cache
+    // added by Kyuho in July 23rd 2013
     //var url = '/services/progress';
     var url = '/services/progress?&now=' + $.now();
     
