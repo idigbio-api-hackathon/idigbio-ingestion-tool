@@ -115,10 +115,11 @@ class Authentication(object):
         
 class ProgressStatus(object):
     exposed = True
-    def GET(self):
+    def GET(self, **params):
         """
         Get ingestion status.
         """
+        print params #QHO
         try:
             fatal_server_error, input_csv_error, total, skips, successes, fails, finished = ingest_service.check_progress()   
             return json.dumps(dict(fatal_server_error=fatal_server_error, input_csv_error=input_csv_error, total=total, successes=successes,  

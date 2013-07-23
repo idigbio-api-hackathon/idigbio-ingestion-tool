@@ -398,10 +398,10 @@ def generate_record(csvrow, orderlist, rs_uuid):
                 mbuffer = ""
             else:
                 metadata = {}
+                logger.debug("\ttag \t\t\t decoded \t\t\t value") #QHO
                 for tag, value in exifinfo.items():
-                    #logger.debug("tag:{0}".format(tag)) #QHO
-                    #logger.debug("value:{0}".format(value)) #QHO
                     decoded = TAGS.get(tag, tag)
+                    logger.debug("\t{0} \t\t\t {1} \t\t\t {2}".format(tag, decoded, value)) #QHO
                     metadata[decoded] = value
                 mbuffer = str(metadata)
 

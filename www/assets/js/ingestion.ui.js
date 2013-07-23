@@ -329,7 +329,8 @@ showAlert = function(message, additionalElement, alertType) {
 }
 
 updateProgress = function() {
-    var url = '/services/progress';
+    //var url = '/services/progress';
+    var url = '/services/progress?&now=' + $.now();
     
     $.getJSON(url, function(progressObj) {
         var progress = progressObj.total == 0 ? 100 : 
