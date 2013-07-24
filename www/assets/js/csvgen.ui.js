@@ -1,4 +1,5 @@
 var GUID_SYNTAXES = {
+    "image_hash": "GUID = hash of image contents", //QHO
     "hash": "GUID = hash of record information",
     "filename": "GUID = \"{GUID Prefix}{File Name}\"",
     "fullpath": "GUID = \"{GUID Prefix}{Full Path}\""
@@ -76,7 +77,8 @@ initGUIDSyntaxSelector = function() {
     $("#g-guidsyntax-dropdown").change(function(e) {
         var syntaxName = $("#g-guidsyntax-dropdown").val();
 //        setPreference('g-guidsyntax', syntaxName);
-        if (syntaxName == "hash") {
+        //if (syntaxName == "hash") {
+        if (syntaxName == "hash" || syntaxName == "image_hash") { //QHO
             if (! $('#g-guidprefix-group').hasClass("hide")) {
                 $("#g-guidprefix-group").addClass('hide');
             }

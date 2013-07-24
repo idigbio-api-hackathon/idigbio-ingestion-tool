@@ -63,7 +63,20 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
 		status.result = -1
 		status.error = "GUID Syntax is empty."
 		raise IngestServiceException("GUID Syntax is empty.")
-	if guid_syntax == "hash":
+        if guid_syntax == "image_hash":                                    
+            for index in range(len(filenameset)):                         
+               image_md5 = hashlib.md5()                                   
+               logger.debug("media path:{0}".format(filenameset[index]))   
+               with open(filenameset[index], 'rb') as mediafile:           
+                  while True:                                              
+                      image_binary = mediafile.read(128)                   
+                      if not image_binary:                                 
+                          break;                                           
+                      image_md5.update(image_binary)                       
+               guidset.append(image_md5.hexdigest())                       
+               logger.debug("image_md5:{0}".format(image_md5.hexdigest())) 
+               logger.debug("image_md5:{0}".format(image_md5.hexdigest())) 
+	elif guid_syntax == "hash":
 		for index in range(len(filenameset)):
 			md5value = hashlib.md5()
 			md5value.update(str(filenameset[index]))

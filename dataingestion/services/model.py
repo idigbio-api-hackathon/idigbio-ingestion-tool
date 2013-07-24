@@ -333,6 +333,7 @@ def generate_record(csvrow, orderlist, rs_uuid):
             col_obj_guid = csvrow[index]
         index = index + 1
 
+
     recordmd5 = hashlib.md5()
     recordmd5.update(rs_uuid)
     recordmd5.update(mediapath)
