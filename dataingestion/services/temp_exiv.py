@@ -34,8 +34,12 @@ tag = metadata['Exif.Image.DateTime']
 for exif_key in metadata.keys():
 	if metadata[exif_key].type not in ("Byte", "Undefined"): 
 		print exif_key 
-		print metadata[exif_key].type
+		#print metadata[exif_key].type
+		#print metadata[exif_key].value 
+	else:
+		print exif_key 
 		print metadata[exif_key].value 
+		
 
 
 

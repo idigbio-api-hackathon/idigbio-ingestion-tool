@@ -297,6 +297,8 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
             metadata["idigbio:InformationWithheld"] = image_record.InformationWithheld
         if image_record.CollectionObjectGUID != None and image_record.CollectionObjectGUID:
             metadata["idigbio:CollectionObjectGUID"] = image_record.CollectionObjectGUID
+        if image_record.MediaMetadata != None and image_record.MediaMetadata:
+            metadata["idigbio:mediaMetadata"] = image_record.MediaMetadata
         
         logger.debug("Making iDigBio metadata done.")
         return metadata
@@ -309,15 +311,15 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
         metadata["idigbio:iDigbioProvidedByGUID"] = iDigbioProvidedByGUID # Log in information.
         metadata["idigbio:RecordSetGUID"] = RecordSetGUID # Record Set GUID.
         metadata["idigbio:CSVfilePath"] = CSVfilePath # CSV file path.
-        if MediaContentKeyword != None:
+        if MediaContentKeyword != None and MediaContentKeyword:
             metadata["idigbio:MediaContentKeyword"] = MediaContentKeyword
-        if iDigbioProviderGUID != None:
+        if iDigbioProviderGUID != None and iDigbioProviderGUID:
             metadata["idigbio:iDigbioProviderGUID"] = iDigbioProviderGUID
-        if iDigbioPublisherGUID != None:
+        if iDigbioPublisherGUID != None and iDigbioPublisherGUID:
             metadata["idigbio:iDigbioPublisherGUID"] = iDigbioPublisherGUID
-        if FundingSource != None:
+        if FundingSource != None and FundingSource:
             metadata["idigbio:FundingSource"] = FundingSource
-        if FundingPurpose != None:
+        if FundingPurpose != None and FundingPurpose:
             metadata["idigbio:FundingPurpose"] = FundingPurpose
         
         logger.debug("Making dataset metadata done.")
