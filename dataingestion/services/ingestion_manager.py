@@ -21,6 +21,7 @@ from traceback import format_exception
 from errno import ENOENT
 from dataingestion.services.api_client import ClientException, Connection, ServerException 
 from dataingestion.services import model, user_config, constants
+import ast
 
 logger = logging.getLogger('iDigBioSvc.ingestion_manager')
 
@@ -298,7 +299,10 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
         if image_record.CollectionObjectGUID != None and image_record.CollectionObjectGUID:
             metadata["idigbio:CollectionObjectGUID"] = image_record.CollectionObjectGUID
         if image_record.MediaMetadata != None and image_record.MediaMetadata:
-            metadata["idigbio:mediaMetadata"] = image_record.MediaMetadata
+            metadata["idigbio:mediaMetadata"] = {}
+            logger.debug("metadata : {0}".format(image_record.MediaMetadata))
+            logger.debug("metadata : {0}".format(ast.literal_eval(image_record.MediaMetadata)))
+            metadata["idigbio:mediaMetadata"] = ast.literal_eval(image_record.MediaMetadata)
         
         logger.debug("Making iDigBio metadata done.")
         return metadata
@@ -448,12 +452,14 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
             FundingPurpose = values[user_config.FUNDING_PURPOSE]
 
             # Upload the batch.
+            logger.debug("Upload the batch")
             metadata = _make_dataset_metadata(RightsLicense, iDigbioProvidedByGUID, 
                 RecordSetGUID, CSVfilePath, MediaContentKeyword, iDigbioProviderGUID, 
                 iDigbioPublisherGUID, FundingSource, FundingPurpose)
             RecordSetUUID = conn.post_recordset(RecordSetGUID, metadata)
 
             # Insert into the database.
+            logger.debug("Insert into the database")
             batch = model.add_upload_batch(CSVfilePath, iDigbioProvidedByGUID, RightsLicense, 
                 RightsLicenseStatementUrl, RightsLicenseLogoUrl, RecordSetGUID, 
                 RecordSetUUID, constants.CSV_TYPE, MediaContentKeyword, iDigbioProviderGUID, 
@@ -504,6 +510,7 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
 
                 # Get the image record
                 image_record = model.add_or_load_image(batch, row, orderlist, RecordSetUUID, constants.CSV_TYPE)
+                logger.debug("image_record {0}:".format(image_record))
 
                 fn = partial(ongoing_upload_task.increment, 'total_count')
                 postprocess_queue.put(fn)
@@ -514,6 +521,8 @@ def _upload_csv(ongoing_upload_task, resume=False, values=None):
                     postprocess_queue.put(fn)
                 else:
                     object_queue.put(image_record)
+
+                logger.debug("image_record on queue")
 
                 recordCount = recordCount + 1
             batch.RecordCount = recordCount

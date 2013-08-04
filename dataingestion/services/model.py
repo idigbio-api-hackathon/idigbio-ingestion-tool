@@ -16,6 +16,7 @@ from sqlalchemy.types import TypeDecorator, Unicode
 import logging, hashlib, argparse, os, time, struct, re
 from datetime import datetime
 from dataingestion.services import constants
+import types as pytypes
 
 if os.name == 'posix':
     import pwd
@@ -23,6 +24,8 @@ elif os.name == 'nt':
     from dataingestion.services import win_api
 from PIL import Image
 from PIL.ExifTags import TAGS
+
+import pyexiv2
 
 __images_tablename__ = constants.IMAGES_TABLENAME
 __batches_tablename__ = constants.BATCHES_TABLENAME
@@ -392,6 +395,7 @@ def generate_record(csvrow, orderlist, rs_uuid):
             logger.error("Operating system not supported:" + os.name)
 
         try:
+            """
             exifinfo = Image.open(mediapath)._getexif()
 
             if (exifinfo is None):
@@ -399,15 +403,40 @@ def generate_record(csvrow, orderlist, rs_uuid):
                 mbuffer = ""
             else:
                 metadata = {}
-                logger.debug("\ttag \t\t\t decoded \t\t\t value") #QHO
+                logger.debug("\ttag \t\t\t decoded \t\t\t value") 
                 for tag, value in exifinfo.items():
                     decoded = TAGS.get(tag, tag)
-                    logger.debug("\t{0} \t\t\t {1} \t\t\t {2}".format(tag, decoded, value)) #QHO
+                    #logger.debug("\t{0} \t\t\t {1} \t\t\t {2}".format(tag, decoded, value)) 
                     metadata[decoded] = value
                 mbuffer = str(metadata)
+            """
+
+            exifinfo = pyexiv2.ImageMetadata(mediapath)
+            exifinfo.read()
+            if (exifinfo is None):
+                logger.debug("Cannot extract exif information")
+                mbuffer = ""
+            else:
+                metadata = {}
+                for exif_key in exifinfo.keys():
+                    if exifinfo[exif_key].type not in ("Byte", "Undefined"):
+                        if type(exifinfo[exif_key].value) in (pytypes.IntType, pytypes.LongType, pytypes.FloatType): 
+                            logger.debug("list type {0}".format(exifinfo[exif_key].value))
+                            logger.debug("type {0}".format(type(exifinfo[exif_key].value)))
+                            metadata[exif_key] = exifinfo[exif_key].value
+                        else:
+                            logger.debug("not list type {0}".format(exifinfo[exif_key].value))
+                            logger.debug("type {0}".format(type(exifinfo[exif_key].value)))
+                            metadata[exif_key] = str(exifinfo[exif_key].value)
+                mbuffer = str(metadata)
+                #mbuffer = metadata
+                logger.debug("exif extraction")
+                logger.debug("{0}".format(mbuffer))
+             
 
         except IOError as err:
             logger.debug("File metadata is malformed: " + mediapath)
+
 
     logger.debug('Generating image record done.')
     return (mediapath,mediaproviderid,recordmd5.hexdigest(),file_error,desc,lang,title,digi,pix,
@@ -427,7 +456,14 @@ def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
         info_withheld,col_obj_guid,filemd5,mime_type,media_size,ctime,owner,
         metadata) = generate_record(csvrow, orderlist, rs_uuid)
 
-    record = session.query(ImageRecord).filter_by(AllMD5=recordmd5).first()
+    logger.debug("Generating image record returned")
+    logger.debug("recordmd5:{0}".format(recordmd5))
+    try:
+   	    record = session.query(ImageRecord).filter_by(AllMD5=recordmd5).first()
+    except Exception as e:
+        logger.debug("Exception occur during SQLITE access")
+        logger.debug("e:{0}".format(e))
+    logger.debug("record-----{0}".format(record))
     if record is None: # New record. Add the record.
         record = ImageRecord(mediapath, mediaproviderid, recordmd5, file_error, batch, 
             desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, col_obj_guid, 

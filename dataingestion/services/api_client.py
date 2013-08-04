@@ -74,6 +74,9 @@ def _post_mediarecord(recordset_uuid, path, provider_id, idigbio_metadata, owner
     '''
     Returns the UUID of the Media Record and the raw MR JSON String as a tuple.
     '''
+    logger.debug("_post_mediarecord")
+    logger.debug("idigbio_metadata: {0}".format(idigbio_metadata))
+
     data = {"idigbio:data": {"ac:variant": "IngestionTool", 
                              "idigbio:OriginalFileName": path,
                              "idigbio:MediaGUID": provider_id,
