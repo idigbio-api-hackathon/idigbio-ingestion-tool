@@ -421,18 +421,10 @@ def generate_record(csvrow, orderlist, rs_uuid):
                 for exif_key in exifinfo.keys():
                     if exifinfo[exif_key].type not in ("Byte", "Undefined"):
                         if type(exifinfo[exif_key].value) in (pytypes.IntType, pytypes.LongType, pytypes.FloatType): 
-                            logger.debug("list type {0}".format(exifinfo[exif_key].value))
-                            logger.debug("type {0}".format(type(exifinfo[exif_key].value)))
                             metadata[exif_key] = exifinfo[exif_key].value
                         else:
-                            logger.debug("not list type {0}".format(exifinfo[exif_key].value))
-                            logger.debug("type {0}".format(type(exifinfo[exif_key].value)))
                             metadata[exif_key] = str(exifinfo[exif_key].value)
                 mbuffer = str(metadata)
-                #mbuffer = metadata
-                logger.debug("exif extraction")
-                logger.debug("{0}".format(mbuffer))
-             
 
         except IOError as err:
             logger.debug("File metadata is malformed: " + mediapath)
@@ -451,19 +443,15 @@ def add_or_load_image(batch, csvrow, orderlist, rs_uuid, tasktype):
     :rtype: ImageRecord or None.
     .. note:: Image identity is not determined by path but rather by its MD5.
     '''
-    logger.debug("Updating image record ...")
     (mediapath,mediaproviderid,recordmd5,file_error,desc,lang,title,digi,pix,mag,ocr_output,ocr_tech,
         info_withheld,col_obj_guid,filemd5,mime_type,media_size,ctime,owner,
         metadata) = generate_record(csvrow, orderlist, rs_uuid)
 
-    logger.debug("Generating image record returned")
-    logger.debug("recordmd5:{0}".format(recordmd5))
     try:
    	    record = session.query(ImageRecord).filter_by(AllMD5=recordmd5).first()
     except Exception as e:
         logger.debug("Exception occur during SQLITE access")
         logger.debug("e:{0}".format(e))
-    logger.debug("record-----{0}".format(record))
     if record is None: # New record. Add the record.
         record = ImageRecord(mediapath, mediaproviderid, recordmd5, file_error, batch, 
             desc, lang, title, digi, pix, mag, ocr_output, ocr_tech, info_withheld, col_obj_guid, 
