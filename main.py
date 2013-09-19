@@ -18,7 +18,7 @@ import cherrypy
 import ConfigParser
 from cherrypy import engine
 from dataingestion.ui.ingestui import DataIngestionUI
-from dataingestion.services.ingest_rest import DataIngestionService
+from dataingestion.services.service_rest import DataIngestionService
 import dataingestion.services.model
 from dataingestion.services import user_config
 
@@ -31,122 +31,133 @@ USER_CONFIG_FILENAME = 'user.conf'
 
 logger = logging.getLogger("iDigBioSvc.api_client")
 
-def main(argv):    
-    # Process configuration files and configure modules.
-    idigbio_conf_path = join(current_dir, 'etc', 'idigbio.conf')
-    config = ConfigParser.ConfigParser()
-    config.read(idigbio_conf_path)
-    api_endpoint = config.get('iDigBio', 'idigbio.api_endpoint')
-    disable_startup_service_check = config.get('iDigBio', 'devmode_disable_startup_service_check')
-    
-    dataingestion.services.api_client.init(api_endpoint)
-    cherrypy.config.update(join(current_dir, 'etc', 'http.conf'))
-    
-    engine_conf_path = join(current_dir, 'etc', 'engine.conf')
-    cherrypy.config.update(engine_conf_path)
-    cherrypy.config.update({"tools.staticdir.root": current_dir + "/www"})
-    cherrypy.tree.mount(DataIngestionUI(), '/', config=engine_conf_path)
-    cherrypy.tree.mount(DataIngestionService(), '/services',
-                        config=engine_conf_path)
-    
-    # Process command-line arguments:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--newdb", action="store_true", help='create a new db file')
-    parser.add_argument("-d", "--debug", action="store_true")
-    parser.add_argument("-q", "--quiet", action="store_true")
-    args = parser.parse_args()
+def main(argv):  
+  # Process configuration files and configure modules.
+  idigbio_conf_path = join(current_dir, 'etc', 'idigbio.conf')
+  config = ConfigParser.ConfigParser()
+  config.read(idigbio_conf_path)
+  api_endpoint = config.get('iDigBio', 'idigbio.api_endpoint')
+  disable_startup_service_check = config.get(
+    'iDigBio', 'devmode_disable_startup_service_check')
+  
+  dataingestion.services.api_client.init(api_endpoint)
+  cherrypy.config.update(join(current_dir, 'etc', 'http.conf'))
+  
+  engine_conf_path = join(current_dir, 'etc', 'engine.conf')
+  cherrypy.config.update(engine_conf_path)
+  cherrypy.config.update({"tools.staticdir.root": current_dir + "/www"})
+  cherrypy.tree.mount(DataIngestionUI(), '/', config=engine_conf_path)
+  cherrypy.tree.mount(DataIngestionService(), '/services',
+            config=engine_conf_path)
+  
+  # Process command-line arguments:
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--newdb", action="store_true", help='create a new db file')
+  parser.add_argument("-d", "--debug", action="store_true")
+  parser.add_argument("-q", "--quiet", action="store_true")
+  args = parser.parse_args()
 
-    if args.debug:
-        debug_mode = True
-        log_level = logging.DEBUG
-    else:
-        debug_mode = False
-        log_level = logging.WARNING
-        cherrypy.config.update({"environment": "production"})
+  if args.debug:
+    debug_mode = True
+    log_level = logging.DEBUG
+  else:
+    debug_mode = False
+    log_level = logging.WARNING
+    cherrypy.config.update({"environment": "production"})
+  
+  if args.quiet:
+    quiet_mode = True
+    if debug_mode:
+      raise Exception("The --quiet or -q flags are not intended to be "
+              "used with the --debug or -d flags.")
+  else:
+    quiet_mode = False
+
+  # Configure the logging mechanisms
+  # Default log level to DEBUG and filter the logs for console output.
+  logging.getLogger().setLevel(logging.DEBUG)
+  logging.getLogger("cherrypy").setLevel(logging.INFO) # cherrypy must be forced
+  svc_log = logging.getLogger('iDigBioSvc')
+  handler = logging.StreamHandler()
+  handler.setFormatter(
+      logging.Formatter(
+          '%(asctime)s %(thread)d %(name)s %(levelname)s - %(message)s'))
+  # User-specified log level only controls console output.
+  handler.setLevel(log_level)
+  svc_log.addHandler(handler)
+  log_folder = appdirs.user_log_dir(APP_NAME, APP_AUTHOR)
+  if not exists(log_folder):
+    os.makedirs(log_folder)
+  log_file = join(log_folder, "idigbio.ingest.log")
+  handler = logging.handlers.RotatingFileHandler(log_file, backupCount=10)
+  handler.setFormatter(
+      logging.Formatter(
+          '%(asctime)s %(thread)d %(name)s %(levelname)s - %(message)s'))
+  handler.setLevel(logging.DEBUG)
+  handler.doRollover()
+  svc_log.addHandler(handler)
     
-    if args.quiet:
-        quiet_mode = True
-        if debug_mode:
-            raise Exception("The --quiet or -q flags are not intended to be "
-                            "used with the --debug or -d flags.")
-    else:
-        quiet_mode = False
+  # Set up the DB.
+  data_folder = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
+  if not exists(data_folder):
+    os.makedirs(data_folder)
+  db_file = join(data_folder, "idigbio.ingest.db")
+  if args.newdb:
+    _move_db(data_folder, db_file)
+    logger.debug("Creating a new DB file.")
 
-    # Configure the logging mechanisms
-    # Default log level to DEBUG and filter the logs for console output.
-    logging.getLogger().setLevel(logging.DEBUG)
-    logging.getLogger("cherrypy").setLevel(logging.INFO) # cherrypy must be forced
-    svc_log = logging.getLogger('iDigBioSvc')
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter('%(asctime)s %(thread)d %(name)s %(levelname)s - %(message)s'))
-    # User-specified log level only controls console output.
-    handler.setLevel(log_level)
-    svc_log.addHandler(handler)
-    log_folder = appdirs.user_log_dir(APP_NAME, APP_AUTHOR)
-    if not exists(log_folder):
-        os.makedirs(log_folder)
-    log_file = join(log_folder, "idigbio.ingest.log")
-    handler = logging.handlers.RotatingFileHandler(log_file, backupCount=10)
-    handler.setFormatter(logging.Formatter('%(asctime)s %(thread)d %(name)s %(levelname)s - %(message)s'))
-    handler.setLevel(logging.DEBUG)
-    handler.doRollover()
-    svc_log.addHandler(handler)
-        
-    # Set up the DB.
-    data_folder = appdirs.user_data_dir(APP_NAME, APP_AUTHOR)
-    if not exists(data_folder):
-        os.makedirs(data_folder)
-    db_file = join(data_folder, "idigbio.ingest.db")
-    if args.newdb:
-        _move_db(data_folder, db_file)
-        logger.debug("Creating a new DB file.")
+  logger.debug("Use DB file: {0}".format(db_file))
+  dataingestion.services.model.setup(db_file)
+  
+  # Set up the user config.
+  user_config_path = join(data_folder, USER_CONFIG_FILENAME)
+  user_config.setup(user_config_path)
+  user_config.set_user_config(
+      'devmode_disable_startup_service_check', disable_startup_service_check)
+  
+  # Set up/start server.
+  if hasattr(engine, "signal_handler"):
+    engine.signal_handler.subscribe()
+  if hasattr(engine, "console_control_handler"):
+    engine.console_control_handler.subscribe()
+  cherrypy.log("Starting...", "main")
 
-    logger.debug("Use DB file: {0}".format(db_file))
-    dataingestion.services.model.setup(db_file)
-    
-    # Set up the user config.
-    user_config_path = join(data_folder, USER_CONFIG_FILENAME)
-    user_config.setup(user_config_path)
-    user_config.set_user_config('devmode_disable_startup_service_check', disable_startup_service_check)
-    
-    # Set up/start server.
-    if hasattr(engine, "signal_handler"):
-        engine.signal_handler.subscribe()
-    if hasattr(engine, "console_control_handler"):
-        engine.console_control_handler.subscribe()
-    cherrypy.log("Starting...", "main")
+  atexit.register(
+    _logout_user_if_configured, user_config_path, data_folder, db_file)
 
-    atexit.register(_logout_user_if_configured, user_config_path, data_folder, db_file)
-
-    engine.start()
-    if not debug_mode and not quiet_mode:
-        # In a proper run, the text written here will be the only text output
-        # the end-user sees: Keep it short and simple.
-        print("Starting the iDigBio Data Ingestion Tool...")
-        try:
-            import webbrowser
-            webbrowser.open("http://127.0.0.1:{0}".format(cherrypy.config['server.socket_port']))
-        except ImportError:
-            # Gracefully fall back
-            print("Open http://127.0.0.1:{0} in your webbrowser.".format(cherrypy.config['server.socket_port']))
-        print("Close this window or hit ctrl+c to stop the local iDigBio Data "
-              "Ingestion Tool.")
-    engine.block()
+  engine.start()
+  if not debug_mode and not quiet_mode:
+    # In a proper run, the text written here will be the only text output
+    # the end-user sees: Keep it short and simple.
+    print("Starting the iDigBio Data Ingestion Tool...")
+    try:
+      import webbrowser
+      webbrowser.open(
+          "http://127.0.0.1:{0}".format(cherrypy.config['server.socket_port']))
+    except ImportError:
+      # Gracefully fall back
+      print("Open http://127.0.0.1:{0} in your webbrowser.".format(
+          cherrypy.config['server.socket_port']))
+    print("Close this window or hit ctrl+c to stop the local iDigBio Data "
+          "Ingestion Tool.")
+  engine.block()
 
 def _move_db(data_folder, db_file):
-    if exists(db_file):
-        dataingestion.services.model.close()    
-        move_to = join(data_folder, "idigbio.ingest." + datetime.now().strftime("%Y-%b-%d_%H-%M-%S") + ".db")
-        shutil.move(db_file, move_to)
-        cherrypy.log.error("Moved the old DB to {0}".format(move_to), "main")
+  if exists(db_file):
+    dataingestion.services.model.close()  
+    move_to = join(
+        data_folder, "idigbio.ingest." + datetime.now().strftime(
+            "%Y-%b-%d_%H-%M-%S") + ".db")
+    shutil.move(db_file, move_to)
+    cherrypy.log.error("Moved the old DB to {0}".format(move_to), "main")
 
 def _logout_user_if_configured(user_config_path, data_folder, db_file):
-    # logout is None if config file is already removed.
-    logout = dataingestion.services.user_config.try_get_user_config('logoutafterexit')
-    if logout == 'true':
-        cherrypy.log.error("User chooses to log out after exit. Logging out...", "main")
-        _move_db(data_folder, db_file)
-        os.remove(user_config_path)
+  # logout is None if config file is already removed.
+  logout = dataingestion.services.user_config.try_get_user_config('logoutafterexit')
+  if logout == 'true':
+    cherrypy.log.error("User chooses to log out after exit. Logging out...", "main")
+    _move_db(data_folder, db_file)
+    os.remove(user_config_path)
 
 if __name__ == '__main__':
-    main(sys.argv)
+  main(sys.argv)

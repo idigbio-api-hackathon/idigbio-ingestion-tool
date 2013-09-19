@@ -85,37 +85,53 @@
         </div>
         <div class="modal-footer">
           <p>
-            We accept your images as is to display as given. By clicking the button, you agree to abide by the
-            <a href="https://www.idigbio.org/sites/default/files/iDigBio%20Intellectual%20Property%20Policy%2020120417.pdf" target="_blank">iDigBio Intellectual Property Policy</a> and the <a href="https://www.idigbio.org/sites/default/files/iDigBioTermsOfUse.pdf" target="_blank">iDigBio Terms of Use</a>.
+          We accept your images as is to display as given. 
+          By clicking the button, you agree to abide by the
+            <a href="https://www.idigbio.org/sites/default/files
+              /iDigBio%20Intellectual%20Property%20Policy%2020120417.pdf" 
+              target="_blank">iDigBio Intellectual Property Policy</a> 
+            and the 
+            <a href="https://www.idigbio.org/sites/default/files
+              /iDigBioTermsOfUse.pdf" 
+              target="_blank">iDigBio Terms of Use</a>.
           </p>
           <a id="login-button" href="#" class="btn btn-primary">Sign in</a>
         </div>
       </div>
 
-      <div class="modal hide fade" id="serviceErrorModal" data-backdrop="static" style="display: none; ">
+      <div class="modal hide fade" id="serviceErrorModal" 
+        data-backdrop="static" style="display: none; ">
         <div class="modal-header">
           <h3>iDigBio Service Unavailable</h3>
         </div>
         <div class="modal-body">
           <div class="alert alert-block alert-error">
-            <p>Authentication failure, the iDigBio Image Ingestion Tool cannot be used right now.
-              Please check your network connection or come back later.
-              You may also inform iDigBio about the unavailability.
+            <p>Authentication failure, the iDigBio Image Ingestion Tool cannot 
+            be used right now. Please check your network connection or come 
+            back later. You may also inform iDigBio about the unavailability.
             </p>
           </div>
         </div>
       </div>
 
-      <div class="modal hide fade" id="CSVFileFormatModal" data-backdrop="static" style="display: none; ">
+      <div class="modal hide fade" id="CSVFileFormatModal" 
+        data-backdrop="static" style="display: none; ">
         <div class="modal-header">
           <h3>iDigBio MISC Input CSV File Format</h3>
         </div>
         <div class="modal-body">
           <p>
-            The input CSV file includes one header line (manditory) and lines of records following it. The header line defines the format for each record line. And each record line contains the information of one media record. 
+          The input CSV file includes one header line (manditory) and lines of 
+          records following it. The header line defines the format for each 
+          record line. And each record line contains the information of one 
+          media record. 
           </p>
           <p>
-            The fields are separated by ','(comma) and each is surrounded by '"' (double quotation marks). The valid field names include: "idigbio:OriginalFileName", "idigbio:MediaGUID", "idigbio:Description", "idigbio:LanguageCode", "idigbio:Title", "idigbio:DigitalizationDevice", "idigbio:NominalPixelResolution", "idigbio:Magnification", "idigbio:OcrOutput", "idigbio:OcrTechnology", "idigbio:InformationWithheld", "idigbio:CollectionObjectGUID".
+          The fields are separated by ','(comma) and each is surrounded by '"'
+          (double quotation marks). Two fields must be provided: 
+          "idigbio:OriginalFileName" (the path of the media file in the local 
+          file system) and "idigbio:MediaGUID" (the GUID of the media file). 
+          Users can define any other fields.
           </p>
           <p> 
             <a href="http://www.acis.ufl.edu/~yonggang/idigbio/V3.2/input_csv_example_1.csv" target="_blank">Example 1</a>, <a href="http://www.acis.ufl.edu/~yonggang/idigbio/V3.2/input_csv_example_2.csv" target="_blank">Example 2</a>, <a href="http://www.acis.ufl.edu/~yonggang/idigbio/V3.4/input_csv_example_3.csv" target="_blank">Example 3</a>

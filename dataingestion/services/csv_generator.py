@@ -125,22 +125,26 @@ def gen_csv():
 	commonvalue = []
 
 	# description
-	if dic.has_key(user_config.G_DESCRIPTION) and dic[user_config.G_DESCRIPTION] != '':
+	if (dic.has_key(user_config.G_DESCRIPTION) and
+      dic[user_config.G_DESCRIPTION] != ''):
 		commonvalue.append(dic[user_config.G_DESCRIPTION])
 		headerline.append("idigbio:Description")
 
 	# language code
-	if dic.has_key(user_config.G_LANGUAGE_CODE) and dic[user_config.G_LANGUAGE_CODE] != '':
+	if (dic.has_key(user_config.G_LANGUAGE_CODE) and
+      dic[user_config.G_LANGUAGE_CODE] != ''):
 		commonvalue.append(dic[user_config.G_LANGUAGE_CODE])
 		headerline.append("idigbio:LanguageCode")
 
 	# title
-	if dic.has_key(user_config.G_TITLE) and dic[user_config.G_TITLE] != '':
+	if (dic.has_key(user_config.G_TITLE) and
+      dic[user_config.G_TITLE] != ''):
 		commonvalue.append(dic[user_config.G_TITLE])
 		headerline.append("idigbio:Title")
 	
 	# digitalization_device
-	if dic.has_key(user_config.G_DIGI_DEVICE) and dic[user_config.G_DIGI_DEVICE] != '':
+	if (dic.has_key(user_config.G_DIGI_DEVICE) and
+      dic[user_config.G_DIGI_DEVICE] != ''):
 		commonvalue.append(dic[user_config.G_DIGI_DEVICE])
 		headerline.append("idigbio:DigitalizationDevice")
 

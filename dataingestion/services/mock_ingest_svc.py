@@ -13,14 +13,14 @@ logger = logging.getLogger('iDigBioSvc.mock_ingest_svc')
 
 remaining = 100
 def sleep_task():
-    logger.debug("Start to sleep.")
-    global remaining
-    while (remaining > 0):
-        time.sleep(1)
-        remaining = remaining - 5
-        
+  logger.debug("Start to sleep.")
+  global remaining
+  while (remaining > 0):
+    time.sleep(1)
+    remaining = remaining - 5
+    
 def start_upload(root_path):
-    sleep_task()
-        
+  sleep_task()
+    
 def check_progress():
-    return 100, remaining
+  return 100, remaining
