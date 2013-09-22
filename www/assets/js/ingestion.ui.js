@@ -1,14 +1,5 @@
 $(document).ready(function() {
   checkAuthentication();
-//  getPreference('devmode_disable_startup_service_check', function(val) {
-//    if (val != 'true') {
-//      checkAuthentication();
-//    } else {
-//      $.unblockUI();
-//      initMainUI();
-//    }
-//  });
-  
   // Certain UI components will be disabled if JS is. This overrides the css
   // that hides them (ingestion.ui.css), making sure they are shown.
   $(".js-required").not('.hidden').css("display", "inherit");
@@ -34,7 +25,7 @@ initMainUI = function() {
   });
 
   $.getJSON('/services/config', { name: "accountuuid"}, function(data) {
-    $('#account-uuid-text').text('Acount UUID: ' + data);
+    $('#account-uuid-text').text('Account UUID: ' + data);
   });
 
   $('#logout-btn').click(function(e) {
@@ -71,20 +62,24 @@ initMainUI = function() {
   $('#csv-upload-form').submit(function(event) {
     event.preventDefault();
     if ($('#csv-upload-form').valid()) {
-      var values = 
-        "{\'CSVfilePath\':\'" + processFieldValue('#csv-path') + 
+      var values =
+        "{\'CSVfilePath\':\'" + processFieldValue('#csv-path') +
         "\',\'RecordSetGUID\':\'" + processFieldValue('#rsguid') +
         "\',\'RightsLicense\':\'" + processFieldValue('#csv-license-dropdown') +
-        "\',\'MediaContentKeyword\':\'" + processFieldValue('#mediaContentKeyword') +
-        "\',\'iDigbioProviderGUID\':\'" + processFieldValue('#iDigbioProviderGUID') +
-        "\',\'iDigbioPublisherGUID\':\'" + processFieldValue('#iDigbioPublisherGUID') +
+        "\',\'MediaContentKeyword\':\'" +
+        processFieldValue('#mediaContentKeyword') +
+        "\',\'iDigbioProviderGUID\':\'" +
+        processFieldValue('#iDigbioProviderGUID') +
+        "\',\'iDigbioPublisherGUID\':\'" +
+        processFieldValue('#iDigbioPublisherGUID') +
         "\',\'fundingSource\':\'" + processFieldValue('#fundingSource') +
         "\',\'fundingPurpose\':\'" + processFieldValue('#fundingPurpose') +
         "\'}";
       postCsvUpload("new", values);
     }
     else {
-      showAlert('The Image License, Record Set GUID and CSV File Path cannot be empty.');
+      showAlert('The Image License, Record Set GUID and CSV File Path cannot be'
+          +' empty.');
     }
     $("#upload-alert").hide();
   });
@@ -95,7 +90,7 @@ initMainUI = function() {
 
 checkAuthentication = function() {
   blockUI();
-  
+
   $.getJSON('/services/auth', function(data) {
     $.unblockUI();
     if (!data) {
@@ -104,7 +99,7 @@ checkAuthentication = function() {
       initMainUI();
     }
   })
-  
+
   .error(function(data) {
     $.unblockUI();
     $('#serviceErrorModal').modal();
@@ -120,8 +115,8 @@ blockUI = function() {
     fade: 200,
     clockwise: false
   }).appendTo(div).start();
-  $.blockUI.defaults.css = {}; 
-  $.blockUI({ 
+  $.blockUI.defaults.css = {};
+  $.blockUI({
     message: div
    });
 }
@@ -136,7 +131,7 @@ initLoginModal = function() {
     highlight: function(element, errorClass, validClass) {
       $(element).closest('.control-group').addClass('error');
     },
-    unhighlight: function (element, errorClass, validClass) { 
+    unhighlight: function (element, errorClass, validClass) {
       $(element).parents(".error").removeClass('error');
     },
     rules: {
@@ -150,7 +145,7 @@ initLoginModal = function() {
       }
     }
   });
-  
+
   $('#login-button').click(function(event) {
     event.preventDefault();
     if ($('#login-button').attr('disabled')) {
@@ -160,7 +155,7 @@ initLoginModal = function() {
     if (!$('#login-form').valid()) {
       return;
     }
-    
+
     var accountuuid = $("#accountuuid").val();
     var apikey = $("#apikey").val();
 
@@ -171,41 +166,46 @@ initLoginModal = function() {
       size: 20
     }).appendTo($('#login-error')[0]).start();
 
-    $.post('/services/auth', { user: accountuuid, password: apikey }, function(data) {
+    $.post('/services/auth', { accountuuid: accountuuid, apikey: apikey },
+      function(data) {
       $('#login-form > .control-group').removeClass('error');
       $('#login-error').addClass('hide');
-
       $('#loginModal').modal('hide');
       initMainUI();
     }, 'json')
     .error(function(err) {
       if (err.status == 409) {
-        $('#login-error').html('Wrong Account UUID and API Key combination..');
+        $('#login-error').html(
+          'Incorrect Account UUID and API Key combination..');
         $('#login-button').attr('disabled', false);
         $('#login-button').removeClass('disabled');
       } else {
-        $('#login-error').html('Cannot sign in due to iDigBio service unavailable. Please come back later.');
+        $('#login-error').html(
+          'Cannot sign in due to iDigBio service unavailable. ' +
+          'Please come back later.');
       }
       $('#login-form > .control-group').addClass('error');
       $('#login-error').removeClass('hide');
+      $('#login-button').attr('disabled', false);
+      $('#login-button').removeClass('disabled');
     });
   });
 }
 
 initCsvLicenseSelector = function() {
   $.each(IMAGE_LICENSES, function(key, value) {
-    var option = ["<option value=\"", key, "\">", value[0], " ", 
+    var option = ["<option value=\"", key, "\">", value[0], " ",
       value[1], "</option>"].join("");
     $("#csv-license-dropdown").append(option);
   });
   $("#csv-license-dropdown option[value='']").remove();
-  
+
   $("#csv-license-dropdown").change(function(e) {
     var licenseName = $("#csv-license-dropdown").val();
     var license = IMAGE_LICENSES[licenseName];
-    showAlert(["The images will be uploaded under the terms of the ", 
-        license[0], " ", license[1], " license (see <a href=\"", license[2], 
-        "\" target=\"_blank\">definition</a>)."].join(""), 
+    showAlert(["The images will be uploaded under the terms of the ",
+        license[0], " ", license[1], " license (see <a href=\"", license[2],
+        "\" target=\"_blank\">definition</a>)."].join(""),
       null, "alert-info");
     setPreference('imagelicense', licenseName);
   });
@@ -217,7 +217,7 @@ postCsvUpload = function(action, values) {
   $("#result-table-container").removeClass('hide');
   $("#progressbar-container").removeClass('in');
   $("#progressbar-container").removeClass('hide');
-  
+
   var callback = function(dataReceived){
     // Disable inputs
     $('#csv-license-dropdown').attr('disabled', true);
@@ -228,7 +228,7 @@ postCsvUpload = function(action, values) {
 
     $('#csv-path').attr('disabled', true);
     $("#csv-path").addClass('disabled');
-    
+
     $('#mediaContentKeyword').attr('disabled', true);
     $("#mediaContentKeyword").addClass('disabled');
 
@@ -247,19 +247,16 @@ postCsvUpload = function(action, values) {
     $("#csv-upload-button").attr('disabled', true);
     $("#csv-upload-button").addClass('disabled');
 
-//    $("#logout-btn").attr('disabled', true);
-//    $("#logout-btn").addClass('disabled');
-         
     // Clean up UI.
 //    $("#upload-alert").alert('close');
-    
+
     // Show progress bar in animation
     $(".progress-primary").addClass('active');
     $("#progressbar-container").addClass('in');
-    
+
     setTimeout("updateProgress()", 1000);
   };
-  
+
   // now send the form and wait to hear back
   if (action == "new") {
     $.post('/services/ingest', { values: values }, callback, 'json')
@@ -281,20 +278,23 @@ showLastBatchInfo = function() {
     if (batch.Empty) {
       return;
     }
-      
+
     if (!batch.finished) {
       var start_time = batch.start_time;
-      var errMsg = ["<p><strong>Warning!</strong> Your last upload from directory/CSV file ",
-      batch.path, " which started at ", start_time,
+      var errMsg = ['<p><strong>Warning!</strong> '
+        + 'Your last upload from directory/CSV file ',
+      batch.path, ' which started at ', start_time,
       ' was not entirely successful.</p>'].join("");
-      var extra = '<p><button id="retry-button" type="submit" class="btn btn-warning">Retry failed uploads</button></p>';
+      var extra = '<p><button id="retry-button" type="submit"'
+        + ' class="btn btn-warning">Retry failed uploads</button></p>';
       showAlert(errMsg, extra, "alert-warning");
       $("#retry-button").click(function(event) {
         event.preventDefault();
         $("#upload-alert").alert('close');
         // TODO: Differentiate the CSV task or dir task.
         postCsvUpload("retry");
-        // Note: retry will reload the batch information, and read the CSV file again.
+        // Note: retry will reload the batch information, and read the CSV file
+        // again.
       });
     }
   }, "json");
@@ -302,16 +302,17 @@ showLastBatchInfo = function() {
 
 /**
  * Display an alert message in the designated alert container.
- * @param {HTML string} message 
- * @param {HTML string} [additionalElement] Additional element(s) in the second row.
- * @param {String} [alertType] The alert type, i.e. Bootstrap class, default to 
+ * Param:
+ *   {HTML string} message
+ *   {HTML string} [additionalElement] Additional element(s) in the second row.
+ *   {String} [alertType] The alert type, i.e. Bootstrap class, default to
  *   alert-error.
  */
 showAlert = function(message, additionalElement, alertType) {
   additionalElement = additionalElement || "";
   alertType = alertType || "alert-error";
   container = "#alert-container";
-  
+
   var alert_html =
     ['<div class="alert alert-block fade span10" id="upload-alert">',
     '<button class="close" data-dismiss="alert">&times;</button>',
@@ -327,37 +328,37 @@ showAlert = function(message, additionalElement, alertType) {
 }
 
 updateProgress = function() {
-  
-  // dummy query string is added not to allow IE retrieve results from its browser cache
+  // dummy query string is added not to allow IE retrieve results
+  // from its browser cache.
   // added by Kyuho in July 23rd 2013
   var url = '/services/ingestionprogress?&now=' + $.now();
-  
+
   $.getJSON(url, function(progressObj) {
-    var progress = progressObj.total == 0 ? 100 : 
-      Math.floor((progressObj.successes + progressObj.fails + 
+    var progress = progressObj.total == 0 ? 100 :
+      Math.floor((progressObj.successes + progressObj.fails +
         progressObj.skips) / progressObj.total * 100);
-    
-    
+
+
     $("#progresstext").text(["Progress: (Successful:" + progressObj.successes,
        ", Skipped: " + progressObj.skips,
        ", Failed: " + progressObj.fails,
        ", Total to upload: " + progressObj.total,
        ")"].join(""));
-    
+
     $("#upload-progressbar").width(progress + '%');
-    
+
 
 		if (progressObj.fatal_server_error) {
-			var errMsg = ["<p><strong>Warning!</strong> ", 
-						"<p>FATAL SERVER ERROR</p> ", 
-						"<p>Server under maintenance. Try Later</p>", ].join(""); 
+			var errMsg = ["<p><strong>Warning!</strong> ",
+						"<p>FATAL SERVER ERROR</p> ",
+						"<p>Server under maintenance. Try Later</p>", ].join("");
 			showAlert(errMsg, extra, "alert-warning");
 		} else if (progressObj.input_csv_error) {
-			var errMsg = ["<p><strong>O.o Input CSV FILE ERROR</strong> ", 
-						"<p>Your input CSV file is weird</p> ", 
-						"<p>THis error occurs when your CSV file has different number of columns among rows or any field contains double quatation mark(\")</p>", ].join(""); 
+			var errMsg = ["<p><strong>O.o Input CSV FILE ERROR</strong> ",
+						"<p>Your input CSV file is weird</p> ",
+						"<p>THis error occurs when your CSV file has different number of columns among rows or any field contains double quatation mark(\")</p>", ].join("");
 			showAlert(errMsg, extra, "alert-warning");
-       
+
     } else if (progressObj.finished) {
       $(".progress-primary").toggleClass('active');
 
@@ -369,7 +370,7 @@ updateProgress = function() {
 
       $('#csv-path').attr('disabled', false);
       $("#csv-path").removeClass('disabled');
-      
+
       $('#mediaContentKeyword').attr('disabled', false);
       $("#mediaContentKeyword").removeClass('disabled');
 
@@ -394,7 +395,7 @@ updateProgress = function() {
             "This upload was not entirely successful. ",
             "You can retry it at a later time."].join("");
           if (progress < 100) {
-            errMsg += [' Upload aborted before all images are tried ', 
+            errMsg += [' Upload aborted before all images are tried ',
               'due to continuing erroneous network conditions.'].join('');
           }
           var extra = ['<p><button id="retry-button" type="submit"',
@@ -405,7 +406,7 @@ updateProgress = function() {
             "Nothing is uploaded. Maybe the CSV is empty or the network is down? ",
             "Please check the folder and network connection and ",
             "retry it by clicking the 'Upload' button."].join("");
-            
+
         }
         showAlert(errMsg, extra, "alert-warning");
         $("#retry-button").click(function(event) {
@@ -415,7 +416,7 @@ updateProgress = function() {
           postCsvUpload("retry");
         });
       }
-      
+
       if(progressObj.fails == 0 && progressObj.total > 0 ) {
         showAlert("All images are successfully uploaded!", "", "alert-success");
       }
@@ -424,10 +425,10 @@ updateProgress = function() {
         // If we haven't tried one file, no need to get results.
         $.getJSON('/services/ingestionresult', renderResult);
       }
-      
+
       return;
     }
-    
+
     // Calls itself again after 1000ms.
     setTimeout("updateProgress ()", 1000);
   });
@@ -459,7 +460,7 @@ renderResult = function(data) {
       { "sTitle": "RightsLicense", "bVisible": false },
       { "sTitle": "RightsLicenseStatementUrl", "bVisible": false },
       { "sTitle": "RightsLicenseLogoUrl", "bVisible": false },
-      { "sTitle": "RecordSetGUID", "bVisible": false }, 
+      { "sTitle": "RecordSetGUID", "bVisible": false },
       { "sTitle": "RecordSetUUID", "bVisible": false },
       { "sTitle": "MediaContentKeyword", "bVisible": false },
       { "sTitle": "iDigbioProviderGUID", "bVisible": false },

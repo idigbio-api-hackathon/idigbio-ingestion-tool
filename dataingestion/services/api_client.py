@@ -29,8 +29,8 @@ def init(api_ep):
 TIMEOUT = 5
 
 def _build_url(collection, entity_uuid=None, subcollection=None):
-  assert api_endpoint  
-  
+  assert api_endpoint
+
   if entity_uuid is None:
     ape = api_endpoint
     if collection == "check":
@@ -41,7 +41,6 @@ def _build_url(collection, entity_uuid=None, subcollection=None):
   else:
     ret = "%s/%s/%s/%s" % (api_endpoint, collection, entity_uuid, subcollection)
   return ret
-
 
 def _post_recordset(recordset_id, metadata):
   data = {"idigbio:data": {"ac:variant": "IngestionTool"},
@@ -77,14 +76,14 @@ def _post_mediarecord(recordset_uuid, path, media_id, idigbio_metadata):
 
   data = {
       "idigbio:data": {
-          "ac:variant": "IngestionTool", 
+          "ac:variant": "IngestionTool",
           "idigbio:OriginalFileName": path,
           "idigbio:MediaGUID": media_id,
           "idigbio:relationships": {"recordset": recordset_uuid}},
       "idigbio:recordIds": [media_id]}
   data["idigbio:data"] = dict(data["idigbio:data"].items() +
-                              idigbio_metadata.items()) 
-  
+                              idigbio_metadata.items())
+
   logger.debug('_post_mediarecord data:{0}'.format(data)) #QHO
   url = _build_url("mediarecords")
   logger.debug("POSTing mediarecord...")
@@ -107,7 +106,7 @@ def _post_media(local_path, entity_uuid):
   Returns the JSON String of the Media AP.
   Exceptions:
     IOError: If the local path is not a valid file.
-    ClientException: If 
+    ClientException: If
   '''
   url = _build_url("mediarecords", entity_uuid, "media")
   logger.debug("POSTing media...")
@@ -119,10 +118,10 @@ def _post_media(local_path, entity_uuid):
     logger.debug("POSTing media done.")
     return resp
   except urllib2.HTTPError as e:
-    logger.debug("urllib2.HTTPError caught") 
-    logger.debug("Error code {0}".format(e.code)) 
-    if e.code == 500:  
-      logger.debug("ServerException occurs") 
+    logger.debug("urllib2.HTTPError caught")
+    logger.debug("Error code {0}".format(e.code))
+    if e.code == 500:
+      logger.debug("ServerException occurs")
       raise ServerException(
           "Fatal Server Exception Detected. HTTP Error code:{0}".format(e.code))
     raise ClientException(
@@ -136,7 +135,7 @@ def _post_media(local_path, entity_uuid):
 # Post the request to the server and get the response.
 def _post_json(url, obj):
   """
-  :returns: the reponse JSON object.
+  Returns: the reponse JSON object.
   """
   content = json.dumps(obj, separators=(',',':'))
   logger.debug("content -> " + str(content))
@@ -150,8 +149,21 @@ def _post_json(url, obj):
 auth_string = None
 
 def authenticate(user, key):
+  """
+  Connect with the server to authenticate the accountID/key pair.
+  Params:
+    user: user account ID.
+    key: The API key for the account ID.
+  Returns:
+    True if authentication is successful.
+    False if authentication fails due to incorrect accountID/key pair.
+  Except:
+    ClientException: if the network connection corrupts or the server side is
+                     unavailable.
+  """
+
   global auth_string
-  if auth_string:
+  if auth_string: # This means the authentication was already successful.
     return True
   url = _build_url('check')
   try:
@@ -163,13 +175,14 @@ def authenticate(user, key):
     logger.debug("Successfully logged in.")
     auth_string = base64string
     return True
-  except urllib2.HTTPError as err:
-    if err.code == 403:
+  except urllib2.HTTPError as e:
+    if e.code == 403:
+      logger.error(str(e))
       return False
-      logger.error(str(err))
     else:
-      raise
-
+      raise ClientException("Failed to authenticate with server.", url=url,
+                            http_status=e.code, http_response_content=e.read(),
+                            reason=user)
 
 class ClientException(Exception):
   def __init__(self, msg, url='', http_status=None, reason='', local_path='',
@@ -212,36 +225,36 @@ class ClientException(Exception):
 
 
 """
-This class is for Fatal Server Failure at server side. 
-If permanent server failure occurs, the appliance should elegantly finish itself. 
+This class is for Fatal Server Failure at server side.
+If permanent server failure occurs, the appliance should elegantly finish itself.
 Added by Kyuho on 06/17/2013
 """
-class ServerException(Exception): 
+class ServerException(Exception):
   def __init__(self, msg, http_status=None):
     Exception.__init__(self, msg)
     self.msg = msg
     self.http_status = http_status
 
   def __str__(self):
-    return self.msg + str(self.http_status) 
+    return self.msg + str(self.http_status)
 
 
 class Connection(object):
   """Convenience class to make requests that will also retry the request"""
 
-  def __init__(self, authurl=None, user=None, key=None, retries=8, preauthurl=None,
-         preauthtoken=None, snet=False, starting_backoff=1,
-         auth_version="1"):
+  def __init__(self, authurl=None, user=None, key=None, retries=8,
+               preauthurl=None, preauthtoken=None, snet=False,
+               starting_backoff=1, auth_version="1"):
     """
-    :param authurl: authenitcation URL
-    :param user: user name to authenticate as
-    :param key: key/password to authenticate with
-    :param retries: Number of times to retry the request before failing
-    :param preauthurl: storage URL (if you have already authenticated)
-    :param preauthtoken: authentication token (if you have already
-               authenticated)
-    :param snet: use SERVICENET internal network default is False
-    :param auth_version: Openstack auth version.
+    Params:
+      authurl: authenitcation URL
+      user: user name to authenticate as
+      key: key/password to authenticate with
+      retries: Number of times to retry the request before failing
+      preauthurl: storage URL (if you have already authenticated)
+      preauthtoken: authentication token (if you have already authenticated)
+      snet: use SERVICENET internal network default is False
+      auth_version: Openstack auth version.
     """
     self.authurl = authurl
     self.user = user
@@ -266,11 +279,11 @@ class Connection(object):
       except ClientException as err:
         logger.debug("ClientException caught: {0}".format(err))
         logger.debug("Current retry attempts: {0}".format(self.attempts))
-        
+
         if self.attempts > self.retries:
           logger.debug("Retries exhausted.")
           raise
-        
+
         if err.http_status == 401: # Unauthorized
           if self.attempts > 1:
             raise
@@ -282,7 +295,7 @@ class Connection(object):
           pass
         else:
           raise
-      
+
       sleep(backoff)
       backoff *= 2
       if reset_func:
@@ -290,11 +303,11 @@ class Connection(object):
 
   def post_recordset(self, recordset_id, metadata):
     return self._retry(None, _post_recordset, recordset_id, metadata)
-  
+
   def post_mediarecord(self, recordset_uuid, path, media_id,
                        idigbio_metadata):
-    return self._retry(None, _post_mediarecord, recordset_uuid, path, 
+    return self._retry(None, _post_mediarecord, recordset_uuid, path,
                        media_id, idigbio_metadata)
-  
+
   def post_media(self, local_path, entity_uuid):
     return self._retry(None, _post_media, local_path, entity_uuid)

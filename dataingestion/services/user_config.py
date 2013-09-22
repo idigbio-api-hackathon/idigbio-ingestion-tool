@@ -39,7 +39,14 @@ def setup(config_file):
   config.reload()
 
 def get_user_config(name):
-  # TODO: check whether the name is in the allowed list.
+  """
+  Returns:
+    The attribute value for the name.
+  Except:
+    AttributeError: If the name does not exist.
+  TODO: check whether the name is in the allowed list.
+  """
+
   global config
   return getattr(config, name)
 
@@ -52,12 +59,6 @@ def rm_user_config():
   if os.path.exists(config.config_file):
     os.remove(config.config_file)
   config = UserConfig(config.config_file)
-
-def try_get_user_config(name):
-  try:
-    return getattr(config, name)
-  except AttributeError:
-    return None
 
 class UserConfig(object):
   """
@@ -77,9 +78,10 @@ class UserConfig(object):
 
   def __getattr__(self, name):
     self.reload()
-
-    if self.config.has_option(CONFIG_SECTION, name):
+    try:
       return self.config.get(CONFIG_SECTION, name)
+    except:
+      raise AttributeError
 
   def __setattr__(self, name, value):
     if name == 'config' or name == 'config_file':

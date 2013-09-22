@@ -10,8 +10,9 @@ import cherrypy, json, logging, ast
 from dataingestion.services.ingestion_manager import IngestServiceException
 from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
-from dataingestion.services import (constants, ingest_service, csv_generator,
-                                    ingestion_manager, api_client, model)
+from dataingestion.services import (constants, ingestion_service, csv_generator,
+                                    ingestion_manager, api_client, model,
+                                    user_config)
 
 logger = logging.getLogger('iDigBioSvc.ingest_rest')
 
@@ -32,25 +33,37 @@ class Authentication(object):
     Authenticate the user account and return the authentication result.
     """
     try:
-      print("Authenticating ...")
-      ret = ingest_service.authenticated()
+      accountuuid = user_config.get_user_config('accountuuid')
+      apikey = user_config.get_user_config('apikey')
+    except AttributeError:
+      return json.dumps(False)
+
+    try:
+      ret = api_client.authenticate(accountuuid, apikey)
       return json.dumps(ret)
-    except Exception as ex:
-      cherrypy.log.error('ingest_rest.Authentication:')
+    except ClientException as ex:
       cherrypy.log.error(str(ex), __name__)
-      raise JsonHTTPError(503, 'iDigBio Service Currently Unavailable.')
+      raise JsonHTTPError(503, str(ex))
  
-  def POST(self, user, password):
+  def POST(self, accountuuid, apikey):
     """
     Post an authentication information pair <user, password>.
+    Raises:
+      JsonHTTPError 503: if the service is unavilable.
+      JsonHTTPError 409: if the UUID/APIKey combination is incorrect.
     """
     try:
-      ingest_service.authenticate(user, password)
-    except ValueError:
-      raise JsonHTTPError(409, 'Authentication combination incorrect.')
-    except Exception as ex:
+      ret = api_client.authenticate(accountuuid, apikey)
+    except ClientException as ex:
       cherrypy.log.error(str(ex), __name__)
       raise JsonHTTPError(503, 'iDigBio Service Currently Unavailable.')
+
+    if ret:
+      # Set the attributes.
+      user_config.set_user_config('accountuuid', accountuuid)
+      user_config.set_user_config('apikey', apikey)
+    else:
+      raise JsonHTTPError(409, 'Authentication combination incorrect.')
 
 
 class UserConfig(object):
@@ -61,7 +74,7 @@ class UserConfig(object):
     Returns the user configuration value of a name.
     """
     try:
-      return json.dumps(ingest_service.get_user_config(name))
+      return json.dumps(ingestion_service.get_user_config(name))
     except AttributeError:
       raise JsonHTTPError(404, 'Not such config option is found.')
 
@@ -69,13 +82,13 @@ class UserConfig(object):
     """
     Sets a user configuration name with a value.
     """
-    ingest_service.set_user_config(name, value)
+    ingestion_service.set_user_config(name, value)
 
   def DELETE(self):
     """
     Removes all the user configurations.
     """
-    ingest_service.rm_user_config()
+    ingestion_service.rm_user_config()
 
 
 class LastBatchInfo(object):
@@ -193,13 +206,13 @@ class CsvIngestionService(object):
 
   def _upload(self, values):
     try:
-      ingest_service.start_upload(values)
+      ingestion_service.start_upload(values)
     except ValueError as ex:
       raise JsonHTTPError(409, str(ex))
 
   def _resume(self):
     try:
-      ingest_service.start_upload()
+      ingestion_service.start_upload()
     except ValueError as ex:
       raise JsonHTTPError(409, str(ex)) 
 
@@ -223,19 +236,3 @@ class DataIngestionService(object):
     self.history = History()
     self.generatecsv = GenerateCSV()
     self.csvgenprogress = CSVGenProgress()
-
-  def GET(self):
-    return '<html><body>Ingestion Service is running.</body></html>'
-
-  def POST(self, rootPath=None):
-    """
-    Ingest data.
-    """
-    logger.debug("POST dir request received.", self.__class__.__name__)
-    try:
-      if rootPath is None:
-        return ingest_service.start_resume(constants.DIR_TYPE)
-      else:
-        return ingest_service.start_upload(rootPath, constants.DIR_TYPE)
-    except ValueError as ex:
-      raise JsonHTTPError(409, str(ex))

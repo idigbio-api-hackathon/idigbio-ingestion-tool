@@ -18,9 +18,6 @@ EXTENSION_MEDIA_TYPES = {
   ".tif": "image/tiff",
 }
 
-CSV_TYPE = "csv_type"
-DIR_TYPE = "dir_type"
-
 INPUT_CSV_FIELDNAMES = (
 	"idigbio:OriginalFileName", "idigbio:MediaGUID"
 )

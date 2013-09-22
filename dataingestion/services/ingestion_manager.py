@@ -27,7 +27,6 @@ import ast
 logger = logging.getLogger('iDigBioSvc.ingestion_manager')
 
 ongoing_upload_task = None
-""" Singleton upload task. """
 fatal_server_error = False 
 input_csv_error = False 
 
@@ -385,7 +384,8 @@ def _upload_csv(ongoing_upload_task, values):
 
     for thread in object_threads:
       thread.start()
-    logger.debug('{0} upload worker threads started.'.format(worker_thread_count))
+    logger.debug(
+        '{0} upload worker threads started.'.format(worker_thread_count))
 
     # Wait until all images are executed.
     #while not object_queue.empty():
@@ -441,7 +441,13 @@ def _make_idigbio_metadata(image_record, batch):
   if image_record.MediaEXIF:
     metadata["idigbio:MediaEXIF"] = image_record.MediaEXIF
   if image_record.Annotations:
-    metadata["idigbio:Annotations"] = image_record.Annotations
+    # Expand all the elements in the Annotations column.
+    try:
+      dic = ast.literal_eval(image_record.Annotations)
+    except SyntaxError:
+      dic = "{}" # Make it empty if the syntax is wrong.
+    for key in dic.keys():
+      metadata[key] = dic[key]
   return metadata
 
 def _make_dataset_metadata(

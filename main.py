@@ -152,10 +152,12 @@ def _move_db(data_folder, db_file):
     cherrypy.log.error("Moved the old DB to {0}".format(move_to), "main")
 
 def _logout_user_if_configured(user_config_path, data_folder, db_file):
-  # logout is None if config file is already removed.
-  logout = dataingestion.services.user_config.try_get_user_config('logoutafterexit')
+  try:
+    logout = dataingestion.services.user_config.get_user_config(
+        'logoutafterexit')
+  except AttributeError:
+    logout = 'false'
   if logout == 'true':
-    cherrypy.log.error("User chooses to log out after exit. Logging out...", "main")
     _move_db(data_folder, db_file)
     os.remove(user_config_path)
 
