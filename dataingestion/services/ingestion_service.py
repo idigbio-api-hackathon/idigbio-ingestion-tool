@@ -21,18 +21,9 @@ singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
 singleton_task.subscribe()
 singleton_task.start()
 
-def authenticated():
-  """
-  Check if the current user is authenticated.
-  """
-  try:
-    _authenticate(get_user_config('accountuuid'), get_user_config('apikey'))
-    return True
-  except (AttributeError, ValueError):
-    return False
-
 def _upload_task(values):
-  _authenticate(get_user_config('accountuuid'), get_user_config('apikey'))
+  api_client.authenticate(get_user_config('accountuuid'),
+                          get_user_config('apikey'))
   ingestion_manager.upload_task(values)
   cherrypy.log('Upload task finished.',  __name__)
 
@@ -55,9 +46,3 @@ def start_upload(values=None):
   except Queue.Full:
     cherrypy.log('Task ongoing.')
 
-def _authenticate(accountuuid, apikey):
-  if api_client.authenticate(accountuuid, apikey):
-    set_user_config('accountuuid', accountuuid)
-    set_user_config('apikey', apikey)
-  else:
-    raise ValueError('Wrong authentication combination.')
