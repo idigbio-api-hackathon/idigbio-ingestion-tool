@@ -307,29 +307,24 @@ def generate_record(csvrow, headerline, rs_uuid):
     exifinfo = pyexiv2.ImageMetadata(mediapath)
     exifinfo.read()
     if not exifinfo:
-      logger.debug("Cannot extract exif information")
       exif = ""
-      warnings += "[EXIF information is None.]"
+      warnings += "[Cannot extract EXIF information.]"
     else:
       exif_dict = {}
       for exif_key in exifinfo.keys():
-        if exifinfo[exif_key].type in ("Byte", "Undefined",
-            "Closed Choice of seq Integer"):
+        try:
+          if type(exifinfo[exif_key].value) in (
+              pytypes.IntType, pytypes.LongType, pytypes.FloatType):
+            exif_dict[exif_key] = exifinfo[exif_key].value
+          elif exifinfo[exif_key].type in ("Flash"):
+            exif_dict[exif_key] = exifinfo[exif_key].value
+          else:
+            exif_dict[exif_key] = str(exifinfo[exif_key].value)
+        except: # There are some fields that cannot be extracted, just continue.
           continue
-        if not exifinfo[exif_key].raw_value:
-          exif_dict[exif_key] = ""
-          continue
-        if type(exifinfo[exif_key].value) in (
-            pytypes.IntType, pytypes.LongType, pytypes.FloatType):
-          exif_dict[exif_key] = exifinfo[exif_key].value
-        elif exifinfo[exif_key].type in ("Flash"):
-          exif_dict[exif_key] = exifinfo[exif_key].value
-        else:
-          exif_dict[exif_key] = str(exifinfo[exif_key].value)
       exif = str(exif_dict)
   except IOError as err:
-    logger.debug("EXIF information is malformed: " + mediapath)
-    warnings += "[EXIF information is malformed.]"
+    warnings += "[Cannot extract EXIF information.]"
 
   logger.debug('Generating image record done.')
   return (mediapath, mediaguid, error, warnings, mimetype, msize, ctime, fowner,
@@ -354,7 +349,6 @@ def add_image(batch, csvrow, headerline):
   try:
    	  record = session.query(ImageRecord).filter_by(AllMD5=amd5).first()
   except Exception as e:
-    logger.error("Error occur during SQLITE access e:{0}".format(e))
     raise ModelException("Error occur during SQLITE access e:{0}".format(e))
   if record is None: # New record. Add the record.
     record = ImageRecord(mediapath, mediaguid, error, warnings, mimetype, msize,
@@ -362,16 +356,12 @@ def add_image(batch, csvrow, headerline):
     try:
       session.add(record)
     except Exception as e:
-      logger.error("Error occur during SQLITE add e:{0}".format(e))
       raise ModelException("Error occur during SQLITE add e:{0}".format(e))
-    logger.debug("Updating ImageRecord done: New record.")
     return record
   elif record.UploadTime: # Found the duplicate record, already uploaded.
-    logger.debug("Updating ImageRecord done: Already uploaded and done.")
     return None
   else: # Found the duplicate record, but not uploaded or file not found.
     record.BatchID = batch.id
-    logger.debug("Updating ImageRecord done: Record not fully finished.")
     return record
 
 @check_session
@@ -515,6 +505,11 @@ def get_last_batch_info():
     # If there's no record before, it is possible a network connection failure.
     retdict = {'Empty': True, 'ErrorCode': 'Network Connection Error.'}
     return retdict
+
+@check_session
+def load_last_batch():
+  batch = session.query(UploadBatch).order_by(desc(UploadBatch.id)).first()
+  return batch
 
 @check_session
 def commit():

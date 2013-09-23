@@ -73,8 +73,8 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
           if not image_binary:
             break;
           image_md5.update(image_binary)
-    guidset.append(image_md5.hexdigest())
-    logger.debug("image_md5:{0}".format(image_md5.hexdigest()))
+      guidset.append(image_md5.hexdigest())
+      logger.debug("image_md5:{0}".format(image_md5.hexdigest()))
   elif guid_syntax == "hash":
     for index in range(len(filenameset)):
       md5value = hashlib.md5()
@@ -270,7 +270,4 @@ def run_gencsv(dic):
   t.start()
 
 def check_progress():
-  """
-  Return (count, result, targetfile name).
-  """
   return (status.count, status.result, status.targetfile, status.error)

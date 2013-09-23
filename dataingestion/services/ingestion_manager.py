@@ -251,8 +251,8 @@ def upload_task(values):
     logger.debug("Input CSV File error ")  
     input_csv_error = True
 
-  except (SystemExit, Exception):
-    logger.error("Error happens in _upload_csv.")
+  except (SystemExit, Exception) as ex:
+    logger.error("Error happens in _upload_csv: %s" %ex)
     logger.error("Aborting all threads...")
     for thread in threading_enumerate():
       thread.abort = True
@@ -414,7 +414,6 @@ def _upload_csv(ongoing_upload_task, values):
   except ClientException:
     error_queue.put('Upload failed outside of the worker thread.')
   except IngestServiceException as ex:
-    print("IngestServiceException caught")
     error_queue.put('Upload failed outside of the worker thread.')
 
   finally:
@@ -479,15 +478,15 @@ def _csv_job(image_record, batch, conn):
   try:
     logger.debug("--------------- A CSV job is started -----------------")
     if not batch:
-      logger.error("Batch record is None.")
       raise ClientException("Batch record is None.")
     if not image_record:
-      logger.error("image_recod is None.")
       raise ClientException("image_recod is None.")
+
     logger.debug("OriginalFileName: " + image_record.OriginalFileName)
+
     if image_record.Error:
-      logger.error("Image File Error.")
-      raise ClientException(image_record.FileError)
+      raise ClientException(image_record.Error)
+
     if not image_record.MediaRecordUUID:
       # Post mediarecord.
       logger.debug("MediaRecordUUID is None")
@@ -538,10 +537,9 @@ def _csv_job(image_record, batch, conn):
     # It's sccessful this time.
     fn = partial(ongoing_upload_task.check_continuous_fails, True)
     ongoing_upload_task.postprocess_queue.put(fn)
-  except ClientException:
-    logger.error("-------- ClientException: A CSV job failed --------------")
+  except ClientException as ex:
+    logger.error("ClientException: A CSV job failed. Reason: %s" %ex)
     fn = partial(ongoing_upload_task.increment, 'fails')
-    print(ongoing_upload_task.fails)
     ongoing_upload_task.postprocess_queue.put(fn)
     def _abort_if_necessary():
       if ongoing_upload_task.check_continuous_fails(False):
@@ -551,7 +549,7 @@ def _csv_job(image_record, batch, conn):
     ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
     raise
   except IOError as err:
-    logger.error("----------- IOError: A CSV job failed -----------------")
+    logger.error("IOError: A CSV job failed.")
     if err.errno == ENOENT: # No such file or directory.
       error_queue.put(
           'Local file %s not found' % repr(image_record.OriginalFileName))
