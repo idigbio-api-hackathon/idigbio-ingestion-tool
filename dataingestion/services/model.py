@@ -25,8 +25,6 @@ if os.name == 'posix':
   import pwd
 elif os.name == 'nt':
   from dataingestion.services import win_api
-from PIL import Image
-from PIL.ExifTags import TAGS
 
 __images_tablename__ = constants.IMAGES_TABLENAME
 __batches_tablename__ = constants.BATCHES_TABLENAME
