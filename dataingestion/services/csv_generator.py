@@ -92,7 +92,8 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
     logger.error("Error: guid_syntax is not defined: " + guid_syntax)
     status.result = -1
     status.error = "GUID Syntax not defined: " + guid_syntax
-    raise IngestServiceException("GUID Syntax not defined: " + guid_syntax)
+    raise IngestServiceException("GUID Syntax not defined: "
+        + guid_syntax)
 
   return guidset
 

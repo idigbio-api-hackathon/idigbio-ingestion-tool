@@ -81,6 +81,7 @@ renderMediaRecordHistory = function(data) {
     "aoColumns": [
       { "sTitle": "OriginalFileName", "sWidth": "42%" },
       { "sTitle": "MediaGUID", "bVisible": false },
+      { "sTitle": "SpecimenUUID", "bVisible": false },
       { "sTitle": "Error", "bVisible": false },
       { "sTitle": "Warnings", "bVisible": false },
       { "sTitle": "MediaRecordUUID", "bVisible": false },
@@ -110,8 +111,8 @@ renderMediaRecordHistory = function(data) {
       { "sTitle": "Online Path or Error Message",
         "sWidth": "58%",
         "fnRender": function(obj) {
-          error = obj.aData[2]; // It is given as an array.
-          url = obj.aData[7];
+          error = obj.aData[3]; // It is given as an array.
+          url = obj.aData[8];
           var text;
           if (error != "") {
             text = "<span class=\"label label-important\">" + error + "</span>"

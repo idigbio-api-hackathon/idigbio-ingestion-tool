@@ -14,7 +14,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.sql.expression import desc
 from sqlalchemy.types import TypeDecorator, Unicode
-import logging, hashlib, argparse, os, time, struct, re, pyexiv2
+import logging, hashlib, argparse, os, time, struct, re
+import pyexiv2
 from datetime import datetime
 import types as pytypes
 from dataingestion.services import constants
@@ -128,6 +129,8 @@ class ImageRecord(Base):
   MediaGUID (providerid) is unique for each media record within the record set.
   """
   MediaGUID = Column(String)
+  """The UUID of the specimen for this image."""
+  SpecimenUUID = Column(String)
   """Indicates if there is a fatal error in the processing."""
   Error = Column(String)
   """Indicates if there are warnings in the processing."""
@@ -181,10 +184,11 @@ class ImageRecord(Base):
   """This image belongs to a specific batch."""
   BatchID = Column(Integer)
 
-  def __init__(self, path, mediaguid, error, warnings, mimetype, msize, ctime,
-               fowner, exif, annotations, mmd5, amd5, batch):
+  def __init__(self, path, mediaguid, specimenuuid, error, warnings, mimetype,
+               msize, ctime, fowner, exif, annotations, mmd5, amd5, batch):
     self.OriginalFileName = path
     self.MediaGUID = mediaguid
+    self.SpecimenUUID = specimenuuid
     self.Error = error
     self.Warnings = warnings
     self.MimeType = mimetype
@@ -227,6 +231,7 @@ def generate_record(csvrow, headerline, rs_uuid):
   
   mediapath = ""
   mediaguid = ""
+  specimenuuid = ""
   error = ""
   warnings = ""
   mimetype = ""
@@ -237,7 +242,6 @@ def generate_record(csvrow, headerline, rs_uuid):
   annotations_dict = {}
   mmd5 = ""
   amd5 = ""
-  exif = ""
 
   index = 0
   for index, elem in enumerate(headerline):
@@ -245,6 +249,8 @@ def generate_record(csvrow, headerline, rs_uuid):
       mediapath = csvrow[index]
     elif elem == "idigbio:MediaGUID":
       mediaguid = csvrow[index]
+    elif elem == "idigbio:SpecimenUUID":
+      specimenuuid = csvrow[index]
     else:
       annotations_dict[elem] = csvrow[index]
 
@@ -252,6 +258,7 @@ def generate_record(csvrow, headerline, rs_uuid):
   recordmd5.update(rs_uuid)
   recordmd5.update(mediapath)
   recordmd5.update(mediaguid)
+  recordmd5.update(specimenuuid)
 
   exifinfo = None
   filemd5 = hashlib.md5()
@@ -274,8 +281,8 @@ def generate_record(csvrow, headerline, rs_uuid):
 
   if error: # File not exist, cannot go further. Just return.
     logger.debug('Generating image record done with error.')
-    return (mediapath, mediaguid, error, warnings, mimetype, msize, ctime,
-        fowner, exif, str(annotations_dict), filemd5.hexdigest(),
+    return (mediapath, mediaguid, specimenuuid, error, warnings, mimetype,
+        msize, ctime, fowner, exif, str(annotations_dict), filemd5.hexdigest(),
         recordmd5.hexdigest())
 
   recordmd5.update(filemd5.hexdigest())
@@ -325,8 +332,9 @@ def generate_record(csvrow, headerline, rs_uuid):
     warnings += "[Cannot extract EXIF information.]"
 
   logger.debug('Generating image record done.')
-  return (mediapath, mediaguid, error, warnings, mimetype, msize, ctime, fowner,
-      exif, str(annotations_dict), filemd5.hexdigest(), recordmd5.hexdigest())
+  return (mediapath, mediaguid, specimenuuid, error, warnings, mimetype, msize,
+          ctime, fowner, exif, str(annotations_dict), filemd5.hexdigest(),
+          recordmd5.hexdigest())
 
 @check_session
 def add_image(batch, csvrow, headerline):
@@ -340,17 +348,18 @@ def add_image(batch, csvrow, headerline):
   :rtype: ImageRecord or None.
   Note: Image identity is not determined by path but rather by its MD5.
   """
-  (mediapath, mediaguid, error, warnings, mimetype, msize, ctime, fowner, exif,
-      annotations, mmd5, amd5) = generate_record(csvrow, headerline,
-                                                 batch.RecordSetUUID)
+  (mediapath, mediaguid, specimenuuid, error, warnings, mimetype, msize, ctime,
+      fowner, exif, annotations, mmd5, amd5) = generate_record(
+          csvrow, headerline, batch.RecordSetUUID)
 
   try:
    	  record = session.query(ImageRecord).filter_by(AllMD5=amd5).first()
   except Exception as e:
     raise ModelException("Error occur during SQLITE access e:{0}".format(e))
   if record is None: # New record. Add the record.
-    record = ImageRecord(mediapath, mediaguid, error, warnings, mimetype, msize,
-                         ctime, fowner, exif, annotations, mmd5, amd5, batch)
+    record = ImageRecord(mediapath, mediaguid, specimenuuid, error, warnings,
+                         mimetype, msize, ctime, fowner, exif, annotations,
+                         mmd5, amd5, batch)
     try:
       session.add(record)
     except Exception as e:
@@ -420,7 +429,8 @@ def get_batch_details(batch_id):
   batch_id = int(batch_id)
   
   query = session.query(
-      ImageRecord.OriginalFileName, ImageRecord.MediaGUID, ImageRecord.Error,
+      ImageRecord.OriginalFileName, ImageRecord.MediaGUID,
+      ImageRecord.SpecimenUUID, ImageRecord.Error,
       ImageRecord.Warnings, ImageRecord.MediaRecordUUID,
       ImageRecord.MediaAPUUID, ImageRecord.UploadTime, ImageRecord.MediaURL,
       ImageRecord.MimeType, ImageRecord.MediaSizeInBytes,

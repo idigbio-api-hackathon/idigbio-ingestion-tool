@@ -16,7 +16,7 @@ OSX_IDENTIFIER = "org.nsf.idigbio.ingestion.client"
 VERSION = "0.4.5" # must be X.X.X format (OS X requires it)
 LIB_DIRS = [os.path.join("..", "lib")]
 INCLUDES = ["cherrypy.wsgiserver", "cherrypy.wsgiserver.wsgiserver3",
-            "webbrowser", "sqlite3", "sqlalchemy.dialects.sqlite"]
+            "webbrowser", "sqlite3", "sqlalchemy.dialects.sqlite", "pyexiv2"]
 PACKAGES = []
 EXCLUDES = ["tkinter", "Tkinter", "ttk", "Tix", "Carbon"]
 RESOURCES = [os.path.join("..", "www"), os.path.join("..", "etc")]

@@ -495,7 +495,7 @@ def _csv_job(image_record, batch, conn):
       # mr_str is the return from server
       record_uuid, mr_etag, mr_str = conn.post_mediarecord(
           batch.RecordSetUUID, image_record.OriginalFileName,
-          image_record.MediaGUID, metadata)
+          image_record.MediaGUID, image_record.SpecimenUUID, metadata)
       image_record.MediaRecordUUID = record_uuid
       image_record.MediaRecordContent = mr_str
       image_record.etag = mr_etag
