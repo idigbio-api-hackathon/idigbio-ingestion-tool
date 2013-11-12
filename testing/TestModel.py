@@ -7,6 +7,7 @@
 
 # This preprocess is to set up the paths to make sure the current module
 # referencing in the files to be tested.
+
 import sys, os, unittest, tempfile, datetime
 rootdir = os.path.dirname(os.getcwd())
 sys.path.append(rootdir)
@@ -45,11 +46,13 @@ class TestModel(unittest.TestCase):
     self.assertEqual(batch.FundingPurpose, fundingPurpose)
 
   def _validateImageRecordFields(
-      self, record, filepath, mediaguid, error, warnings, mimetype, msize,
+      self, record, filepath, mediaguid, sruuid,
+      error, warnings, mimetype, msize,
       annotations, batchID):
     '''Validate a image record has the field values same as given.'''
     self.assertEqual(record.OriginalFileName, filepath)
     self.assertEqual(record.MediaGUID, mediaguid)
+    self.assertEqual(record.SpecimenRecordUUID, sruuid)
     self.assertEqual(record.Error, error)
     self.assertEqual(record.Warnings, warnings)
     self.assertEqual(record.MimeType, mimetype)
@@ -66,6 +69,9 @@ class TestModel(unittest.TestCase):
     self.assertIsNotNone(record.MediaEXIF)
     self.assertIsNotNone(record.MediaMD5)
     self.assertIsNotNone(record.AllMD5)
+
+#----------------------------------------------------
+# Tests.
 
   def _testAddBatch(self):
     '''Test add_batch with various inputs.'''
@@ -127,19 +133,20 @@ class TestModel(unittest.TestCase):
 
     headerline = ["idigbio:OriginalFileName", "idigbio:MediaGUID"]
     mediaguid = "123123123" # Random
-    rs_uuid = "837168372" # Random
 
     '''A correct file path with minimum input.'''
     orig_filepath = os.path.join(os.getcwd(), "image1.jpg")
     csvrow = [orig_filepath, mediaguid]
     record = model.add_image(self._batch1, csvrow, headerline)
-    self._validateImageRecordFields(record, orig_filepath, mediaguid, "", "",
+    self._validateImageRecordFields(record, orig_filepath, mediaguid, "", "", "",
                                     "image/jpeg", 143978, "{}", self._batch1.id)
+
     '''If the image is a retry, update the batch ID.'''
     model.commit()
     record = model.add_image(self._batch2, csvrow, headerline)
-    self._validateImageRecordFields(record, orig_filepath, mediaguid, "", "",
+    self._validateImageRecordFields(record, orig_filepath, mediaguid, "", "", "",
                                     "image/jpeg", 143978, "{}", self._batch2.id)
+
     '''If the image is uploaded, just return None.'''
     # Update the UploadTime of the record.
     record.UploadTime = str(datetime.datetime.utcnow())
@@ -147,25 +154,36 @@ class TestModel(unittest.TestCase):
     self.assertIsNone(model.add_image(self._batch1, csvrow, headerline))
     # Record the imagerecord information for testing other functions.
     self._record = record
+
     '''A correct large input.'''
     annotation = {"Field1": "Value1", "Field2": "Value2", "Field3": "Value3"}
     headerline2 = ["idigbio:OriginalFileName", "idigbio:MediaGUID", "Field1",
                    "Field2", "Field3"]
     mediaguid2 = "1231231232" # Random
-    rs_uuid2 = "9416729378" # Random
     csvrow2 = [orig_filepath, mediaguid2, annotation["Field1"],
                annotation["Field2"], annotation["Field3"]]
     record = model.add_image(self._batch2, csvrow2, headerline2)
     self._validateImageRecordFields(
-        record, orig_filepath, mediaguid2, "", "", "image/jpeg", 143978,
+        record, orig_filepath, mediaguid2, "", "", "", "image/jpeg", 143978,
         str(annotation), self._batch2.id)
+
+    '''An input that contains SpecimenRecordUUID'''
+    headerline3 = ["idigbio:OriginalFileName", "idigbio:MediaGUID",
+        "idigbio:SpecimenRecordUUID"]
+    csv_sruuid = "19878432498316, 0984823912374"
+    mediaguid3 = "123123072" # Random
+    csvrow3 = [orig_filepath, mediaguid3, csv_sruuid]
+    record = model.add_image(self._batch2, csvrow3, headerline3)
+    self._validateImageRecordFields(
+        record, orig_filepath, mediaguid3, csv_sruuid.replace(" ", ""),
+        "", "", "image/jpeg", 143978, "{}", self._batch2.id)
 
     '''File path is wrong.'''
     invalid_filepath = "Invalid/path/file.jpg"
     csvrow = [invalid_filepath, mediaguid]
     record = model.add_image(self._batch1, csvrow, headerline)
     self._validateImageRecordFields(
-        record, invalid_filepath, mediaguid, "File not found.", "",
+        record, invalid_filepath, mediaguid, "", "File not found.", "",
         "image/jpeg", "", "{}", self._batch1.id)
 
   def _testGetAllBatches(self):
@@ -204,13 +222,13 @@ class TestModel(unittest.TestCase):
     record = records[0]
 
     self._validateImageRecordFields(
-        self._record, record[0], record[1], record[2], record[3], record[8],
-        record[9], record[13], record[28])
+        self._record, record[0], record[1], record[2], record[3], record[4],
+        record[9], record[10], record[14], record[29])
 
     self._validateBatchFields(
-        self._batch2, record[16], record[17], record[18], record[19],
-        record[20], record[21], record[22], record[23], record[24], record[25],
-        record[26], record[27])
+        self._batch2, record[17], record[18], record[19], record[20],
+        record[21], record[22], record[23], record[24], record[25],
+        record[26], record[27], record[28])
 
   def _testGetLastBatchInfo(self):
     '''Test get_last_batch_info.'''

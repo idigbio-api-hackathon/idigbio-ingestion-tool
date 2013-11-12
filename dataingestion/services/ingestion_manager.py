@@ -447,6 +447,7 @@ def _make_idigbio_metadata(image_record, batch):
       dic = "{}" # Make it empty if the syntax is wrong.
     for key in dic.keys():
       metadata[key] = dic[key]
+  logger.debug("Making iDigBio metadata done.")
   return metadata
 
 def _make_dataset_metadata(
@@ -489,13 +490,13 @@ def _csv_job(image_record, batch, conn):
 
     if not image_record.MediaRecordUUID:
       # Post mediarecord.
-      logger.debug("MediaRecordUUID is None")
+      logger.debug("MediaRecordUUID is None, post mediarecord first.")
       image_record.BatchID = batch.id
       metadata = _make_idigbio_metadata(image_record, batch)
       # mr_str is the return from server
       record_uuid, mr_etag, mr_str = conn.post_mediarecord(
           batch.RecordSetUUID, image_record.OriginalFileName,
-          image_record.MediaGUID, image_record.SpecimenUUID, metadata)
+          image_record.MediaGUID, image_record.SpecimenRecordUUID, metadata)
       image_record.MediaRecordUUID = record_uuid
       image_record.MediaRecordContent = mr_str
       image_record.etag = mr_etag

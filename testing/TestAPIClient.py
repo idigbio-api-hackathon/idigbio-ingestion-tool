@@ -22,8 +22,10 @@ class TestAPIClient(unittest.TestCase):
     self._accountuuid = "60f7cb1e-02f5-425c-bc37-cae87550317a"
     self._apikey = "99f3ea05d8229a2f0d3aa1fcadf4a9a3"
     # Make the media file paths.
-    self._filepath = os.path.join(os.getcwd(), "image1.jpg")
+    self._filepath1 = os.path.join(os.getcwd(), "image1.jpg")
+    self._filepath2 = os.path.join(os.getcwd(), "image2.jpg")
     self._invalidfilepath = "Notvalid/path.jpg"
+    self._emptysruuid = ""
 
   def _testBuildUrl(self):
     '''Test _build_url with different parameters.'''
@@ -84,12 +86,13 @@ class TestAPIClient(unittest.TestCase):
         "/publicdomain.png",
         "idigbio:MimeType": "image/jpeg"}
     self._record_uuid1, self._mr_etag1, self._mr_str1 = \
-        api_client._post_mediarecord(self._recordset_uuid1, self._filepath,
-                                     media_id1, metadata1)
+        api_client._post_mediarecord(self._recordset_uuid1, self._filepath1,
+                                     media_id1, self._emptysruuid, metadata1)
     self.assertIsNotNone(self._record_uuid1)
     self.assertIsNotNone(self._mr_etag1)
     self.assertIsNotNone(self._mr_str1)
 
+    '''Test _post_mediarecord with one sruuid'''
     media_id2 = "test2/f2"
     metadata2 = {
         "xmpRights:usageTerms": "CC BY-SA",
@@ -98,23 +101,63 @@ class TestAPIClient(unittest.TestCase):
         "ac:licenseLogoURL":
         "http://mirrors.creativecommons.org/presskit/buttons/80x15/png" +
         "/by-sa.png",
-        "idigbio:MimeType": "image/jpeg",
-        "Annotaions": "{'idigbio:Description': 'Some description.'," +
-                      "'idigbio:LanguageCode': 'French'," +
-                      "'idigbio:Title': 'Some title'," +
-                      "'idigbio:DigitalizationDevice': 'Dig device.'}"}
+        "idigbio:MimeType": "image/jpeg"}
+    sruuid_1 = self._record_uuid1
     self._record_uuid2, self._mr_etag2, self._mr_str2 = \
         api_client._post_mediarecord(self._recordset_uuid2,
                                      self._invalidfilepath, media_id2,
-                                     metadata2)
+                                     sruuid_1, metadata2)
     self.assertIsNotNone(self._record_uuid2)
     self.assertIsNotNone(self._mr_etag2)
     self.assertIsNotNone(self._mr_str2)
+    print self._record_uuid2
+
+    '''Test _post_mediarecord with two sruuids'''
+    media_id3 = "test3/f3"
+    metadata3 = {
+        "xmpRights:usageTerms": "CC BY-SA",
+        "xmpRights:webStatement":
+        "http://creativecommons.org/licenses/by-sa/3.0/",
+        "ac:licenseLogoURL":
+        "http://mirrors.creativecommons.org/presskit/buttons/80x15/png" +
+        "/by-sa.png",
+        "idigbio:MimeType": "image/jpeg"}
+    sruuid_2 = self._record_uuid1 + "," + self._record_uuid2
+    self._record_uuid3, self._mr_etag3, self._mr_str3 = \
+        api_client._post_mediarecord(self._recordset_uuid2,
+                                     self._invalidfilepath, media_id3,
+                                     sruuid_2, metadata3)
+    self.assertIsNotNone(self._record_uuid3)
+    self.assertIsNotNone(self._mr_etag3)
+    self.assertIsNotNone(self._mr_str3)
+    print self._record_uuid3
+
+    '''Test _post_mediarecord with annotations'''
+    media_id4 = "test4/f4"
+    metadata4 = {
+        "xmpRights:usageTerms": "CC BY-SA",
+        "xmpRights:webStatement":
+        "http://creativecommons.org/licenses/by-sa/3.0/",
+        "ac:licenseLogoURL":
+        "http://mirrors.creativecommons.org/presskit/buttons/80x15/png" +
+        "/by-sa.png",
+        "idigbio:MimeType": "image/jpeg",
+        "Annotations": "{'idigbio:Description': 'Some description.'," +
+                       "'idigbio:LanguageCode': 'French'," +
+                       "'idigbio:Title': 'Some title'," +
+                       "'idigbio:DigitalizationDevice': 'Dig device.'}"}
+    self._record_uuid4, self._mr_etag4, self._mr_str4= \
+        api_client._post_mediarecord(self._recordset_uuid2,
+                                     self._invalidfilepath, media_id4,
+                                     self._emptysruuid, metadata4)
+    self.assertIsNotNone(self._record_uuid4)
+    self.assertIsNotNone(self._mr_etag4)
+    self.assertIsNotNone(self._mr_str4)
 
   def _testPostMedia(self):
     '''Test _post_media.'''
     # The file exists.
-    api_client._post_media(self._filepath, self._record_uuid1)
+    api_client._post_media(self._filepath1, self._record_uuid1)
     # The path does not exist.
     self.assertRaises(IOError, api_client._post_media, self._invalidfilepath,
                       self._record_uuid2)

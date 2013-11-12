@@ -130,7 +130,7 @@ class ImageRecord(Base):
   """
   MediaGUID = Column(String)
   """The UUID of the specimen for this image."""
-  SpecimenUUID = Column(String)
+  SpecimenRecordUUID = Column(String)
   """Indicates if there is a fatal error in the processing."""
   Error = Column(String)
   """Indicates if there are warnings in the processing."""
@@ -184,11 +184,11 @@ class ImageRecord(Base):
   """This image belongs to a specific batch."""
   BatchID = Column(Integer)
 
-  def __init__(self, path, mediaguid, specimenuuid, error, warnings, mimetype,
+  def __init__(self, path, mediaguid, sruuid, error, warnings, mimetype,
                msize, ctime, fowner, exif, annotations, mmd5, amd5, batch):
     self.OriginalFileName = path
     self.MediaGUID = mediaguid
-    self.SpecimenUUID = specimenuuid
+    self.SpecimenRecordUUID = sruuid
     self.Error = error
     self.Warnings = warnings
     self.MimeType = mimetype
@@ -231,7 +231,7 @@ def generate_record(csvrow, headerline, rs_uuid):
   
   mediapath = ""
   mediaguid = ""
-  specimenuuid = ""
+  sruuid = ""
   error = ""
   warnings = ""
   mimetype = ""
@@ -249,8 +249,8 @@ def generate_record(csvrow, headerline, rs_uuid):
       mediapath = csvrow[index]
     elif elem == "idigbio:MediaGUID":
       mediaguid = csvrow[index]
-    elif elem == "idigbio:SpecimenUUID":
-      specimenuuid = csvrow[index]
+    elif elem == "idigbio:SpecimenRecordUUID":
+      sruuid = csvrow[index].replace(" ", "")
     else:
       annotations_dict[elem] = csvrow[index]
 
@@ -258,7 +258,7 @@ def generate_record(csvrow, headerline, rs_uuid):
   recordmd5.update(rs_uuid)
   recordmd5.update(mediapath)
   recordmd5.update(mediaguid)
-  recordmd5.update(specimenuuid)
+  recordmd5.update(sruuid)
 
   exifinfo = None
   filemd5 = hashlib.md5()
@@ -281,7 +281,7 @@ def generate_record(csvrow, headerline, rs_uuid):
 
   if error: # File not exist, cannot go further. Just return.
     logger.debug('Generating image record done with error.')
-    return (mediapath, mediaguid, specimenuuid, error, warnings, mimetype,
+    return (mediapath, mediaguid, sruuid, error, warnings, mimetype,
         msize, ctime, fowner, exif, str(annotations_dict), filemd5.hexdigest(),
         recordmd5.hexdigest())
 
@@ -332,7 +332,7 @@ def generate_record(csvrow, headerline, rs_uuid):
     warnings += "[Cannot extract EXIF information.]"
 
   logger.debug('Generating image record done.')
-  return (mediapath, mediaguid, specimenuuid, error, warnings, mimetype, msize,
+  return (mediapath, mediaguid, sruuid, error, warnings, mimetype, msize,
           ctime, fowner, exif, str(annotations_dict), filemd5.hexdigest(),
           recordmd5.hexdigest())
 
@@ -348,7 +348,7 @@ def add_image(batch, csvrow, headerline):
   :rtype: ImageRecord or None.
   Note: Image identity is not determined by path but rather by its MD5.
   """
-  (mediapath, mediaguid, specimenuuid, error, warnings, mimetype, msize, ctime,
+  (mediapath, mediaguid, sruuid, error, warnings, mimetype, msize, ctime,
       fowner, exif, annotations, mmd5, amd5) = generate_record(
           csvrow, headerline, batch.RecordSetUUID)
 
@@ -357,7 +357,7 @@ def add_image(batch, csvrow, headerline):
   except Exception as e:
     raise ModelException("Error occur during SQLITE access e:{0}".format(e))
   if record is None: # New record. Add the record.
-    record = ImageRecord(mediapath, mediaguid, specimenuuid, error, warnings,
+    record = ImageRecord(mediapath, mediaguid, sruuid, error, warnings,
                          mimetype, msize, ctime, fowner, exif, annotations,
                          mmd5, amd5, batch)
     try:
@@ -430,7 +430,7 @@ def get_batch_details(batch_id):
   
   query = session.query(
       ImageRecord.OriginalFileName, ImageRecord.MediaGUID,
-      ImageRecord.SpecimenUUID, ImageRecord.Error,
+      ImageRecord.SpecimenRecordUUID, ImageRecord.Error,
       ImageRecord.Warnings, ImageRecord.MediaRecordUUID,
       ImageRecord.MediaAPUUID, ImageRecord.UploadTime, ImageRecord.MediaURL,
       ImageRecord.MimeType, ImageRecord.MediaSizeInBytes,

@@ -24,8 +24,8 @@ INPUT_CSV_FIELDNAMES = (
 
 G_DEFAULT_CSV_OUTPUT_NAME = 'media_records.csv'
 
-IMAGES_TABLENAME = 'imagesV8_8'
-BATCHES_TABLENAME = 'batchesV8_8'
+IMAGES_TABLENAME = 'imagesV8_9'
+BATCHES_TABLENAME = 'batchesV8_9'
 
 class FieldNameException(Exception):
   def __init__(self, msg, reason=''):

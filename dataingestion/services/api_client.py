@@ -67,12 +67,11 @@ def _post_recordset(recordset_id, metadata):
     raise ClientException("IOError caught.")
   return response['idigbio:uuid']
 
-def _post_mediarecord(recordset_uuid, path, media_id, specimen_uuid, idigbio_metadata):
+def _post_mediarecord(recordset_uuid, path, media_id, sr_uuid, idigbio_metadata):
   '''
   Returns the UUID of the Media Record and the raw MR JSON String as a tuple.
   '''
   logger.debug('_post_mediarecord')
-  logger.debug('idigbio_metadata: {0}'.format(idigbio_metadata))
 
   data = {
       "idigbio:data": {
@@ -81,12 +80,13 @@ def _post_mediarecord(recordset_uuid, path, media_id, specimen_uuid, idigbio_met
           "idigbio:MediaGUID": media_id,
           "idigbio:relationships": {"recordset": recordset_uuid}},
       "idigbio:recordIds": [media_id]}
-  if specimen_uuid is not "":
-    data["idigbio:data"]["idigbio:relationships"]["record"] = specimen_uuid
+  if sr_uuid:
+    print "sr_uuid:", sr_uuid
+    data["idigbio:data"]["idigbio:relationships"]["record"] = sr_uuid.split(',')
   data["idigbio:data"] = dict(data["idigbio:data"].items() +
                               idigbio_metadata.items())
 
-  logger.debug('_post_mediarecord data:{0}'.format(data)) #QHO
+  logger.debug('_post_mediarecord data:{0}'.format(data))
   url = _build_url("mediarecords")
   logger.debug("POSTing mediarecord...")
   try:
@@ -111,7 +111,7 @@ def _post_media(local_path, entity_uuid):
     ClientException: If
   '''
   url = _build_url("mediarecords", entity_uuid, "media")
-  logger.debug("POSTing media...")
+  logger.debug("POSTing media to " + str(url) + "...")
   datagen, headers = multipart_encode({"file": open(local_path, "rb")})
   try:
     request = urllib2.Request(url, datagen, headers)
@@ -306,10 +306,10 @@ class Connection(object):
   def post_recordset(self, recordset_id, metadata):
     return self._retry(None, _post_recordset, recordset_id, metadata)
 
-  def post_mediarecord(self, recordset_uuid, path, media_id, specimen_uuid,
+  def post_mediarecord(self, recordset_uuid, path, media_id, sr_uuid,
                        idigbio_metadata):
     return self._retry(None, _post_mediarecord, recordset_uuid, path,
-                       media_id, specimen_uuid, idigbio_metadata)
+                       media_id, sr_uuid, idigbio_metadata)
 
   def post_media(self, local_path, entity_uuid):
     return self._retry(None, _post_media, local_path, entity_uuid)
