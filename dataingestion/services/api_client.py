@@ -81,7 +81,6 @@ def _post_mediarecord(recordset_uuid, path, media_id, sr_uuid, idigbio_metadata)
           "idigbio:relationships": {"recordset": recordset_uuid}},
       "idigbio:recordIds": [media_id]}
   if sr_uuid:
-    print "sr_uuid:", sr_uuid
     data["idigbio:data"]["idigbio:relationships"]["record"] = sr_uuid.split(',')
   data["idigbio:data"] = dict(data["idigbio:data"].items() +
                               idigbio_metadata.items())
@@ -173,7 +172,7 @@ def authenticate(user, key):
                           {'Content-Type': 'application/json'})
     base64string = base64.encodestring('%s:%s' % (user, key)).replace('\n', '')
     req.add_header("Authorization", "Basic %s" % base64string)
-    urllib2.urlopen(req, timeout=10)
+    urllib2.urlopen(req, timeout=2)
     logger.debug("Successfully logged in.")
     auth_string = base64string
     return True
@@ -185,6 +184,9 @@ def authenticate(user, key):
       raise ClientException("Failed to authenticate with server.", url=url,
                             http_status=e.code, http_response_content=e.read(),
                             reason=user)
+  except socket.timeout as e:
+    raise Exception("Server time out.")
+    return False
 
 class ClientException(Exception):
   def __init__(self, msg, url='', http_status=None, reason='', local_path='',

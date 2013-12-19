@@ -13,7 +13,6 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.sql.expression import desc
-from sqlalchemy.types import TypeDecorator, Unicode
 import logging, hashlib, argparse, os, time, struct, re
 import pyexiv2
 from datetime import datetime
@@ -353,7 +352,7 @@ def add_image(batch, csvrow, headerline):
           csvrow, headerline, batch.RecordSetUUID)
 
   try:
-   	  record = session.query(ImageRecord).filter_by(AllMD5=amd5).first()
+    record = session.query(ImageRecord).filter_by(AllMD5=amd5).first()
   except Exception as e:
     raise ModelException("Error occur during SQLITE access e:{0}".format(e))
   if record is None: # New record. Add the record.

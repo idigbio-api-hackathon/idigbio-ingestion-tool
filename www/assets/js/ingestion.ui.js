@@ -468,8 +468,7 @@ renderResult = function(data) {
       { "sTitle": "iDigbioPublisherGUID", "bVisible": false },
       { "sTitle": "FundingSource", "bVisible": false },
       { "sTitle": "FundingPurpose", "bVisible": false },
-      {
-        "sTitle": "Online Path or Error Message",
+      { "sTitle": "Online Path or Error Message",
         "sWidth": "58%",
         "fnRender": function(obj) {
           error = obj.aData[3]; // It is given as an array.
@@ -478,7 +477,8 @@ renderResult = function(data) {
           if (error != "") {
             text = "<span class=\"label label-important\">" + error + "</span>"
           } else if (url == null) {
-            text = "<span class=\"label label-important\">This image is not successfully uploaded.</span>"
+            text = "<span class=\"label label-important\">"
+              + "This image is not successfully uploaded.</span>"
           } else {
             text = '<a target="_blank" href="' + url + '">'+ url + '</a>';
           }
