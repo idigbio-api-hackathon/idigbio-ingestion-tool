@@ -422,28 +422,50 @@ def add_batch(path, accountID, license, licenseStatementUrl, licenseLogoUrl,
   session.add(newrecord)
   return newrecord
 
+def get_batch_details_fieldnames():
+  '''
+  This function returns the format of the returned list of
+  get_batch_details.
+  '''
+
+  return ["MediaGUID", "OriginalFileName", "SpecimenUUID",
+      "Error", "Warnings", "MediaRecordUUID", "MediaAPUUID",
+      "UploadTime", "MediaURL", "MimeType", "MediaSizeInBytes",
+      # 0 - 10 above.
+      "ProviderCreatedTimeStamp", "providerCreatedByGUID", "MediaEXIF",
+      "Annotations", "MediaRecordEtag", "MediaMD5", "CSVfilePath",
+      "iDigbioProvidedByGUID", "RightsLicense", "RightsLicenseStatementUrl",
+      "RightsLicenseLogoUrl",
+      # 11 - 21 above.
+      "RecordSetGUID", "RecordSetUUID", "MediaContentKeyword",
+      "iDigbioProviderGUID", "iDigbioPublisherGUID", "FundingSource",
+      "FundingPurpose", "batchID"]
+ 
+
 @check_session
 def get_batch_details(batch_id):
   '''Gets all the image records for a batch with batch_id.'''
   batch_id = int(batch_id)
   
   query = session.query(
-      ImageRecord.OriginalFileName, ImageRecord.MediaGUID,
+      ImageRecord.MediaGUID, ImageRecord.OriginalFileName,
       ImageRecord.SpecimenRecordUUID, ImageRecord.Error,
       ImageRecord.Warnings, ImageRecord.MediaRecordUUID,
       ImageRecord.MediaAPUUID, ImageRecord.UploadTime, ImageRecord.MediaURL,
       ImageRecord.MimeType, ImageRecord.MediaSizeInBytes,
+      # 0 - 10 above.
       ImageRecord.ProviderCreatedTimeStamp, ImageRecord.ProviderCreatedByGUID,
       ImageRecord.MediaEXIF, ImageRecord.Annotations, ImageRecord.etag,
       ImageRecord.MediaMD5, UploadBatch.CSVfilePath,
       UploadBatch.iDigbioProvidedByGUID, UploadBatch.RightsLicense,
       UploadBatch.RightsLicenseStatementUrl, UploadBatch.RightsLicenseLogoUrl,
+      # 11 - 21 above
       UploadBatch.RecordSetGUID, UploadBatch.RecordSetUUID,
       UploadBatch.MediaContentKeyword, UploadBatch.iDigbioProviderGUID,
       UploadBatch.iDigbioPublisherGUID, UploadBatch.FundingSource,
       UploadBatch.FundingPurpose, ImageRecord.BatchID
     ).filter(ImageRecord.BatchID == batch_id).filter(UploadBatch.id == batch_id
-    ).order_by(ImageRecord.id) # 29 elements.
+    ).order_by(ImageRecord.id) # 30 elements.
   
   logger.debug("Image record count: " + str(query.count()))
 
@@ -517,6 +539,11 @@ def get_last_batch_info():
 def load_last_batch():
   batch = session.query(UploadBatch).order_by(desc(UploadBatch.id)).first()
   return batch
+
+@check_session
+def get_csv_path(batch_id):
+  batch = session.query(UploadBatch).filter_by(id=batch_id).first()
+  return batch.CSVfilePath
 
 @check_session
 def commit():

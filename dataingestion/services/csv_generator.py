@@ -224,7 +224,7 @@ def gen_csv():
                                  + status.targetfile)
 
 # Get the target file path from the given information.
-def get_tagetfile():
+def get_targetfile():
   imagedir = ""
   dic = status.dic
   if dic.has_key(user_config.G_IMAGE_DIR):
@@ -265,7 +265,7 @@ def run_gencsv(dic):
   status.error = None
   status.targetfile = None
 
-  get_tagetfile()
+  get_targetfile()
   t = threading.Thread(target=gen_csv)
   t.daemon = True
   t.start()

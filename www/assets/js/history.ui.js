@@ -1,3 +1,5 @@
+var batchid = 0
+
 initHistoryUI = function() {
   $('#refresh-bh-button').click(function(event) {
     $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
@@ -9,6 +11,33 @@ initHistoryUI = function() {
 
   $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
 
+  $('#hist-zip-gen-form').submit(function(event) {
+    event.preventDefault();
+    var values =
+      "{\'batch_id\':\'" + batchid +
+      "\',\'target_path\':\'" + processFieldValue('#hist-zip-gen-path') +
+      "\'}";
+    postHistZipGen(values);
+  });
+}
+
+postHistZipGen = function(values) {
+  var callback = function(path){
+    container = "#hist-alert-container";
+    var alert_html =
+      ['<div class="alert alert-block fade span10" id="hist-alert">',
+       '<button class="close" data-dismiss="alert">&times;</button>',
+        '<p id="hist-alert-text">',
+        '</div>'].join('\n');
+    $(container).html(alert_html);
+    $("#hist-alert").show();
+    $("#hist-alert").addClass('in');
+    $("#hist-alert").addClass("alert-success");
+    $("#hist-alert-text").html("The zip file is successfully saved to: "
+        + path);
+  };
+
+  $.getJSON("/services/genoutputcsv", {values: values}, callback);
 }
 
 renderBatchHistory = function(data) {
@@ -65,6 +94,7 @@ renderBatchHistory = function(data) {
     }
 
     var aData = bht.fnGetData( this.parentNode );//get data of the clicked row
+    batchid = aData[0];
     $.getJSON('/services/history', { table_id: aData[0] }, 
               renderMediaRecordHistory);
     $('#image-history-table-description').text("Batch ID: " + aData[0]);
@@ -79,8 +109,8 @@ renderMediaRecordHistory = function(data) {
   $('#image-history-table').dataTable({
     "aaData": data,
     "aoColumns": [
-      { "sTitle": "OriginalFileName", "sWidth": "42%" },
       { "sTitle": "MediaGUID", "bVisible": false },
+      { "sTitle": "OriginalFileName", "sWidth": "42%" },
       { "sTitle": "SpecimenUUID", "bVisible": false },
       { "sTitle": "Error", "bVisible": false },
       { "sTitle": "Warnings", "bVisible": false },
@@ -137,7 +167,7 @@ renderMediaRecordHistory = function(data) {
       "sSwfPath": "assets/TableTools/swf/copy_csv_xls_pdf.swf",
       "aButtons": [
       {
-        "sExtends": "csv",
+        "sExtends": 'csv',
         "sButtonText": 'CSV(Complete)',
         "sFieldBoundary": '"',
         "sFieldSeperator": ',',

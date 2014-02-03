@@ -12,7 +12,7 @@ from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
 from dataingestion.services import (constants, ingestion_service, csv_generator,
                                     ingestion_manager, api_client, model,
-                                    user_config)
+                                    result_generator, user_config)
 
 logger = logging.getLogger('iDigBioSvc.ingest_rest')
 
@@ -217,6 +217,24 @@ class CsvIngestionService(object):
       raise JsonHTTPError(409, str(ex)) 
 
 
+class GenerateOutputCsv(object):
+  """
+  Generate the output CSV files, and put them into a zip file.
+  """
+  exposed = True
+
+  def GET(self, values):
+    try:
+      dic = ast.literal_eval(values) # Parse the string to dictionary.
+      print dic
+      return json.dumps(
+          result_generator.generate(dic['batch_id'], dic['target_path']))
+
+    except IOError as ex:
+      print "ERROR GenerateOutputCsv"
+      raise JsonHTTPError(409, str(ex))
+
+
 class DataIngestionService(object):
   """
   The root RESTful web service exposed through CherryPy at /services
@@ -236,3 +254,4 @@ class DataIngestionService(object):
     self.history = History()
     self.generatecsv = GenerateCSV()
     self.csvgenprogress = CSVGenProgress()
+    self.genoutputcsv = GenerateOutputCsv()

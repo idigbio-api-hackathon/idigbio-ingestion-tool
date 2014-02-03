@@ -1,3 +1,5 @@
+var batchid = 0
+
 $(document).ready(function() {
   checkAuthentication();
   // Certain UI components will be disabled if JS is. This overrides the css
@@ -82,6 +84,14 @@ initMainUI = function() {
           +' empty.');
     }
     $("#upload-alert").hide();
+  });
+
+  $('#result-zip-gen-form').submit(function(event) {
+    event.preventDefault();
+    var values =
+      "{\'batch_id\':\'" + batchid + "\',\'target_path\':\'"
+      + processFieldValue('#result-zip-gen-path') + "\'}";
+    postResultZipGen(values);
   });
 
   initHistoryUI();
@@ -209,6 +219,25 @@ initCsvLicenseSelector = function() {
       null, "alert-info");
     setPreference('imagelicense', licenseName);
   });
+}
+
+postResultZipGen = function(values) {
+  var callback = function(path){
+    container = "#result-alert-container";
+    var alert_html =
+      ['<div class="alert alert-block fade span10" id="result-alert">',
+       '<button class="close" data-dismiss="alert">&times;</button>',
+        '<p id="result-alert-text">',
+        '</div>'].join('\n');
+    $(container).html(alert_html);
+    $("#result-alert").show();
+    $("#result-alert").addClass('in');
+    $("#result-alert").addClass("alert-success");
+    $("#result-alert-text").html("The zip file is successfully saved to: "
+        + path);
+  };
+
+  $.getJSON("/services/genoutputcsv", {values: values}, callback);
 }
 
 postCsvUpload = function(action, values) {
@@ -439,8 +468,8 @@ renderResult = function(data) {
   $('#result-table').dataTable({
     "aaData": data,
     "aoColumns": [
-      { "sTitle": "OriginalFileName", "sWidth": "42%" },
       { "sTitle": "MediaGUID", "bVisible": false },
+      { "sTitle": "OriginalFileName", "sWidth": "42%" },
       { "sTitle": "SpecimenUUID", "bVisible": false },
       { "sTitle": "Error", "bVisible": false },
       { "sTitle": "Warnings", "bVisible": false },
@@ -473,6 +502,7 @@ renderResult = function(data) {
         "fnRender": function(obj) {
           error = obj.aData[3]; // It is given as an array.
           url = obj.aData[8];
+          batchid = obj.aData[29];
           var text;
           if (error != "") {
             text = "<span class=\"label label-important\">" + error + "</span>"

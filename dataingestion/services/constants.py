@@ -27,6 +27,10 @@ G_DEFAULT_CSV_OUTPUT_NAME = 'media_records.csv'
 IMAGES_TABLENAME = 'imagesV8_9'
 BATCHES_TABLENAME = 'batchesV8_9'
 
+IMAGE_CSV_NAME = "image.csv"
+STUB_CSV_NAME = "stub.csv"
+ZIP_NAME = "iDigBio_output.zip"
+
 class FieldNameException(Exception):
   def __init__(self, msg, reason=''):
     Exception.__init__(self, msg)

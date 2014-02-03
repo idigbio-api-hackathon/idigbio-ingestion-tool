@@ -196,7 +196,7 @@
               <div class="row-fluid span10">
 
                 <div class="control-group">
-                  <label class="control-label" for="csv-license-dropdown">Image <a href="http://creativecommons.org/licenses/" target="_blank">License</a> *</label>
+                  <label class="control-label" for="csv-license-dropdown">Image <a href="http://creativecommons.org/licenses/" target="_blank">License</a></label>
                   <div class="controls controls-row">
                     <select id="csv-license-dropdown" name="csv-license-dropdown" class="span8" rel="tooltip"
                     data-title='Select the license you want to associate with the images you upload.'>
@@ -204,26 +204,28 @@
                     </select>
                   </div>
                 </div>
-
+                <!--
                 <div class="control-group">
-                  <label class="control-label" for="rsguid">Record Set GUID *</label>
+                  <label class="control-label" for="rsguid">Record Set GUID</label>
                   <div class="controls controls-row">
                     <input type="text" data-provide="typeahead" class="span8"
                       id="rsguid" name="rsguid" placeholder="Give an identifier for all the meidas in the record set."
                       rel="tooltip" data-title='This can be a common attribute or prefix for all records in the set. It can also be the path to the CSV file.'>
                   </div>
                 </div>
-
+                -->
                 <div class="control-group">
-                  <label class="control-label" for="csv-path">CSV File Full Path *</label>
+                  <label class="control-label" for="csv-path">CSV File Full Path</label>
                   <div class='controls controls-row'>
+                    <!--<input  type="file" class="span4 btn btn-primary btn-block">
+                    -->
                     <input type="text" data-provide="typeahead" class="span8"
                       id="csv-path" placeholder="This should be the full path including the CSV file name."
                       rel="tooltip" name="csv-path"
                       data-title='e.g. /Users/you/collection.csv'>
                   </div>
                 </div>
-
+                <!--
                 <div class="control-group">
                   <label class="control-label" for="mediaContentKeyword">Media Content Keyword</label>
                   <div class='controls controls-row'>
@@ -272,13 +274,13 @@
                       data-title='E.g., specimen collection, initial digital data capture, metadata augmentation, personnel, etc.'>
                   </div>
                 </div>
-
                 <div class="control-group">
                   <label class="control-label"></label>
                   <div class='controls controls-row'>
                     Note: Fields with * are mandatory.
                   </div>
                 </div>
+                -->
 
                 <div class='controls controls-row'>
 
@@ -317,7 +319,23 @@
             <!-- Results table, row 4. -->
             <div class="span11 fade hide" id="result-table-container">
               <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="result-table"></table>
+              <form id='result-zip-gen-form' class="span11">
+                <div class="controls controls-row">
+                  <div>
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="result-zip-gen-path" name="result-zip-gen-path" placeholder="The path you want to save the Zip file."
+                      rel="tooltip" data-title='Specify the zip file path. If empty, it will be saved to default path.'>
+                  </div>
+                  <div class='span3'>
+                    <button id="result-zip-gen-button" class="btn medium-btn btn-success" type="submit">
+                      <i class="icon-download"></i>
+                      <span>Export zip file</span>
+                    </button>
+                  </div>
+                </div>
+              </form>
             </div>
+            <div class="span10" id="result-alert-container"></div>
           </div> <!-- upload-tag -->
 
           <!-- Tab 2: the CSV upload history. -->
@@ -337,7 +355,23 @@
               <h3 class="pagination-centered">Image Record Table</h3>
               <h4 id="image-history-table-description" class="pagination-centered"></h4>
               <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="image-history-table"></table>
+              <form id='hist-zip-gen-form' class="span11">
+                <div class="controls controls-row">
+                  <div>
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="hist-zip-gen-path" name="hist-zip-gen-path" placeholder="The path you want to save the Zip file."
+                      rel="tooltip" data-title='Specify the zip file path. If empty, it will be saved to default path.'>
+                  </div>
+                  <div class='span3'>
+                    <button id="hist-zip-gen-button" class="btn medium-btn btn-success" type="submit">
+                      <i class="icon-download"></i>
+                      <span>Export zip file</span>
+                    </button>
+                  </div>
+                </div>
+              </form>
             </div>
+            <div class="span10" id="hist-alert-container"></div>
           </div> <!-- history-tab -->
 
           <!-- Tab 3: the CSV generator . -->
@@ -400,7 +434,7 @@
                   </div>
 
                 </div>
-
+                <!--
                 <div class='controls controls-row'>
                   <div class="control-group">
                     <div class='span3'>
@@ -509,8 +543,8 @@
                         data-title='Specimen ID related to the media record.'>
                     </div>
                   </div>
-
                 </div>
+                -->
 
               </div>
 
