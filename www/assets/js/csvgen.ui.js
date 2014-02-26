@@ -36,16 +36,6 @@ initCSVGenUI = function() {
                 "\',\'g-guidsyntax\':\'" + processFieldValue('#g-guidsyntax-dropdown') +
                 "\',\'g-guidprefix\':\'" + processFieldValue('#g-guidprefix') +
                 "\',\'g-save-path\':\'" + processFieldValue('#g-save-path') +
-                "\',\'g-desc\':\'" + processFieldValue('#g-desc') +
-                "\',\'g-lang\':\'" + processFieldValue('#g-lang') +
-                "\',\'g-title\':\'" + processFieldValue('#g-title') +
-                "\',\'g-digdev\':\'" + processFieldValue('#g-digdev') +
-                "\',\'g-pixres\':\'" + processFieldValue('#g-pixres') +
-                "\',\'g-mag\':\'" + processFieldValue('#g-mag') +
-                "\',\'g-ocr-output\':\'" + processFieldValue('#g-ocr-output') +
-                "\',\'g-ocr-tech\':\'" + processFieldValue('#g-ocr-tech') +
-                "\',\'g-info-wh\':\'" + processFieldValue('#g-info-wh') +
-                "\',\'g-col-obj-guid\':\'" + processFieldValue('#g-col-obj-guid') +
                 "\'}";
             
             postCsvGeneration(values);
@@ -113,36 +103,6 @@ postCsvGeneration = function(values) {
         $('#g-save-path').attr('disabled', true);
         $("#g-save-path").addClass('disabled');
 
-        $('#g-desc').attr('disabled', true);
-        $("#g-desc").addClass('disabled');
-
-        $('#g-lang').attr('disabled', true);
-        $("#g-lang").addClass('disabled');
-
-        $('#g-title').attr('disabled', true);
-        $("#g-title").addClass('disabled');
-
-        $('#g-digdev').attr('disabled', true);
-        $("#g-digdev").addClass('disabled');
-
-        $("#g-pixres").attr('disabled', true);
-        $("#g-pixres").addClass('disabled');
-        
-        $("#g-mag").attr('disabled', true);
-        $("#g-mag").addClass('disabled');
-
-        $("#g-ocr-output").attr('disabled', true);
-        $("#g-ocr-output").addClass('disabled');
-
-        $("#g-ocr-tech").attr('disabled', true);
-        $("#g-ocr-tech").addClass('disabled');
-
-        $("#g-info-wh").attr('disabled', true);
-        $("#g-info-wh").addClass('disabled');
-
-        $("#g-col-obj-guid").attr('disabled', true);
-        $("#g-col-obj-guid").addClass('disabled');
-
         $("#csv-generate-button").attr('disabled', true);
         $("#csv-generate-button").addClass('disabled');
         
@@ -181,36 +141,6 @@ updateCSVGenProgress = function() {
             
             $('#g-save-path').attr('disabled', false);
             $("#g-save-path").removeClass('disabled');
-
-            $('#g-desc').attr('disabled', false);
-            $("#g-desc").removeClass('disabled');
-
-            $('#g-lang').attr('disabled', false);
-            $("#g-lang").removeClass('disabled');
-
-            $('#g-title').attr('disabled', false);
-            $("#g-title").removeClass('disabled');
-
-            $('#g-digdev').attr('disabled', false);
-            $("#g-digdev").removeClass('disabled');
-
-            $("#g-pixres").attr('disabled', false);
-            $("#g-pixres").removeClass('disabled');
-            
-            $("#g-mag").attr('disabled', false);
-            $("#g-mag").removeClass('disabled');
-
-            $("#g-ocr-output").attr('disabled', false);
-            $("#g-ocr-output").removeClass('disabled');
-
-            $("#g-ocr-tech").attr('disabled', false);
-            $("#g-ocr-tech").removeClass('disabled');
-
-            $("#g-info-wh").attr('disabled', false);
-            $("#g-info-wh").removeClass('disabled');
-
-            $("#g-col-obj-guid").attr('disabled', false);
-            $("#g-col-obj-guid").removeClass('disabled');
 
             $("#csv-generate-button").attr('disabled', false);
             $("#csv-generate-button").removeClass('disabled');

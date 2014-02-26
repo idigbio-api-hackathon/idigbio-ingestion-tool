@@ -12,7 +12,7 @@ from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
 from dataingestion.services import (constants, ingestion_service, csv_generator,
                                     ingestion_manager, api_client, model,
-                                    result_generator, user_config)
+                                    result_generator, csv_saver, user_config)
 
 logger = logging.getLogger('iDigBioSvc.ingest_rest')
 
@@ -120,11 +120,12 @@ class IngestionProgress(object):
     # the time being. 
     try:
       (fatal_server_error, input_csv_error, total, skips, successes, fails,
-       finished) = ingestion_manager.get_progress()   
+       csvuploaded, finished) = ingestion_manager.get_progress()
       return json.dumps(
           dict(fatal_server_error=fatal_server_error,
                input_csv_error=input_csv_error, total=total,
                successes=successes, skips=skips, fails=fails,
+               csvuploaded=csvuploaded,
                finished=finished))
     except IngestServiceException as ex:
       raise JsonHTTPError(409, str(ex))
@@ -217,6 +218,24 @@ class CsvIngestionService(object):
       raise JsonHTTPError(409, str(ex)) 
 
 
+class DownloadAllCsv(object):
+  """
+  Generate the output CSV files, and put them into a zip file.
+  """
+  exposed = True
+
+  def GET(self, values):
+    try:
+      dic = ast.literal_eval(values) # Parse the string to dictionary.
+      print dic
+      return json.dumps(
+          csv_saver.save_all(dic['target_path']))
+
+    except IOError as ex:
+      print "ERROR GenerateOutputCsv"
+      raise JsonHTTPError(409, str(ex))
+
+
 class GenerateOutputCsv(object):
   """
   Generate the output CSV files, and put them into a zip file.
@@ -255,3 +274,4 @@ class DataIngestionService(object):
     self.generatecsv = GenerateCSV()
     self.csvgenprogress = CSVGenProgress()
     self.genoutputcsv = GenerateOutputCsv()
+    self.downloadallcsv = DownloadAllCsv()

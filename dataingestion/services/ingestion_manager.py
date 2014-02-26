@@ -8,8 +8,8 @@
 """
 This module implements the core logic that manages the upload process.
 """
-import os, logging, argparse, tempfile, atexit, cherrypy, csv
-import json
+import os, logging, argparse, tempfile, atexit, cherrypy, csv, json, tempfile
+import hashlib
 from functools import partial
 from datetime import datetime
 from Queue import Empty, Queue
@@ -46,7 +46,7 @@ def _get_conn():
   """
   return Connection()
 
-def put_errors_from_threads(threads):
+def _put_errors_from_threads(threads):
   """
   Places any errors from the threads into error_queue.
   :param threads: A list of QueueFunctionThread instances.
@@ -68,10 +68,12 @@ def put_errors_from_threads(threads):
 class QueueFunctionThread(Thread):
 
   def __init__(self, queue, func, *args, **kwargs):
-    """ Calls func for each item in queue; func is called with a queued
+    """
+    Calls func for each item in queue; func is called with a queued
     item as the first arg followed by *args and **kwargs. Use the abort
     attribute to have the thread empty the queue (without processing)
-    and exit. """
+    and exit.
+    """
     Thread.__init__(self)
     self.abort = False
     self.queue = queue
@@ -125,7 +127,7 @@ class BatchUploadTask:
     self.fails = 0
     self.continuous_fails = 0
     self.max_continuous_fails = max_continuous_fails
-    
+ 
   # Increment a field's value by 1.
   def increment(self, field_name):
     if hasattr(self, field_name) and type(getattr(self, field_name)) == int:
@@ -135,12 +137,12 @@ class BatchUploadTask:
                "has has a field that cannot be incremented.")
       raise ValueError("BatchUploadTask object doesn't have this field or " +
                "has has a field that cannot be incremented.")
-  
+
   # Update the continuous failure times.
   def check_continuous_fails(self, succ_this_time):
-    '''
+    """
     :return: Whether this upload should be aborted.
-    '''
+    """
     if succ_this_time:
       #if self.continuous_fails != 0:
       #  logger.debug('Continuous fails is going to be reset due to a success.')
@@ -148,7 +150,7 @@ class BatchUploadTask:
       return False
     else:
       self.continuous_fails += 1
-    
+
     if self.continuous_fails <= self.max_continuous_fails:
       return False
     else:
@@ -165,21 +167,23 @@ def get_progress():
   if task is None:
     logger.error("No ongoing upload task.")
     raise IngestServiceException("No ongoing upload task.")
-  
+
   while (task.total_count == 0 and
       task.status != BatchUploadTask.STATUS_FINISHED):
     # Things are yet to be added.
     sleep(0.1)
 
   return (fatal_server_error, input_csv_error, task.total_count, task.skips,
-          task.success_count, task.fails,
+          task.success_count, task.fails, ongoing_upload_task.batch.CSVUploaded,
           True if task.status == BatchUploadTask.STATUS_FINISHED else False)
 
 def get_result():
+  """
+  Return the details of the ongoing task.
+  """
   # The result is given only when all the tasks are finished.
   while ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED:
     sleep(0.1)
-  
   if ongoing_upload_task.batch:
     return model.get_batch_details(ongoing_upload_task.batch.id)
   else:
@@ -188,19 +192,23 @@ def get_result():
     logger.error("No batch is found.")
     raise IngestServiceException("No batch is found.")
 
-def get_history(table_id):
-  if table_id is None or table_id == "":
+def get_history(batch_id):
+  """
+  If batch_id is not given, return all batches.
+  Otherwise, return the details of the batch with batch_id.
+  """
+  if batch_id is None or batch_id == "":
     return model.get_all_batches()
   else:
-    return model.get_batch_details(table_id)
+    return model.get_batch_details(batch_id)
 
 def upload_task(values):
   """
-  Execute either a new upload task or resume last unsuccessfuly upload task
+  Execute either a new upload task or resume last unsuccessful upload task
   from the DB.
   This method returns true when all file upload tasks are executed and
   postprocess and error queues are emptied.
-  :return: False is the upload is not executed due to an existing ongoing task.
+  Return: False is the upload is not executed due to an existing ongoing task.
   """
   global ongoing_upload_task
   global input_csv_error 
@@ -232,7 +240,7 @@ def upload_task(values):
 
   try:
     try:
-      _upload_csv(ongoing_upload_task, values)
+      _upload_images(ongoing_upload_task, values)
     except (ClientException, IOError):
       error_queue.put(str(IOError))
     while not postprocess_queue.empty():
@@ -240,6 +248,14 @@ def upload_task(values):
     postprocess_thread.abort = True
     while postprocess_thread.isAlive():
       postprocess_thread.join(0.01)
+    try:
+      if (ongoing_upload_task.success_count != 0):
+        _upload_csv(ongoing_upload_task.batch, _get_conn())
+      if ongoing_upload_task.fails == 0: # All done.
+        ongoing_upload_task.batch.finish_time = datetime.now()
+        model.commit()
+    except (ClientException, IOError):
+      error_queue.put(str(IOError))
     while not error_queue.empty():
       sleep(0.01)
     error_thread.abort = True
@@ -252,7 +268,7 @@ def upload_task(values):
     input_csv_error = True
 
   except (SystemExit, Exception) as ex:
-    logger.error("Error happens in _upload_csv: %s" %ex)
+    logger.error("Error happens in _upload: %s" %ex)
     logger.error("Aborting all threads...")
     for thread in threading_enumerate():
       thread.abort = True
@@ -261,7 +277,7 @@ def upload_task(values):
     # Reset of singleton task in the module.
     ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
 
-def _upload_csv(ongoing_upload_task, values):
+def _upload_images(ongoing_upload_task, values):
   object_queue = ongoing_upload_task.object_queue
   postprocess_queue = ongoing_upload_task.postprocess_queue
   error_queue = ongoing_upload_task.error_queue
@@ -278,55 +294,35 @@ def _upload_csv(ongoing_upload_task, values):
         raise IngestServiceException("Last batch already finished, why resume?")
       # Assign local variables with values in DB.
       CSVfilePath = oldbatch.CSVfilePath
-      RecordSetUUID = oldbatch.RecordSetUUID
       #batch.id = batch.id + 1
       batch = model.add_batch(
           oldbatch.CSVfilePath, oldbatch.iDigbioProvidedByGUID,
           oldbatch.RightsLicense, oldbatch.RightsLicenseStatementUrl,
-          oldbatch.RightsLicenseLogoUrl, oldbatch.RecordSetGUID, 
-          oldbatch.RecordSetUUID, oldbatch.MediaContentKeyword,
-          oldbatch.iDigbioProviderGUID, oldbatch.iDigbioPublisherGUID,
-          oldbatch.FundingSource, oldbatch.FundingPurpose)
+          oldbatch.RightsLicenseLogoUrl)
       model.commit()
     else: # Not resume. It is a new upload.
       logger.debug("Start a new csv batch.")
 
       CSVfilePath = values[user_config.CSV_PATH]
-      RecordSetGUID = values[user_config.RECORDSET_GUID]
       iDigbioProvidedByGUID = user_config.get_user_config(
           user_config.IDIGBIOPROVIDEDBYGUID)
       RightsLicense = values[user_config.RIGHTS_LICENSE]
       license_set = constants.IMAGE_LICENSES[RightsLicense]
       RightsLicenseStatementUrl = license_set[2]
       RightsLicenseLogoUrl = license_set[3]
-      MediaContentKeyword = values[user_config.MEDIACONTENT_KEYWORD]
-      iDigbioProviderGUID = values[user_config.IDIGBIO_PROVIDER_GUID]
-      iDigbioPublisherGUID = values[user_config.IDIGBIO_PUBLISHER_GUID]
-      FundingSource = values[user_config.FUNDING_SOURCE]
-      FundingPurpose = values[user_config.FUNDING_PURPOSE]
-
-      # Upload the batch, using client API.
-      logger.debug("Upload the batch")
-      metadata = _make_dataset_metadata(
-          RightsLicense, iDigbioProvidedByGUID, RecordSetGUID, CSVfilePath,
-          MediaContentKeyword, iDigbioProviderGUID, iDigbioPublisherGUID,
-          FundingSource, FundingPurpose)
-      RecordSetUUID = conn.post_recordset(RecordSetGUID, metadata)
 
       # Insert into the database.
       logger.debug("Insert batch into the database")
       batch = model.add_batch(
           CSVfilePath, iDigbioProvidedByGUID, RightsLicense,
-          RightsLicenseStatementUrl, RightsLicenseLogoUrl, RecordSetGUID, 
-          RecordSetUUID, MediaContentKeyword, iDigbioProviderGUID,
-          iDigbioPublisherGUID, FundingSource, FundingPurpose)
+          RightsLicenseStatementUrl, RightsLicenseLogoUrl) 
       model.commit()
 
     ongoing_upload_task.batch = batch
 
     worker_thread_count = 1
-    # the object_queue and _csv_job are passed to the thread.
-    object_threads = [QueueFunctionThread(object_queue, _csv_job,
+    # the object_queue and _image_job are passed to the thread.
+    object_threads = [QueueFunctionThread(object_queue, _image_job,
         batch, _get_conn()) for _junk in xrange(worker_thread_count)]
     ongoing_upload_task.object_threads = object_threads
 
@@ -404,12 +400,11 @@ def _upload_csv(ongoing_upload_task, values):
     batch.FailCount = ongoing_upload_task.fails
     batch.SkipCount = ongoing_upload_task.skips
 
-    was_error = put_errors_from_threads(object_threads)
+    was_error = _put_errors_from_threads(object_threads)
     if not was_error:
-      logger.info("Upload finishes with no error")
-      batch.finish_time = datetime.now()
+      logger.info("Image upload finishes with no error")
     else:
-      logger.error("Upload finishes with errors.")
+      logger.error("Image upload finishes with errors.")
 
   except ClientException:
     error_queue.put('Upload failed outside of the worker thread.')
@@ -419,65 +414,11 @@ def _upload_csv(ongoing_upload_task, values):
   finally:
     model.commit()
 
-def _make_idigbio_metadata(image_record, batch):
-  logger.debug("Making iDigBio metadata...")
-  metadata = {}
-  metadata["xmpRights:usageTerms"] = batch.RightsLicense;
-  metadata["xmpRights:webStatement"] = batch.RightsLicenseStatementUrl
-  metadata["ac:licenseLogoURL"] = batch.RightsLicenseLogoUrl
-  # The suffix has already been checked so that extension must be in the
-  # dictionary.
-  if image_record.MimeType:
-    metadata["idigbio:MimeType"] = image_record.MimeType
-  if image_record.MediaSizeInBytes:
-    metadata["idigbio:MediaSizeInBytes"] = image_record.MediaSizeInBytes
-  if image_record.ProviderCreatedTimeStamp:
-    metadata["idigbio:ProviderCreatedTimeStamp"] = \
-        image_record.ProviderCreatedTimeStamp
-  if image_record.ProviderCreatedByGUID:
-    metadata["idigbio:ProviderCreatedByGUID"] = \
-        image_record.ProviderCreatedByGUID
-  if image_record.MediaEXIF:
-    metadata["idigbio:MediaEXIF"] = image_record.MediaEXIF
-  if image_record.Annotations:
-    # Expand all the elements in the Annotations column.
-    try:
-      dic = ast.literal_eval(image_record.Annotations)
-    except SyntaxError:
-      dic = "{}" # Make it empty if the syntax is wrong.
-    for key in dic.keys():
-      metadata[key] = dic[key]
-  logger.debug("Making iDigBio metadata done.")
-  return metadata
-
-def _make_dataset_metadata(
-    RightsLicense, iDigbioProvidedByGUID, RecordSetGUID, CSVfilePath,
-    MediaContentKeyword, iDigbioProviderGUID, iDigbioPublisherGUID,
-    FundingSource, FundingPurpose):
-  logger.debug("Making dataset metadata...")
-  metadata = {}
-  metadata["idigbio:RightsLicense"] = RightsLicense # Licence.
-  # Log in information.
-  metadata["idigbio:iDigbioProvidedByGUID"] = iDigbioProvidedByGUID
-  metadata["idigbio:RecordSetGUID"] = RecordSetGUID # Record Set GUID.
-  metadata["idigbio:CSVfilePath"] = CSVfilePath # CSV file path.
-  if MediaContentKeyword:
-    metadata["idigbio:MediaContentKeyword"] = MediaContentKeyword
-  if iDigbioProviderGUID:
-    metadata["idigbio:iDigbioProviderGUID"] = iDigbioProviderGUID
-  if iDigbioPublisherGUID:
-    metadata["idigbio:iDigbioPublisherGUID"] = iDigbioPublisherGUID
-  if FundingSource:
-    metadata["idigbio:FundingSource"] = FundingSource
-  if FundingPurpose:
-    metadata["idigbio:FundingPurpose"] = FundingPurpose
-  return metadata
-
 # This function is passed to the threads.
-def _csv_job(image_record, batch, conn):
+def _image_job(image_record, batch, conn):
   global ongoing_upload_task
   try:
-    logger.debug("--------------- A CSV job is started -----------------")
+    logger.debug("--------------- An image job is started -----------------")
     if not batch:
       raise ClientException("Batch record is None.")
     if not image_record:
@@ -488,35 +429,18 @@ def _csv_job(image_record, batch, conn):
     if image_record.Error:
       raise ClientException(image_record.Error)
 
-    if not image_record.MediaRecordUUID:
-      # Post mediarecord.
-      logger.debug("MediaRecordUUID is None, post mediarecord first.")
-      image_record.BatchID = batch.id
-      metadata = _make_idigbio_metadata(image_record, batch)
-      # mr_str is the return from server
-      record_uuid, mr_etag, mr_str = conn.post_mediarecord(
-          batch.RecordSetUUID, image_record.OriginalFileName,
-          image_record.MediaGUID, image_record.SpecimenRecordUUID, metadata)
-      image_record.MediaRecordUUID = record_uuid
-      image_record.MediaRecordContent = mr_str
-      image_record.etag = mr_etag
-      model.commit()
-    
     # First, change the batch ID to this one. This field is overwriten.
     image_record.BatchID = str(batch.id)
     # Post image to API.
     # ma_str is the return from server
-    ma_str = conn.post_media(image_record.OriginalFileName,
-                             image_record.MediaRecordUUID)
-    image_record.MediaAPContent = ma_str
-    result_obj = json.loads(ma_str)
-    url = result_obj["idigbio:links"]["media"][0]
-    ma_uuid = result_obj['idigbio:uuid']
-
-    image_record.MediaAPUUID = ma_uuid
+    img_str = conn.post_image(
+        image_record.OriginalFileName, image_record.MediaGUID)
+    image_record.MediaAPContent = img_str
+    result_obj = json.loads(img_str)
+    url = result_obj["file_url"]
 
     # img_etag is not stored in the db.
-    img_etag = result_obj['idigbio:data'].get('idigbio:imageEtag')
+    img_etag = result_obj["file_md5"]
 
     # Check the image integrity.
     if img_etag and image_record.MediaMD5 == img_etag:
@@ -539,7 +463,7 @@ def _csv_job(image_record, batch, conn):
     fn = partial(ongoing_upload_task.check_continuous_fails, True)
     ongoing_upload_task.postprocess_queue.put(fn)
   except ClientException as ex:
-    logger.error("ClientException: A CSV job failed. Reason: %s" %ex)
+    logger.error("ClientException: An image job failed. Reason: %s" %ex)
     fn = partial(ongoing_upload_task.increment, 'fails')
     ongoing_upload_task.postprocess_queue.put(fn)
     def _abort_if_necessary():
@@ -559,4 +483,61 @@ def _csv_job(image_record, batch, conn):
     else:
       raise
 
+def _upload_csv(batch, conn):
+  try:
+    logger.debug("--------------- An CSV job is started -----------------")
+    if not batch:
+      raise ClientException("Batch record is None.")
 
+    # Post csv file to API.
+    # ma_str is the return from server
+    name, f_md5 = _make_csvtempfile(batch)
+    csv_str = conn.post_csv(name)
+    result_obj = json.loads(csv_str)
+
+    # img_etag is not stored in the db.
+    csv_etag = result_obj['file_md5']
+
+    # Check the image integrity.
+    if csv_etag != f_md5:
+      logger.error("Upload failed because local MD5 does not match the eTag"
+          + " or no eTag is returned.")
+      raise ClientException("Upload failed because local MD5 does not match"
+          + " the eTag or no eTag is returned.")
+    logger.debug('Done after %d attempts' % (conn.attempts))
+    batch.CSVUploaded = True
+  except ClientException as ex:
+    logger.error("ClientException: A CSV job failed. Reason: %s" %ex)
+    raise
+  except IOError as err:
+    logger.error("IOError: A CSV job failed.")
+    raise
+
+def _make_csvtempfile(batch):
+  logger.debug("Making temporary CSV file ...")
+  fname = os.path.join(tempfile.gettempdir(), "temp.csv")
+  md5 = ""
+  with open(fname, "wb") as f:
+    header = model.get_batch_details_fieldnames()
+    f.write(",".join(header) + "\n")
+    rows = model.get_batch_details(batch.id)
+    for row in rows:
+      for item in row:
+        if item is None:
+          f.write(",")
+        else:
+          f.write(str(item) + ",")
+      f.write("\n")
+  with open(fname, "rb") as f:
+    md5 = _md5_file(f)
+  logger.debug("Making temporary CSV file done.")
+  return fname, md5
+
+def _md5_file(f, block_size=2*20):
+  md5 = hashlib.md5()
+  while True:
+    data = f.read(block_size)
+    if not data:
+      break
+    md5.update(data)
+  return md5.hexdigest()

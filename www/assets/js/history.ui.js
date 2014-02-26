@@ -11,6 +11,15 @@ initHistoryUI = function() {
 
   $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
 
+  $('#download-all-csv-form').submit(function(event) {
+    event.preventDefault();
+    var values =
+      "{\'target_path\':\'" + processFieldValue('#download-all-csv-path') +
+      "\'}";
+    postDownloadAllCSV(values);
+  });
+
+
   $('#hist-zip-gen-form').submit(function(event) {
     event.preventDefault();
     var values =
@@ -19,6 +28,25 @@ initHistoryUI = function() {
       "\'}";
     postHistZipGen(values);
   });
+}
+
+postDownloadAllCSV = function(values) {
+  var callback = function(path){
+    container = "#hist-alert-container2";
+    var alert_html =
+      ['<div class="alert alert-block fade span10" id="hist-alert2">',
+       '<button class="close" data-dismiss="alert">&times;</button>',
+        '<p id="hist-alert-text2">',
+        '</div>'].join('\n');
+    $(container).html(alert_html);
+    $("#hist-alert2").show();
+    $("#hist-alert2").addClass('in');
+    $("#hist-alert2").addClass("alert-success");
+    $("#hist-alert-text2").html("The CSV file is successfully saved to: "
+        + path);
+  };
+
+  $.getJSON("/services/downloadallcsv", {values: values}, callback);
 }
 
 postHistZipGen = function(values) {
@@ -55,15 +83,8 @@ renderBatchHistory = function(data) {
       { "sTitle": "Rights License", "bVisible": false },
       { "sTitle": "Rights License Statement Url", "bVisible": false },
       { "sTitle": "Rights License Logo Url", "bVisible": false },
-      { "sTitle": "Record Set GUID", "sWidth": "25%" },
-      { "sTitle": "Record Set UUID", "bVisible": false },
       { "sTitle": "Start Time", "sWidth": "15%" },
       { "sTitle": "Finish Time", "bVisible": false },
-      { "sTitle": "Media Content Keyword", "bVisible": false },
-      { "sTitle": "iDigbio Provider GUID", "bVisible": false },
-      { "sTitle": "iDigbio Publisher GUID", "bVisible": false },
-      { "sTitle": "Funding Source", "bVisible": false },
-      { "sTitle": "Funding Purpose", "bVisible": false },
       { "sTitle": "Total Records", "sWidth": "5%" },
       { "sTitle": "Failed Records", "sWidth": "5%" },
       { "sTitle": "Skipped Records", "sWidth": "5%" }
@@ -114,14 +135,13 @@ renderMediaRecordHistory = function(data) {
       { "sTitle": "SpecimenUUID", "bVisible": false },
       { "sTitle": "Error", "bVisible": false },
       { "sTitle": "Warnings", "bVisible": false },
-      { "sTitle": "MediaRecordUUID", "bVisible": false },
-      { "sTitle": "MediaAPUUID", "bVisible": false },
       { "sTitle": "UploadTime", "bVisible": false },
       { "sTitle": "MediaURL", "bVisible": false },
       { "sTitle": "MimeType", "bVisible": false },
       { "sTitle": "MediaSizeInBytes", "bVisible": false },
       { "sTitle": "ProviderCreatedTimeStamp", "bVisible": false },
       { "sTitle": "providerCreatedByGUID", "bVisible": false },
+
       { "sTitle": "MediaEXIF", "bVisible": false },
       { "sTitle": "Annotations", "bVisible": false },
       { "sTitle": "MediaRecordEtag", "bVisible": false },
@@ -131,18 +151,11 @@ renderMediaRecordHistory = function(data) {
       { "sTitle": "RightsLicense", "bVisible": false },
       { "sTitle": "RightsLicenseStatementUrl", "bVisible": false },
       { "sTitle": "RightsLicenseLogoUrl", "bVisible": false },
-      { "sTitle": "RecordSetGUID", "bVisible": false }, 
-      { "sTitle": "RecordSetUUID", "bVisible": false },
-      { "sTitle": "MediaContentKeyword", "bVisible": false },
-      { "sTitle": "iDigbioProviderGUID", "bVisible": false },
-      { "sTitle": "iDigbioPublisherGUID", "bVisible": false },
-      { "sTitle": "FundingSource", "bVisible": false },
-      { "sTitle": "FundingPurpose", "bVisible": false },
       { "sTitle": "Online Path or Error Message",
         "sWidth": "58%",
         "fnRender": function(obj) {
           error = obj.aData[3]; // It is given as an array.
-          url = obj.aData[8];
+          url = obj.aData[6];
           var text;
           if (error != "") {
             text = "<span class=\"label label-important\">" + error + "</span>"
@@ -154,7 +167,7 @@ renderMediaRecordHistory = function(data) {
           }
           return text;
         }
-      } // 29 elements.
+      } // 21 elements.
     ],
     "sDom": "<'row'<'span3'l><'span3'T><'span5'p>>t<'row'<'span6'i>>",
     "bPaginate": true,

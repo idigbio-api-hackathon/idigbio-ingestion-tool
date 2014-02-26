@@ -177,14 +177,14 @@
             </div>
           </div>
         <ul class="nav nav-tabs">
+          <li>
+            <a href="#generator-tab" type="button" id="generator-tab-button" data-toggle="tab">Generate CSV</a>
+          </li>
           <li class="active">
             <a href="#upload-tab" data-toggle="tab">Upload Via CSV</a>
           </li>
           <li>
             <a href="#history-tab" type="button" id="history-tab-button" data-toggle="tab">Upload History</a>
-          </li>
-          <li>
-            <a href="#generator-tab" type="button" id="generator-tab-button" data-toggle="tab">Generate CSV</a>
           </li>
         </ul>
 
@@ -204,16 +204,6 @@
                     </select>
                   </div>
                 </div>
-                <!--
-                <div class="control-group">
-                  <label class="control-label" for="rsguid">Record Set GUID</label>
-                  <div class="controls controls-row">
-                    <input type="text" data-provide="typeahead" class="span8"
-                      id="rsguid" name="rsguid" placeholder="Give an identifier for all the meidas in the record set."
-                      rel="tooltip" data-title='This can be a common attribute or prefix for all records in the set. It can also be the path to the CSV file.'>
-                  </div>
-                </div>
-                -->
                 <div class="control-group">
                   <label class="control-label" for="csv-path">CSV File Full Path</label>
                   <div class='controls controls-row'>
@@ -225,63 +215,6 @@
                       data-title='e.g. /Users/you/collection.csv'>
                   </div>
                 </div>
-                <!--
-                <div class="control-group">
-                  <label class="control-label" for="mediaContentKeyword">Media Content Keyword</label>
-                  <div class='controls controls-row'>
-                    <input type="text" data-provide="typeahead" class="span8"
-                      id="mediaContentKeyword" placeholder="Optional, use ',' as the separator."
-                      rel="tooltip" name="mediaContentKeyword"
-                      data-title='Should indicate "Label" or "FieldBook" for a photograph of a label or field book, "PhysicalSpecimen" or "LivingSpecimen" for a photograph of a specimen, "Illustration" for a man-made drawing, and so on.'>
-                  </div>
-                </div>
-
-                <div class="control-group">
-                  <label class="control-label" for="owneruuid">iDigBio Provider GUID</label>
-                  <div class="controls controls-row">
-                    <input type="text" data-provide="typeahead" class="span8"
-                      id="iDigbioProviderGUID" placeholder="Optional" rel="tooltip"
-                      data-title='By default, the Account UUID you signed in with is set as the owner of the images. You can use the UUID of your organization instead by specifying it here.'>
-                  </div>
-                </div>
-
-                <div class="control-group">
-                  <label class="control-label" for="iDigbioPublisherGUID">iDigBio Publisher GUID</label>
-                  <div class='controls controls-row'>
-                    <input type="text" data-provide="typeahead" class="span8"
-                      id="iDigbioPublisherGUID" placeholder="Optional"
-                      rel="tooltip" name="iDigbioPublisherGUID"
-                      data-title='Relates this record set to the organization that is publishing the data on behalf of the source provider.'>
-                  </div>
-                </div>
-
-                <div class="control-group">
-                  <label class="control-label" for="fundingSource">Funding Source</label>
-                  <div class='controls controls-row'>
-                    <input type="text" data-provide="typeahead" class="span8"
-                      id="fundingSource" placeholder="Optional"
-                      rel="tooltip" name="fundingSource"
-                      data-title='Funding source related to the digitization effort of this set of media.'>
-                  </div>
-                </div>
-
-                <div class="control-group">
-                  <label class="control-label" for="fundingPurpose">Funding Purpose</label>
-                  <div class='controls controls-row'>
-                    <input type="text" data-provide="typeahead" class="span8"
-                      id="fundingPurpose" placeholder="Optional"
-                      rel="tooltip" name="fundingPurpose"
-                      data-title='E.g., specimen collection, initial digital data capture, metadata augmentation, personnel, etc.'>
-                  </div>
-                </div>
-                <div class="control-group">
-                  <label class="control-label"></label>
-                  <div class='controls controls-row'>
-                    Note: Fields with * are mandatory.
-                  </div>
-                </div>
-                -->
-
                 <div class='controls controls-row'>
 
                   <div class='span3'>
@@ -345,10 +278,30 @@
               <h3 class="pagination-centered">Batch Information Table</h3>
               <h4 id="batch-history-table-description" class="pagination-centered">(Click on each row to see the details)</h4>
               <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered table-hover" id="batch-history-table"></table>
-              <button id="refresh-bh-button" class="btn medium-btn btn-info" type="button">
-                <i class="icon-refresh icon-white"></i>
-                <span>Refresh</span>
-              </button>
+              <div class="control-group">
+                <button id="refresh-bh-button" class="btn medium-btn btn-primary" type="button">
+                  <i class="icon-refresh icon-white"></i>
+                  <span>Refresh the table</span>
+                </button>
+              </div>
+              <div class="control-group">
+                <form id='download-all-csv-form' class="span11">
+                  <div class="controls controls-row">
+                    <div>
+                      <input type="text" data-provide="typeahead" class="span6"
+                        id="download-all-csv-path" name="download-all-csv-path" placeholder="The path you want to save the CSV file."
+                        rel="tooltip" data-title='Specify the file path. If empty, it will be saved to default path.'>
+                    </div>
+                    <div class='span3'>
+                      <button id="download-all-csv-button" class="btn medium-btn btn-info" type="submit">
+                        <i class="icon-download"></i>
+                        <span>Save CSV for all history</span>
+                      </button>
+                    </div>
+                 </div>
+               </form>
+               <div class="span10" id="hist-alert-container2"></div>
+              </div>
             </div>
             <!-- Image history panel. -->
             <div id="image-history-table-container" class="span11 fade hide">
@@ -434,117 +387,6 @@
                   </div>
 
                 </div>
-                <!--
-                <div class='controls controls-row'>
-                  <div class="control-group">
-                    <div class='span3'>
-                      <button id="g-flip-opt-fields" type="button"  class="btn btn-warning btn-block">
-                        <i class="icon-list icon-white"></i>
-                        <span id="g-filp-opt-fields-text">Show Other Fields</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div id="g-opt-fields" class="hide">
-
-                  <div class="control-group">
-                    <label class="control-label"></label>
-                    <div class='controls controls-row'>Please note that the values put in the following fields will be applied to all media records in the batch.
-                    </div>
-                  </div>
-
-                  <div class="control-group">
-                    <label class="control-label" for="g-desc">Description</label>
-                    <div class="controls controls-row">
-                      <input type="text" data-provide="typeahead" class="span8"
-                        id="g-desc" placeholder="Optional" rel="tooltip"
-                        data-title='Description of the individual resource, containing the Who, What, When, Where and Why as free-form text.'>
-                    </div>
-                  </div>
-
-                  <div class="control-group">
-                    <label class="control-label" for="g-lang">Language Code</label>
-                    <div class="controls controls-row">
-                      <input type="text" data-provide="typeahead" class="span8"
-                        id="g-lang" placeholder="Optional" rel="tooltip"
-                        data-title='Code for the language used in the title and description.'>
-                    </div>
-                  </div>
-
-                  <div class="control-group">
-                    <label class="control-label" for="g-title">Title</label>
-                    <div class="controls controls-row">
-                      <input type="text" data-provide="typeahead" class="span8"
-                        id="g-title" placeholder="Optional" rel="tooltip"
-                        data-title='Concise title, name, or brief descriptive label of individual resource. This field should include the complete title with all the subtitles, if any.'>
-                    </div>
-                  </div>
-
-                  <div class="control-group">
-                    <label class="control-label" for="g-digdev">Digitalization Device</label>
-                    <div class="controls controls-row">
-                      <input type="text" data-provide="typeahead" class="span8"
-                        id="g-digdev" placeholder="Optional" rel="tooltip"
-                        data-title='Free form text describing the device or devices used to create the resource.'>
-                    </div>
-                  </div>
-
-                  <div class="control-group">
-                    <label class="control-label" for="g-pixres">Nominal Pixel Resolution</label>
-                    <div class="controls controls-row">
-                      <input type="text" data-provide="typeahead" class="span8"
-                        id="g-pixres" placeholder="Optional" rel="tooltip"
-                        data-title='The real size of the pixel depicted in the image (e.g., microscopy). Include a number and a unit.'>
-                    </div>
-                  </div>
-
-                  <div class="control-group">
-                    <label class="control-label" for="g-mag">Magnification</label>
-                    <div class="controls controls-row">
-                      <input type="text" data-provide="typeahead" class="span8"
-                        id="g-mag" placeholder="Optional" rel="tooltip"
-                        data-title='Magnification applied when capturing the image of an object.'>
-                    </div>
-                  </div>
-
-                  <div class="control-group">
-                    <label class="control-label" for="g-ocr-output">OCR Output</label>
-                    <div class="controls controls-row">
-                      <input type="text" data-provide="typeahead" class="span8"
-                        id="g-ocr-output" placeholder="Optional" rel="tooltip"
-                        data-title='Output of the process of applying OCR to the multimedia object.'>
-                    </div>
-                  </div>
-
-                  <div class="control-group">
-                    <label class="control-label" for="g-ocr-tech">OCR Technology</label>
-                    <div class="controls controls-row">
-                      <input type="text" data-provide="typeahead" class="span8"
-                        id="g-ocr-tech" placeholder="Optional" rel="tooltip"
-                        data-title='Free form text describing the software utilized for OCR as well as any additional technique (cropping, color alteration applied, controlled vocabulary).'>
-                    </div>
-                  </div>
-
-                  <div class="control-group">
-                    <label class="control-label" for="g-info-wh">Information Withheld</label>
-                    <div class="controls controls-row">
-                      <input type="text" data-provide="typeahead" class="span8"
-                        id="g-info-wh" placeholder="Optional" rel="tooltip"
-                        data-title='Indication that additional information exists and that it has not been shared in the given record due to sensitive nature. It does not contain the withheld information itself. Should include information on how to obtain the withheld information by other means (e.g., a contact).'>
-                    </div>
-                  </div>
-
-                  <div class="control-group">
-                    <label class="control-label" for="g-col-obj-guid">Collection Object GUID</label>
-                    <div class="controls controls-row">
-                      <input type="text" data-provide="typeahead" class="span8"
-                        id="g-col-obj-guid" placeholder="Optional" rel="tooltip"
-                        data-title='Specimen ID related to the media record.'>
-                    </div>
-                  </div>
-                </div>
-                -->
 
               </div>
 

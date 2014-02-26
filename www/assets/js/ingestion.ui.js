@@ -52,9 +52,6 @@ initMainUI = function() {
       $(element).closest('.control-group').removeClass('error');
     },
     rules: {
-      rsguid: {
-        required: true
-      },
       csvpath: {
         required: true
       }
@@ -66,22 +63,12 @@ initMainUI = function() {
     if ($('#csv-upload-form').valid()) {
       var values =
         "{\'CSVfilePath\':\'" + processFieldValue('#csv-path') +
-        "\',\'RecordSetGUID\':\'" + processFieldValue('#rsguid') +
         "\',\'RightsLicense\':\'" + processFieldValue('#csv-license-dropdown') +
-        "\',\'MediaContentKeyword\':\'" +
-        processFieldValue('#mediaContentKeyword') +
-        "\',\'iDigbioProviderGUID\':\'" +
-        processFieldValue('#iDigbioProviderGUID') +
-        "\',\'iDigbioPublisherGUID\':\'" +
-        processFieldValue('#iDigbioPublisherGUID') +
-        "\',\'fundingSource\':\'" + processFieldValue('#fundingSource') +
-        "\',\'fundingPurpose\':\'" + processFieldValue('#fundingPurpose') +
         "\'}";
       postCsvUpload("new", values);
     }
     else {
-      showAlert('The Image License, Record Set GUID and CSV File Path cannot be'
-          +' empty.');
+      showAlert('The CSV File Path cannot be empty.');
     }
     $("#upload-alert").hide();
   });
@@ -89,8 +76,9 @@ initMainUI = function() {
   $('#result-zip-gen-form').submit(function(event) {
     event.preventDefault();
     var values =
-      "{\'batch_id\':\'" + batchid + "\',\'target_path\':\'"
-      + processFieldValue('#result-zip-gen-path') + "\'}";
+      "{\'batch_id\':\'" + batchid +
+      "\',\'target_path\':\'" + processFieldValue('#result-zip-gen-path') +
+    "\'}";
     postResultZipGen(values);
   });
 
@@ -252,26 +240,8 @@ postCsvUpload = function(action, values) {
     $('#csv-license-dropdown').attr('disabled', true);
     $("#csv-license-dropdown").addClass('disabled');
 
-    $('#rsguid').attr('disabled', true);
-    $("#rsguid").addClass('disabled');
-
     $('#csv-path').attr('disabled', true);
     $("#csv-path").addClass('disabled');
-
-    $('#mediaContentKeyword').attr('disabled', true);
-    $("#mediaContentKeyword").addClass('disabled');
-
-    $('#iDigbioProviderGUID').attr('disabled', true);
-    $("#iDigbioProviderGUID").addClass('disabled');
-
-    $('#iDigbioPublisherGUID').attr('disabled', true);
-    $("#iDigbioPublisherGUID").addClass('disabled');
-
-    $('#fundingSource').attr('disabled', true);
-    $("#fundingSource").addClass('disabled');
-
-    $('#fundingPurpose').attr('disabled', true);
-    $("#fundingPurpose").addClass('disabled');
 
     $("#csv-upload-button").attr('disabled', true);
     $("#csv-upload-button").addClass('disabled');
@@ -312,8 +282,8 @@ showLastBatchInfo = function() {
       var start_time = batch.start_time;
       var errMsg = ['<p><strong>Warning!</strong> '
         + 'Your last upload from directory/CSV file ',
-      batch.path, ' which started at ', start_time,
-      ' was not entirely successful.</p>'].join("");
+        batch.path, ' which started at ', start_time,
+        ' was not entirely successful.</p>'].join("");
       var extra = '<p><button id="retry-button" type="submit"'
         + ' class="btn btn-warning">Retry failed uploads</button></p>';
       showAlert(errMsg, extra, "alert-warning");
@@ -367,11 +337,23 @@ updateProgress = function() {
       Math.floor((progressObj.successes + progressObj.fails +
         progressObj.skips) / progressObj.total * 100);
 
+    var csvfileuploaded = "";
+    if (progress == 100) {
+      if (progressObj.successes == 0) {
+        csvfileuploaded = "No CSV file is generated.";
+      } else if (progressObj.csvuploaded) {
+        csvfileuploaded = "CSV file is uploaded.";
+      } else {
+        csvfileuploaded = "CSV file upload failed.";
+      }
+    }
 
-    $("#progresstext").text(["Progress: (Successful:" + progressObj.successes,
+    $("#progresstext").text(
+      ["Progress: (Successful:" + progressObj.successes,
        ", Skipped: " + progressObj.skips,
        ", Failed: " + progressObj.fails,
        ", Total to upload: " + progressObj.total,
+       ". " + csvfileuploaded,
        ")"].join(""));
 
     $("#upload-progressbar").width(progress + '%');
@@ -394,26 +376,8 @@ updateProgress = function() {
       $('#csv-license-dropdown').attr('disabled', false);
       $("#csv-license-dropdown").removeClass('disabled');
 
-      $('#rsguid').attr('disabled', false);
-      $("#rsguid").removeClass('disabled');
-
       $('#csv-path').attr('disabled', false);
       $("#csv-path").removeClass('disabled');
-
-      $('#mediaContentKeyword').attr('disabled', false);
-      $("#mediaContentKeyword").removeClass('disabled');
-
-      $('#iDigbioProviderGUID').attr('disabled', false);
-      $("#iDigbioProviderGUID").removeClass('disabled');
-
-      $('#iDigbioPublisherGUID').attr('disabled', false);
-      $("#iDigbioPublisherGUID").removeClass('disabled');
-
-      $('#fundingSource').attr('disabled', false);
-      $("#fundingSource").removeClass('disabled');
-
-      $('#fundingPurpose').attr('disabled', false);
-      $("#fundingPurpose").removeClass('disabled');
 
       $("#csv-upload-button").attr('disabled', false);
       $("#csv-upload-button").removeClass('disabled');
@@ -473,14 +437,13 @@ renderResult = function(data) {
       { "sTitle": "SpecimenUUID", "bVisible": false },
       { "sTitle": "Error", "bVisible": false },
       { "sTitle": "Warnings", "bVisible": false },
-      { "sTitle": "MediaRecordUUID", "bVisible": false },
-      { "sTitle": "MediaAPUUID", "bVisible": false },
       { "sTitle": "UploadTime", "bVisible": false },
       { "sTitle": "MediaURL", "bVisible": false },
       { "sTitle": "MimeType", "bVisible": false },
       { "sTitle": "MediaSizeInBytes", "bVisible": false },
       { "sTitle": "ProviderCreatedTimeStamp", "bVisible": false },
       { "sTitle": "providerCreatedByGUID", "bVisible": false },
+      
       { "sTitle": "MediaEXIF", "bVisible": false },
       { "sTitle": "Annotations", "bVisible": false },
       { "sTitle": "MediaRecordEtag", "bVisible": false },
@@ -490,19 +453,12 @@ renderResult = function(data) {
       { "sTitle": "RightsLicense", "bVisible": false },
       { "sTitle": "RightsLicenseStatementUrl", "bVisible": false },
       { "sTitle": "RightsLicenseLogoUrl", "bVisible": false },
-      { "sTitle": "RecordSetGUID", "bVisible": false },
-      { "sTitle": "RecordSetUUID", "bVisible": false },
-      { "sTitle": "MediaContentKeyword", "bVisible": false },
-      { "sTitle": "iDigbioProviderGUID", "bVisible": false },
-      { "sTitle": "iDigbioPublisherGUID", "bVisible": false },
-      { "sTitle": "FundingSource", "bVisible": false },
-      { "sTitle": "FundingPurpose", "bVisible": false },
       { "sTitle": "Online Path or Error Message",
         "sWidth": "58%",
         "fnRender": function(obj) {
           error = obj.aData[3]; // It is given as an array.
-          url = obj.aData[8];
-          batchid = obj.aData[29];
+          url = obj.aData[6];
+          batchid = obj.aData[20];
           var text;
           if (error != "") {
             text = "<span class=\"label label-important\">" + error + "</span>"
@@ -514,7 +470,7 @@ renderResult = function(data) {
           }
           return text;
         }
-      } // 29 elements.
+      } // 21 elements.
     ],
     "sDom": "<'row'<'span3'l><'span3'T><'span5'p>>t<'row'<'span6'i>>",
     "bPaginate": true,

@@ -1,3 +1,3 @@
-"idigbio:OriginalFileName", "idigbio:MediaGUID", "Tag1", "Tag2"
-"/home/omnetpp/idigbio-tools/idigbio-ingestion-tool/testing/image1.jpg", "1", "Value1", "Value2"
-"/home/omnetpp/idigbio-tools/idigbio-ingestion-tool/testing/image2.jpg", "2", "Value1", "Value2"
+"idigbio:OriginalFileName", "idigbio:MediaGUID"
+"/home/winday0215/idigbio/idigbio-ingestion-tool/testing/image1.jpg", "abc"
+"/home/winday0215/idigbio/idigbio-ingestion-tool/testing/wrongimage2.jpg", "efg"

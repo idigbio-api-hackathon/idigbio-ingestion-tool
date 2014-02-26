@@ -28,27 +28,18 @@ class TestModel(unittest.TestCase):
 
   def _validateBatchFields(
       self, batch, path, accountID, license, licenseStatementUrl,
-      licenseLogoUrl, recordset_guid, recordset_uuid, keyword, proID, pubID,
-      fundingSource, fundingPurpose):
+      licenseLogoUrl):
     '''Validate a upload batch has the field values same as given.'''
     self.assertEqual(batch.CSVfilePath, path)
     self.assertEqual(batch.iDigbioProvidedByGUID, accountID)
     self.assertEqual(batch.RightsLicense, license)
     self.assertEqual(batch.RightsLicenseStatementUrl, licenseStatementUrl)
     self.assertEqual(batch.RightsLicenseLogoUrl, licenseLogoUrl)
-    self.assertEqual(batch.RecordSetGUID, recordset_guid)
-    self.assertEqual(batch.RecordSetUUID, recordset_uuid)
     self.assertIsNone(batch.finish_time)
-    self.assertEqual(batch.MediaContentKeyword, keyword)
-    self.assertEqual(batch.iDigbioProviderGUID, proID)
-    self.assertEqual(batch.iDigbioPublisherGUID, pubID)
-    self.assertEqual(batch.FundingSource, fundingSource)
-    self.assertEqual(batch.FundingPurpose, fundingPurpose)
 
   def _validateImageRecordFields(
-      self, record, filepath, mediaguid, sruuid,
-      error, warnings, mimetype, msize,
-      annotations, batchID):
+      self, record, filepath, mediaguid, sruuid, error, warnings, mimetype,
+      msize, annotations, batchID):
     '''Validate a image record has the field values same as given.'''
     self.assertEqual(record.OriginalFileName, filepath)
     self.assertEqual(record.MediaGUID, mediaguid)
@@ -81,34 +72,21 @@ class TestModel(unittest.TestCase):
     license = "license"
     licenseStatementUrl = "licenseurl"
     licenseLogoUrl = "licenselogourl"
-    recordset_guid = "rs_guid"
-    recordset_uuid = "rs_uuid"
 
     '''Test add_batch with minimum correct information.'''
     batch = model.add_batch(
-        path, accountID, license, licenseStatementUrl, licenseLogoUrl,
-        recordset_guid, recordset_uuid, None, None, None, None, None)
+        path, accountID, license, licenseStatementUrl, licenseLogoUrl)
     self._validateBatchFields(
-        batch, path, accountID, license, licenseStatementUrl, licenseLogoUrl,
-        recordset_guid, recordset_uuid, "", "", "", "", "")
+        batch, path, accountID, license, licenseStatementUrl, licenseLogoUrl)
 
     # Batch information will be used in _testAddImage.
     self._batch1 = batch
 
     '''Test add_batch with full correct information.'''
-    keyword = "kw1, kw2"
-    proID = "providerID"
-    pubID = "publisherID"
-    fundingSource = "fundingsource"
-    fundingPurpose = "fundingpurpose"
     batch = model.add_batch(
-        path, accountID, license, licenseStatementUrl, licenseLogoUrl,
-        recordset_guid, recordset_uuid, keyword, proID, pubID, fundingSource,
-        fundingPurpose)
+        path, accountID, license, licenseStatementUrl, licenseLogoUrl)
     self._validateBatchFields(
-        batch, path, accountID, license, licenseStatementUrl, licenseLogoUrl,
-        recordset_guid, recordset_uuid, keyword, proID, pubID, fundingSource,
-        fundingPurpose)
+        batch, path, accountID, license, licenseStatementUrl, licenseLogoUrl)
 
     # Batch information will be used in _testAddImage.
     self._batch2 = batch
@@ -116,13 +94,11 @@ class TestModel(unittest.TestCase):
     '''Test add_batch with invalid file path.'''
     invalid_path = "invalid/path/file.csv"
     self.assertRaises(model.ModelException, model.add_batch,
-        invalid_path, accountID, license, licenseStatementUrl, licenseLogoUrl,
-        recordset_guid, recordset_uuid, None, None, None, None, None)
+        invalid_path, accountID, license, licenseStatementUrl, licenseLogoUrl)
 
     '''Test add_batch with required field "license" empty.'''
     self.assertRaises(model.ModelException, model.add_batch,
-        invalid_path, accountID, "", licenseStatementUrl, licenseLogoUrl,
-        recordset_guid, recordset_uuid, None, None, None, None, None)
+        invalid_path, accountID, "", licenseStatementUrl, licenseLogoUrl)
 
   def _testAddImage(self):
     '''Test add_image with various inputs.'''
@@ -199,14 +175,10 @@ class TestModel(unittest.TestCase):
     batches = model.get_all_batches()
     batch1 = batches[0]
     self._validateBatchFields(
-        self._batch1, batch1[1], batch1[2], batch1[3], batch1[4], batch1[5],
-        batch1[6], batch1[7], batch1[10], batch1[11], batch1[12], batch1[13],
-        batch1[14])
+        self._batch1, batch1[1], batch1[2], batch1[3], batch1[4], batch1[5])
     batch2 = batches[1]
     self._validateBatchFields(
-        self._batch2, batch2[1], batch2[2], batch2[3], batch2[4], batch2[5],
-        batch2[6], batch2[7], batch2[10], batch2[11], batch2[12], batch2[13],
-        batch2[14])
+        self._batch2, batch2[1], batch2[2], batch2[3], batch2[4], batch2[5])
 
   def _testGetBatchDetails(self):
     '''
@@ -222,13 +194,11 @@ class TestModel(unittest.TestCase):
     record = records[0]
 
     self._validateImageRecordFields(
-        self._record, record[0], record[1], record[2], record[3], record[4],
-        record[9], record[10], record[14], record[29])
+        self._record, record[1], record[0], record[2], record[3], record[4],
+        record[7], record[8], record[12], record[20])
 
     self._validateBatchFields(
-        self._batch2, record[17], record[18], record[19], record[20],
-        record[21], record[22], record[23], record[24], record[25],
-        record[26], record[27], record[28])
+        self._batch2, record[15], record[16], record[17], record[18], record[19])
 
   def _testGetLastBatchInfo(self):
     '''Test get_last_batch_info.'''

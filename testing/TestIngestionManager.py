@@ -14,7 +14,7 @@ sys.path.append(os.path.join(rootdir, 'lib'))
 
 from dataingestion.services import (api_client, model, user_config,
                                     ingestion_manager)
-
+from time import sleep
 
 class TestIngestionManager(unittest.TestCase):
   def setUp(self):
@@ -27,37 +27,67 @@ class TestIngestionManager(unittest.TestCase):
     self.assertTrue(
         api_client.authenticate("60f7cb1e-02f5-425c-bc37-cae87550317a",
                                 "99f3ea05d8229a2f0d3aa1fcadf4a9a3"))
+    self._csvfile1 = "file1.csv"
+    self._csvfile2 = "file2.csv"
+    header =  "\"idigbio:OriginalFileName\", \"idigbio:MediaGUID\""
+    content1 = ("\"" + os.path.join(os.getcwd(), "image1.jpg") + "\", \""
+                + "abc" + "\"")
+    content2 = ("\"" + os.path.join(os.getcwd(), "wrongimage2.jpg") + "\", \""
+                + "efg" + "\"")
+    with open(self._csvfile1, "wb") as f:
+      f.write(header + "\n")
+      f.write(content1)
+    with open(self._csvfile2, "wb") as f:
+      f.write(header + "\n")
+      f.write(content1 + "\n")
+      f.write(content2)
+
   def tearDown(self):
     '''Clean up the tmp db file.'''
     model.close()
     os.remove(self._testDB)
+    os.remove(self._csvfile1)
+    os.remove(self._csvfile2)
 
   def _testUploadTask(self):
-    '''Test 1'''
+    '''Test 1, successful.'''
     values = {
       user_config.CSV_PATH: os.path.join(os.getcwd(), "file1.csv"),
-      user_config.RECORDSET_GUID: "testUploadCsv1",
-      user_config.RIGHTS_LICENSE: "CC0",
-      user_config.MEDIACONTENT_KEYWORD: "kw1",
-      user_config.IDIGBIO_PROVIDER_GUID: "proguid",
-      user_config.IDIGBIO_PUBLISHER_GUID: "pubguid",
-      user_config.FUNDING_SOURCE: "fundingsource",
-      user_config.FUNDING_PURPOSE: "fundingpurpose"}
+      user_config.RIGHTS_LICENSE: "CC0"}
     ingestion_manager.upload_task(values)
+    sleep(1)
+    (fatal_srv_err, input_csv_err, total, skips, success, fails,
+     csvuploaded, finished) = ingestion_manager.get_progress()
+    self.assertFalse(fatal_srv_err)
+    self.assertFalse(input_csv_err)
+    self.assertEqual(total, 1)
+    self.assertEqual(skips, 0)
+    self.assertEqual(success, 1)
+    self.assertEqual(fails, 0)
+    self.assertTrue(csvuploaded)
+    self.assertTrue(finished)
+    result = ingestion_manager.get_result()
+    self.assertIsNotNone(result)
 
-    '''Task 2'''
+    '''Task 2, partially fails.'''
     values[user_config.CSV_PATH] = os.path.join(os.getcwd(), "file2.csv")
-    values[user_config.RECORDSET_GUID] = "testUploadCsv2"
     ingestion_manager.upload_task(values)
-
-  def _testGetResult(self):
-    '''Test get_result. Should be finished now.'''
+    sleep(1)
+    (fatal_srv_err, input_csv_err, total, skips, success, fails,
+     csvuploaded, finished) = ingestion_manager.get_progress()
+    self.assertFalse(fatal_srv_err)
+    self.assertFalse(input_csv_err)
+    self.assertEqual(total, 2)
+    self.assertEqual(skips, 1)
+    self.assertEqual(success, 0)
+    self.assertEqual(fails, 1)
+    self.assertFalse(csvuploaded)
+    self.assertTrue(finished)
     result = ingestion_manager.get_result()
     self.assertIsNotNone(result)
 
   def runTest(self):
     self._testUploadTask()
-    self._testGetResult()
 
 
 if __name__ == '__main__':

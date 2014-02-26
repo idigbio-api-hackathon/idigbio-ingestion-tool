@@ -26,97 +26,25 @@ def init(api_ep):
   global api_endpoint
   api_endpoint = api_ep
 
-TIMEOUT = 5
+TIMEOUT = 3
 
-def _build_url(collection, entity_uuid=None, subcollection=None):
-  assert api_endpoint
-
-  if entity_uuid is None:
-    ape = api_endpoint
-    if collection == "check":
-      ape = "/".join(api_endpoint.split("/")[:-1])
-    ret = "%s/%s" % (ape, collection)
-  elif subcollection is None:
-    ret = "%s/%s/%s" % (api_endpoint, collection, entity_uuid)
+def _build_url(collection):
+  if collection == "check":
+    assert api_endpoint
+    ret = "%s/%s" % (api_endpoint, collection)
   else:
-    ret = "%s/%s/%s/%s" % (api_endpoint, collection, entity_uuid, subcollection)
+    ret = "%s/%s" % ("http://127.0.0.1:8080", collection) # Temporarily for testing.
   return ret
 
-def _post_recordset(recordset_id, metadata):
-  data = {"idigbio:data": {"ac:variant": "IngestionTool"},
-          "idigbio:recordIds": [recordset_id]}
-  data["idigbio:data"] = dict(data["idigbio:data"].items() + metadata.items())
-
-  url = _build_url("recordsets")
-  logger.debug("POSTing recordset...")
-  try:
-    response = json.loads(_post_json(url, data))
-    logger.debug("POSTing recordset done.")
-  except urllib2.HTTPError as e:
-    logger.error("Failed to POST the recordset to server.")
-    raise ClientException("Failed to POST the recordset to server.", url=url,
-                          http_status=e.code, http_response_content=e.read(),
-                          reason=recordset_id)
-  except (urllib2.URLError, socket.error, HTTPException) as e:
-    logger.error("{0} caught while POSTing the recordset.".format(type(e)))
-    raise ClientException(
-        "{0} caught while POSTing the recordset.".format(type(e)),
-        reason=str(e), url=url)
-  except (IOError, OSError) as e:
-    logger.error("IOError or OSError.")
-    raise ClientException("IOError caught.")
-  return response['idigbio:uuid']
-
-def _post_mediarecord(recordset_uuid, path, media_id, sr_uuid, idigbio_metadata):
-  '''
-  Returns the UUID of the Media Record and the raw MR JSON String as a tuple.
-  '''
-  logger.debug('_post_mediarecord')
-
-  data = {
-      "idigbio:data": {
-          "ac:variant": "IngestionTool",
-          "idigbio:OriginalFileName": path,
-          "idigbio:MediaGUID": media_id,
-          "idigbio:relationships": {"recordset": recordset_uuid}},
-      "idigbio:recordIds": [media_id]}
-  if sr_uuid:
-    data["idigbio:data"]["idigbio:relationships"]["record"] = sr_uuid.split(',')
-  data["idigbio:data"] = dict(data["idigbio:data"].items() +
-                              idigbio_metadata.items())
-
-  logger.debug('_post_mediarecord data:{0}'.format(data))
-  url = _build_url("mediarecords")
-  logger.debug("POSTing mediarecord...")
-  try:
-    resp1 = _post_json(url, data)
-    response = json.loads(resp1)
-    logger.debug("POSTing mediarecord done.")
-  except urllib2.HTTPError as e:
-    raise ClientException("Failed to POST the mediarecord to server.", url=url,
-                          http_status=e.code, http_response_content=e.read(),
-                          reason=recordset_uuid)
-  except (urllib2.URLError, socket.error, HTTPException) as e:
-    raise ClientException(
-        "{0} caught while POSTing the mediarecord.".format(type(e)),
-        reason=str(e), url=url)
-  return response['idigbio:uuid'], response['idigbio:etag'], resp1
-
-def _post_media(local_path, entity_uuid):
-  '''
-  Returns the JSON String of the Media AP.
-  Exceptions:
-    IOError: If the local path is not a valid file.
-    ClientException: If
-  '''
-  url = _build_url("mediarecords", entity_uuid, "media")
-  logger.debug("POSTing media to " + str(url) + "...")
-  datagen, headers = multipart_encode({"file": open(local_path, "rb")})
+def _post_image(path, reference):
+  url = _build_url("image")
+  params = {"file": open(path, "rb"), "filereference": reference}
+  datagen, headers = multipart_encode(params)
   try:
     request = urllib2.Request(url, datagen, headers)
-    request.add_header("Authorization", "Basic %s" % auth_string)
     resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
-    logger.debug("POSTing media done.")
+    #request.add_header("Authorization", "Basic %s" % auth_string)
+    logger.debug("POSTing image done.")
     return resp
   except urllib2.HTTPError as e:
     logger.debug("urllib2.HTTPError caught")
@@ -127,25 +55,35 @@ def _post_media(local_path, entity_uuid):
           "Fatal Server Exception Detected. HTTP Error code:{0}".format(e.code))
     raise ClientException(
         "Failed to POST the media to server", url=request.get_full_url(),
-        http_status=e.code, http_response_content=e.read(), reason=entity_uuid,
-        local_path=local_path)
-  except (urllib2.URLError, socket.error, HTTPException) as e:
+        http_status=e.code, http_response_content=e.read(), local_path=path)
+  except (urllib2.URLError, socket.error, socket.timeout, HTTPException) as e:
+    # URLError: server down, network down.
     raise ClientException("{0} caught while POSTing the media.".format(type(e)),
                           reason=str(e), url=url)
 
-# Post the request to the server and get the response.
-def _post_json(url, obj):
-  """
-  Returns: the reponse JSON object.
-  """
-  content = json.dumps(obj, separators=(',',':'))
-  logger.debug("content -> " + str(content))
-  req = urllib2.Request(url, content, {'Content-Type': 'application/json'})
-
-  req.add_header("Authorization", "Basic %s" % auth_string)
-  r = urllib2.urlopen(req, timeout=TIMEOUT)
-  resp = r.read()
-  return resp
+def _post_csv(path):
+  url = _build_url("csv")
+  params = {"file": open(path, "rb")}
+  datagen, headers = multipart_encode(params)
+  try:
+    request = urllib2.Request(url, datagen, headers)
+    resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
+    #request.add_header("Authorization", "Basic %s" % auth_string)
+    logger.debug("POSTing media done.")
+    return resp
+  except urllib2.HTTPError as e:
+    logger.debug("urllib2.HTTPError caught")
+    logger.debug("Error code {0}".format(e.code))
+    if e.code == 500:
+      logger.debug("ServerException occurs")
+      raise ServerException(
+          "Fatal Server Exception Detected. HTTP Error code:{0}".format(e.code))
+    raise ClientException(
+        "Failed to POST the CSV file to server", url=request.get_full_url(),
+        http_status=e.code, http_response_content=e.read())
+  except (urllib2.URLError, socket.error, socket.timeout, HTTPException) as e:
+    raise ClientException("{0} caught while POSTing the CSV file.".format(type(e)),
+                          reason=str(e), url=url)
 
 auth_string = None
 
@@ -172,7 +110,7 @@ def authenticate(user, key):
                           {'Content-Type': 'application/json'})
     base64string = base64.encodestring('%s:%s' % (user, key)).replace('\n', '')
     req.add_header("Authorization", "Basic %s" % base64string)
-    urllib2.urlopen(req, timeout=2)
+    urllib2.urlopen(req, timeout=TIMEOUT)
     logger.debug("Successfully logged in.")
     auth_string = base64string
     return True
@@ -184,9 +122,10 @@ def authenticate(user, key):
       raise ClientException("Failed to authenticate with server.", url=url,
                             http_status=e.code, http_response_content=e.read(),
                             reason=user)
-  except socket.timeout as e:
-    raise Exception("Server time out.")
-    return False
+  except (urllib2.URLError, socket.error, socket.timeout, HTTPException) as e:
+    raise ClientException("{0} caught while POSTing the media.".format(type(e)),
+                          url=url, reason=user)
+  return False
 
 class ClientException(Exception):
   def __init__(self, msg, url='', http_status=None, reason='', local_path='',
@@ -246,7 +185,7 @@ class ServerException(Exception):
 class Connection(object):
   """Convenience class to make requests that will also retry the request"""
 
-  def __init__(self, authurl=None, user=None, key=None, retries=8,
+  def __init__(self, authurl=None, user=None, key=None, retries=4,
                preauthurl=None, preauthtoken=None, snet=False,
                starting_backoff=1, auth_version="1"):
     """
@@ -305,13 +244,8 @@ class Connection(object):
       if reset_func:
         reset_func(func, *args, **kwargs)
 
-  def post_recordset(self, recordset_id, metadata):
-    return self._retry(None, _post_recordset, recordset_id, metadata)
+  def post_image(self, path, reference):
+    return self._retry(None, _post_image, path, reference)
 
-  def post_mediarecord(self, recordset_uuid, path, media_id, sr_uuid,
-                       idigbio_metadata):
-    return self._retry(None, _post_mediarecord, recordset_uuid, path,
-                       media_id, sr_uuid, idigbio_metadata)
-
-  def post_media(self, local_path, entity_uuid):
-    return self._retry(None, _post_media, local_path, entity_uuid)
+  def post_csv(self, path):
+    return self._retry(None, _post_csv, path)

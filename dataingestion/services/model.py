@@ -8,7 +8,7 @@
 This module implements the data model for the service.
 """
 from sqlalchemy import (create_engine, Column, Integer, String, DateTime,
-                        Boolean, types)
+                        Boolean, types, distinct)
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import ForeignKey
@@ -52,8 +52,7 @@ class UploadBatch(Base):
   Represents a batch which is the operation executed when the user clicks the 
   "Upload" button.
   
-  .. note:: When a batch fails and is resumed, the same batch record and 
-     recordset id are reused.
+  .. note:: When a batch fails and is resumed, the same batch record is reused.
   """
   __tablename__ = __batches_tablename__
   id = Column(Integer, primary_key=True)
@@ -66,48 +65,36 @@ class UploadBatch(Base):
   RightsLicenseStatementUrl = Column(String)
   RightsLicenseLogoUrl = Column(String)
   """The GUID user provided for the record set."""
-  RecordSetGUID = Column(String)
-  """Return from server."""
-  RecordSetUUID = Column(String)
-  """The local time at which the batch task starts."""
   start_time = Column(DateTime)
   """The local time that the batch upload finishes. None if not successful."""
   finish_time = Column(DateTime)
-  """The following fields are optional."""
-  MediaContentKeyword = Column(String)
-  iDigbioProviderGUID = Column(String)
-  iDigbioPublisherGUID = Column(String)
-  FundingSource = Column(String)
-  FundingPurpose = Column(String)
 
   RecordCount = Column(Integer)
   SkipCount = Column(Integer)
   FailCount = Column(Integer)
   ErrorCode = Column(String)
 
+  """Records if the CSV file is uploaded."""
+  CSVUploaded = Column(Boolean)
+
   AllMD5 = Column(String) # The md5 of the CSV file + uuid.
   
-  def __init__(self, path, accountID, license, licenseStatementUrl, licenseLogoUrl,
-    rs_guid, rs_uuid, s_time, md5, kw, proID, pubID, fs, fp):
+  def __init__(self, path, accountID, license, licenseStatementUrl,
+               licenseLogoUrl, s_time, md5):
+    """7 parameters"""
     self.CSVfilePath = path
     self.iDigbioProvidedByGUID = accountID
     self.RightsLicense = license
     self.RightsLicenseStatementUrl = licenseStatementUrl
     self.RightsLicenseLogoUrl = licenseLogoUrl
-    self.RecordSetGUID = rs_guid
-    self.RecordSetUUID = rs_uuid
     self.start_time = s_time
     self.AllMD5 = md5
-    self.MediaContentKeyword = kw
-    self.iDigbioProviderGUID = proID
-    self.iDigbioPublisherGUID = pubID
-    self.FundingSource = fs
-    self.FundingPurpose = fp
     self.RecordCount = 0
     self.SkipCount = 0
     self.FailCount = 0
     self.ErrorCode = None
     self.finish_time = None
+    self.CSVUploaded = False
 
 
 class ImageRecord(Base):
@@ -134,10 +121,6 @@ class ImageRecord(Base):
   Error = Column(String)
   """Indicates if there are warnings in the processing."""
   Warnings = Column(String)
-  """The UUID of the *media record* for this image."""
-  MediaRecordUUID = Column(String)
-  """The UUID of the *media AP* for this image."""
-  MediaAPUUID = Column(String)
   """MadiaAP record in JSON String."""
   MediaAPContent = Column(types.BLOB)
   """
@@ -204,6 +187,9 @@ class ImageRecord(Base):
 session = None
 
 def setup(db_file):
+  """
+  Set up the database.
+  """
   global session
 
   db_conn = "sqlite:///%s" % db_file
@@ -216,7 +202,10 @@ def setup(db_file):
   session = Session()
   print "DB Connection: %s" % db_conn
 
-def md5_file(f, block_size=2 ** 20):
+def _md5_file(f, block_size=2 ** 20):
+  """
+  Get MD5 of the file.
+  """
   md5 = hashlib.md5()
   while True:
     data = f.read(block_size)
@@ -225,7 +214,7 @@ def md5_file(f, block_size=2 ** 20):
     md5.update(data)
   return md5
 
-def generate_record(csvrow, headerline, rs_uuid):
+def _generate_record(csvrow, headerline):
   logger.debug('Generating image record ...')
   
   mediapath = ""
@@ -254,13 +243,13 @@ def generate_record(csvrow, headerline, rs_uuid):
       annotations_dict[elem] = csvrow[index]
 
   recordmd5 = hashlib.md5()
-  recordmd5.update(rs_uuid)
-  recordmd5.update(mediapath)
+  # Note that mediapath can be different and the image is the same,
+  # so mediapath is not considered in the md5 calculation.
   recordmd5.update(mediaguid)
   recordmd5.update(sruuid)
 
   exifinfo = None
-  filemd5 = hashlib.md5()
+  filemd5hexdigest = ""
 
   if not re.compile(constants.ALLOWED_FILES, re.IGNORECASE).match(mediapath):
     error = "File type unsupported."
@@ -273,7 +262,8 @@ def generate_record(csvrow, headerline, rs_uuid):
 
     try:
       with open(mediapath, 'rb') as f:
-        filemd5 = md5_file(f)
+        filemd5 = _md5_file(f)
+        filemd5hexdigest = filemd5.hexdigest()
     except IOError as err:
       logger.error("File " + mediapath + " open error.")
       error = "File not found."
@@ -281,10 +271,10 @@ def generate_record(csvrow, headerline, rs_uuid):
   if error: # File not exist, cannot go further. Just return.
     logger.debug('Generating image record done with error.')
     return (mediapath, mediaguid, sruuid, error, warnings, mimetype,
-        msize, ctime, fowner, exif, str(annotations_dict), filemd5.hexdigest(),
+        msize, ctime, fowner, exif, str(annotations_dict), filemd5hexdigest,
         recordmd5.hexdigest())
 
-  recordmd5.update(filemd5.hexdigest())
+  recordmd5.update(filemd5hexdigest)
 
   try:
     msize = os.path.getsize(mediapath)
@@ -332,7 +322,7 @@ def generate_record(csvrow, headerline, rs_uuid):
 
   logger.debug('Generating image record done.')
   return (mediapath, mediaguid, sruuid, error, warnings, mimetype, msize,
-          ctime, fowner, exif, str(annotations_dict), filemd5.hexdigest(),
+          ctime, fowner, exif, str(annotations_dict), filemd5hexdigest,
           recordmd5.hexdigest())
 
 @check_session
@@ -342,14 +332,13 @@ def add_image(batch, csvrow, headerline):
     batch: The UploadBatch instance this image belongs to.
     csvrow: A list of values of the current csvrow.
     headerline: The header line of the csv file.
-    rs_uuid: The UUID of the record set.
   Return the image or None is the image should not be uploaded.
-  :rtype: ImageRecord or None.
+  Return type: ImageRecord or None.
   Note: Image identity is not determined by path but rather by its MD5.
   """
   (mediapath, mediaguid, sruuid, error, warnings, mimetype, msize, ctime,
-      fowner, exif, annotations, mmd5, amd5) = generate_record(
-          csvrow, headerline, batch.RecordSetUUID)
+   fowner, exif, annotations, mmd5, amd5) = _generate_record(
+       csvrow, headerline)
 
   try:
     record = session.query(ImageRecord).filter_by(AllMD5=amd5).first()
@@ -371,54 +360,29 @@ def add_image(batch, csvrow, headerline):
     return record
 
 @check_session
-def add_batch(path, accountID, license, licenseStatementUrl, licenseLogoUrl,
-              recordset_guid, recordset_uuid, keyword, proID, pubID,
-              fundingSource, fundingPurpose):
-  '''
+def add_batch(path, accountID, license, licenseStatementUrl, licenseLogoUrl):
+  """
   Add a batch to the database.
   Returns: An UploadBatch instance created by the information.
   Throws ModelException:
-    1. If path, accountID, license, licenseLogoUrl, recordset_guid or
-       recordset_uuid are not all provided.
+    1. If path, accountID, license, licenseLogoUrl are not all provided.
     2. If the provided CSV file path is not to a valid file.
-  '''
-  if (not path or not accountID or not license or not licenseLogoUrl or
-      not recordset_guid or not recordset_uuid):
+  """
+  if (not path or not accountID or not license or not licenseLogoUrl):
     raise ModelException("At lease one required field is not provided.")
 
   start_time = datetime.now()
   try:
     with open(path, 'rb') as f:
-      md5value = md5_file(f)
+      md5value = _md5_file(f)
   except:
     raise ModelException("CSV File %s is not a valid file." %path)
   md5value.update(accountID)
   md5value.update(license)
-  md5value.update(recordset_guid)
-  md5value.update(recordset_uuid)
-
-  if keyword is None:
-    keyword = ""
-  if proID is None:
-    proID = ""
-  if pubID is None:
-    pubID = ""
-  if fundingSource is None:
-    fundingSource = ""
-  if fundingPurpose is None:
-    fundingPurpose = ""
-
-  md5value.update(keyword)
-  md5value.update(proID)
-  md5value.update(pubID)
-  md5value.update(fundingSource)
-  md5value.update(fundingPurpose)
 
   # Always add new record.
   newrecord = UploadBatch(path, accountID, license, licenseStatementUrl,
-      licenseLogoUrl, recordset_guid, recordset_uuid, start_time,
-      md5value.hexdigest(), keyword, proID, pubID, fundingSource,
-      fundingPurpose)
+      licenseLogoUrl, start_time, md5value.hexdigest())
   session.add(newrecord)
   return newrecord
 
@@ -428,19 +392,20 @@ def get_batch_details_fieldnames():
   get_batch_details.
   '''
 
-  return ["MediaGUID", "OriginalFileName", "SpecimenUUID",
-      "Error", "Warnings", "MediaRecordUUID", "MediaAPUUID",
-      "UploadTime", "MediaURL", "MimeType", "MediaSizeInBytes",
+  return [
+      "MediaGUID", "OriginalFileName",
+      "SpecimenUUID", "Error",
+      "Warnings", "UploadTime",
+      "MediaURL", "MimeType",
+      "MediaSizeInBytes", "ProviderCreatedTimeStamp",
+      "providerCreatedByGUID",
       # 0 - 10 above.
-      "ProviderCreatedTimeStamp", "providerCreatedByGUID", "MediaEXIF",
-      "Annotations", "MediaRecordEtag", "MediaMD5", "CSVfilePath",
-      "iDigbioProvidedByGUID", "RightsLicense", "RightsLicenseStatementUrl",
-      "RightsLicenseLogoUrl",
-      # 11 - 21 above.
-      "RecordSetGUID", "RecordSetUUID", "MediaContentKeyword",
-      "iDigbioProviderGUID", "iDigbioPublisherGUID", "FundingSource",
-      "FundingPurpose", "batchID"]
- 
+      "MediaEXIF", "Annotations",
+      "MediaRecordEtag", "MediaMD5",
+      "CSVfilePath", "iDigbioProvidedByGUID",
+      "RightsLicense", "RightsLicenseStatementUrl",
+      "RightsLicenseLogoUrl", "batchID"]
+      # 11 - 20 above.
 
 @check_session
 def get_batch_details(batch_id):
@@ -448,24 +413,67 @@ def get_batch_details(batch_id):
   batch_id = int(batch_id)
   
   query = session.query(
-      ImageRecord.MediaGUID, ImageRecord.OriginalFileName,
-      ImageRecord.SpecimenRecordUUID, ImageRecord.Error,
-      ImageRecord.Warnings, ImageRecord.MediaRecordUUID,
-      ImageRecord.MediaAPUUID, ImageRecord.UploadTime, ImageRecord.MediaURL,
-      ImageRecord.MimeType, ImageRecord.MediaSizeInBytes,
+      ImageRecord.MediaGUID,
+      ImageRecord.OriginalFileName,
+      ImageRecord.SpecimenRecordUUID,
+      ImageRecord.Error,
+      ImageRecord.Warnings,
+      ImageRecord.UploadTime,
+      ImageRecord.MediaURL,
+      ImageRecord.MimeType,
+      ImageRecord.MediaSizeInBytes,
+      ImageRecord.ProviderCreatedTimeStamp,
+      ImageRecord.ProviderCreatedByGUID,
       # 0 - 10 above.
-      ImageRecord.ProviderCreatedTimeStamp, ImageRecord.ProviderCreatedByGUID,
-      ImageRecord.MediaEXIF, ImageRecord.Annotations, ImageRecord.etag,
-      ImageRecord.MediaMD5, UploadBatch.CSVfilePath,
-      UploadBatch.iDigbioProvidedByGUID, UploadBatch.RightsLicense,
-      UploadBatch.RightsLicenseStatementUrl, UploadBatch.RightsLicenseLogoUrl,
-      # 11 - 21 above
-      UploadBatch.RecordSetGUID, UploadBatch.RecordSetUUID,
-      UploadBatch.MediaContentKeyword, UploadBatch.iDigbioProviderGUID,
-      UploadBatch.iDigbioPublisherGUID, UploadBatch.FundingSource,
-      UploadBatch.FundingPurpose, ImageRecord.BatchID
+      ImageRecord.MediaEXIF,
+      ImageRecord.Annotations,
+      ImageRecord.etag,
+      ImageRecord.MediaMD5,
+      UploadBatch.CSVfilePath,
+      UploadBatch.iDigbioProvidedByGUID,
+      UploadBatch.RightsLicense,
+      UploadBatch.RightsLicenseStatementUrl,
+      UploadBatch.RightsLicenseLogoUrl,
+      ImageRecord.BatchID
+      # 11 - 20 above
     ).filter(ImageRecord.BatchID == batch_id).filter(UploadBatch.id == batch_id
-    ).order_by(ImageRecord.id) # 30 elements.
+    ).order_by(ImageRecord.id) # 21 elements.
+  
+  logger.debug("Image record count: " + str(query.count()))
+
+  return query.all()
+
+@check_session
+def get_all_success_details():
+  '''Gets all the image records for all batches.'''
+  
+  query = session.query(
+      ImageRecord.MediaGUID,
+      ImageRecord.OriginalFileName,
+      ImageRecord.SpecimenRecordUUID,
+      ImageRecord.Error,
+      ImageRecord.Warnings,
+      ImageRecord.UploadTime,
+      ImageRecord.MediaURL,
+      ImageRecord.MimeType,
+      ImageRecord.MediaSizeInBytes,
+      ImageRecord.ProviderCreatedTimeStamp,
+      ImageRecord.ProviderCreatedByGUID,
+      # 0 - 10 above.
+      ImageRecord.MediaEXIF,
+      ImageRecord.Annotations,
+      ImageRecord.etag,
+      ImageRecord.MediaMD5,
+      UploadBatch.CSVfilePath,
+      UploadBatch.iDigbioProvidedByGUID,
+      UploadBatch.RightsLicense,
+      UploadBatch.RightsLicenseStatementUrl,
+      UploadBatch.RightsLicenseLogoUrl,
+      ImageRecord.BatchID
+      # 11 - 20 above
+    ).filter(ImageRecord.UploadTime != None
+    ).filter(ImageRecord.BatchID == UploadBatch.id
+    ).order_by(ImageRecord.id) # 21 elements.
   
   logger.debug("Image record count: " + str(query.count()))
 
@@ -480,15 +488,18 @@ def get_all_batches():
   """
 
   query = session.query(
-    UploadBatch.id, UploadBatch.CSVfilePath, UploadBatch.iDigbioProvidedByGUID,
-    UploadBatch.RightsLicense, UploadBatch.RightsLicenseStatementUrl, 
-    UploadBatch.RightsLicenseLogoUrl, UploadBatch.RecordSetGUID,
-    UploadBatch.RecordSetUUID, UploadBatch.start_time, UploadBatch.finish_time,
-    UploadBatch.MediaContentKeyword, UploadBatch.iDigbioProviderGUID,
-    UploadBatch.iDigbioPublisherGUID, UploadBatch.FundingSource,
-    UploadBatch.FundingPurpose, UploadBatch.RecordCount, UploadBatch.FailCount, 
+    UploadBatch.id,
+    UploadBatch.CSVfilePath,
+    UploadBatch.iDigbioProvidedByGUID,
+    UploadBatch.RightsLicense,
+    UploadBatch.RightsLicenseStatementUrl, 
+    UploadBatch.RightsLicenseLogoUrl,
+    UploadBatch.start_time,
+    UploadBatch.finish_time,
+    UploadBatch.RecordCount,
+    UploadBatch.FailCount,
     UploadBatch.SkipCount
-    ).order_by(UploadBatch.id) # 18 elements
+    ).order_by(UploadBatch.id) # 11 elements
   
   ret = []
   for elem in query:
@@ -496,7 +507,7 @@ def get_all_batches():
     index = 0
     for origitem in elem:
       item = str(origitem)
-      if index == 8:
+      if index == 6: # start_time?
         item = item[0:item.index('.')]
       newelem.append(str(item))
       index = index + 1

@@ -7,13 +7,22 @@
 
 # This preprocess is to set up the paths to make sure the current module
 # referencing in the files to be tested.
-import sys, os, unittest, tempfile, datetime
+import sys, os, unittest, tempfile, datetime, urllib2, subprocess
+from threading import Thread
 rootdir = os.path.dirname(os.getcwd())
 sys.path.append(rootdir)
 sys.path.append(os.path.join(rootdir, 'lib'))
 
 from dataingestion.services import api_client
+from dataingestion.services.api_client import ClientException
 
+from poster.encode import multipart_encode
+from poster.streaminghttp import register_openers
+from time import sleep
+import threading
+import ctypes
+
+     
 class TestAPIClient(unittest.TestCase):
   def setUp(self):
     self._endpoint = "http://beta-api.idigbio.org/v1"
@@ -26,165 +35,122 @@ class TestAPIClient(unittest.TestCase):
     self._filepath2 = os.path.join(os.getcwd(), "image2.jpg")
     self._invalidfilepath = "Notvalid/path.jpg"
     self._emptysruuid = ""
+    self._startServer()
+    sleep(0.1)
+    subprocess.Popen(["sudo", "iptables", "-D", "OUTPUT", "-p", "tcp",
+                      "-j", "DROP"])
+    print "Please wait a few seconds ..."
+
+  def tearDown(self):
+    # Shut down the server.
+    self._stopServer()
+    subprocess.Popen(["sudo", "iptables", "-D", "OUTPUT", "-p", "tcp",
+                      "-j", "DROP"])
+
+  def _startServer(self):
+    self._server_thread = Thread(target=self._serverThread)
+    self._server_thread.start()
+
+  def _stopServer(self):
+    url = ("http://127.0.0.1:8080/shutdown")
+    request = urllib2.Request(url)
+    try:
+      urllib2.urlopen(request)
+    except:
+      pass
+    self._server_thread.join()
+
+  def _serverThread(arg):
+    p = subprocess.Popen('stub_server/file-service.py',
+                         shell=False,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    p.communicate()
 
   def _testBuildUrl(self):
     '''Test _build_url with different parameters.'''
-    self.assertEqual(api_client._build_url("recordsets"),
-                     "http://beta-api.idigbio.org/v1/recordsets")
-    self.assertEqual(api_client._build_url("recordsets", "ABCDEFG"),
-                     "http://beta-api.idigbio.org/v1/recordsets/ABCDEFG")
-    self.assertEqual(api_client._build_url("recordsets", "A", "123456"),
-                     "http://beta-api.idigbio.org/v1/recordsets/A/123456")
+    self.assertEqual(api_client._build_url("csv"),
+                     "http://127.0.0.1:8080/csv")
+    self.assertEqual(api_client._build_url("image"),
+                     "http://127.0.0.1:8080/image")
 
   def _testAuthenticate(self):
     '''
     Test the authenticate function. It is also prerequisit for following tests.
     '''
     self.assertTrue(api_client.authenticate(self._accountuuid, self._apikey))
+    print "Authentication test1 done."
 
     api_client.auth_string = None # Reset auth_string to remove the state.
     self.assertFalse(
-        api_client.authenticate("60f7cb1e-02f5-425c-bc37-thisiswrongid",
-                                self._apikey))
+        api_client.authenticate(
+            "60f7cb1e-02f5-425c-bc37-thisiswrongid",
+            self._apikey))
+    print "Authentication test2 done."
 
-  def _testPostRecordset(self):
-    '''Test _post_recordset, varify it can return correct information.'''
+    # Bring down the network and test.
+    subprocess.Popen(["sudo", "iptables", "-A", "OUTPUT", "-p", "tcp",
+                      "-j", "DROP"])
+    sleep(2)
+    self.assertRaises(ClientException,
+                      api_client.authenticate,
+                      "60f7cb1e-02f5-425c-bc37-thisiswrongid",
+                      self._apikey)
+    # Bring up the network again.
+    subprocess.Popen(["sudo", "iptables", "-D", "OUTPUT", "-p", "tcp",
+                      "-j", "DROP"])
+    print "Authentication test3 done."
 
-    # Authenticate first.
-    self.assertTrue(api_client.authenticate(self._accountuuid, self._apikey))
 
-    recordset_id1 = "test1"
-    metadata1 = {"idigbio:RightsLicense": "CC0",
-                 "idigbio:iDigbioProvidedByGUID": self._accountuuid,
-                 "idigbio:RecordSetGUID": recordset_id1,
-                 "idigbio:CSVfilePath": "/tmp/CSVfile1.csv"}
-    self._recordset_uuid1 = api_client._post_recordset(recordset_id1, metadata1)
-
-    recordset_id2 = "test2"
-    metadata2 = {"idigbio:RightsLicense": "CC BY-SA",
-                 "idigbio:iDigbioProvidedByGUID": self._accountuuid,
-                 "idigbio:RecordSetGUID": recordset_id2,
-                 "idigbio:CSVfilePath": "/tmp/CSVfile2.csv",
-                 "idigbio:MediaContentKeyword": "kw1, kw2, kw3",
-                 "idigbio:iDigbioProviderGUID": "providerGUID",
-                 "idigbio:FundingSource": "NSF",
-                 "idigbio:FundingPurpose": "The funding purpose."}
-    self._recordset_uuid2 = api_client._post_recordset(recordset_id2, metadata2)
-    # The dataset_uuids of the two uploads should be different, as they are
-    # hashed from different provider_ids.
-    self.assertNotEqual(self._recordset_uuid1, self._recordset_uuid2)
-
-  def _testPostMediarecord(self):
-    '''Test _post_mediarecord.'''
-    media_id1 = "test1/f1"
-    metadata1 = {
-        "xmpRights:usageTerms": "CC0",
-        "xmpRights:webStatement":
-        "http://creativecommons.org/publicdomain/zero/1.0/",
-        "ac:licenseLogoURL":
-        "http://mirrors.creativecommons.org/presskit/buttons/80x15/png" +
-        "/publicdomain.png",
-        "idigbio:MimeType": "image/jpeg"}
-    self._record_uuid1, self._mr_etag1, self._mr_str1 = \
-        api_client._post_mediarecord(self._recordset_uuid1, self._filepath1,
-                                     media_id1, self._emptysruuid, metadata1)
-    self.assertIsNotNone(self._record_uuid1)
-    self.assertIsNotNone(self._mr_etag1)
-    self.assertIsNotNone(self._mr_str1)
-
-    '''Test _post_mediarecord with one sruuid'''
-    media_id2 = "test2/f2"
-    metadata2 = {
-        "xmpRights:usageTerms": "CC BY-SA",
-        "xmpRights:webStatement":
-        "http://creativecommons.org/licenses/by-sa/3.0/",
-        "ac:licenseLogoURL":
-        "http://mirrors.creativecommons.org/presskit/buttons/80x15/png" +
-        "/by-sa.png",
-        "idigbio:MimeType": "image/jpeg"}
-    sruuid_1 = self._record_uuid1
-    self._record_uuid2, self._mr_etag2, self._mr_str2 = \
-        api_client._post_mediarecord(self._recordset_uuid2,
-                                     self._invalidfilepath, media_id2,
-                                     sruuid_1, metadata2)
-    self.assertIsNotNone(self._record_uuid2)
-    self.assertIsNotNone(self._mr_etag2)
-    self.assertIsNotNone(self._mr_str2)
-    print self._record_uuid2
-
-    '''Test _post_mediarecord with two sruuids'''
-    media_id3 = "test3/f3"
-    metadata3 = {
-        "xmpRights:usageTerms": "CC BY-SA",
-        "xmpRights:webStatement":
-        "http://creativecommons.org/licenses/by-sa/3.0/",
-        "ac:licenseLogoURL":
-        "http://mirrors.creativecommons.org/presskit/buttons/80x15/png" +
-        "/by-sa.png",
-        "idigbio:MimeType": "image/jpeg"}
-    sruuid_2 = self._record_uuid1 + "," + self._record_uuid2
-    self._record_uuid3, self._mr_etag3, self._mr_str3 = \
-        api_client._post_mediarecord(self._recordset_uuid2,
-                                     self._invalidfilepath, media_id3,
-                                     sruuid_2, metadata3)
-    self.assertIsNotNone(self._record_uuid3)
-    self.assertIsNotNone(self._mr_etag3)
-    self.assertIsNotNone(self._mr_str3)
-    print self._record_uuid3
-
-    '''Test _post_mediarecord with annotations'''
-    media_id4 = "test4/f4"
-    metadata4 = {
-        "xmpRights:usageTerms": "CC BY-SA",
-        "xmpRights:webStatement":
-        "http://creativecommons.org/licenses/by-sa/3.0/",
-        "ac:licenseLogoURL":
-        "http://mirrors.creativecommons.org/presskit/buttons/80x15/png" +
-        "/by-sa.png",
-        "idigbio:MimeType": "image/jpeg",
-        "Annotations": "{'idigbio:Description': 'Some description.'," +
-                       "'idigbio:LanguageCode': 'French'," +
-                       "'idigbio:Title': 'Some title'," +
-                       "'idigbio:DigitalizationDevice': 'Dig device.'}"}
-    self._record_uuid4, self._mr_etag4, self._mr_str4= \
-        api_client._post_mediarecord(self._recordset_uuid2,
-                                     self._invalidfilepath, media_id4,
-                                     self._emptysruuid, metadata4)
-    self.assertIsNotNone(self._record_uuid4)
-    self.assertIsNotNone(self._mr_etag4)
-    self.assertIsNotNone(self._mr_str4)
-
-  def _testPostMedia(self):
-    '''Test _post_media.'''
+  def _testPostImage(self):
+    '''Test _post_image.'''
     # The file exists.
-    api_client._post_media(self._filepath1, self._record_uuid1)
+    api_client._post_image(self._filepath1, "ABC")
+    print "Post image test1 done."
     # The path does not exist.
-    self.assertRaises(IOError, api_client._post_media, self._invalidfilepath,
-                      self._record_uuid2)
+    self.assertRaises(
+        IOError, api_client._post_image, self._invalidfilepath, "ABC1")
+    print "Post image test2 done."
     # The path is a directory.
-    self.assertRaises(IOError, api_client._post_media, os.getcwd(),
-                      self._record_uuid2)
+    self.assertRaises(
+        IOError, api_client._post_image, os.getcwd(), "ABC2")
+    print "Post image test3 done."
 
-  def _testConnection(self):
-    '''
-    Test the connection with authenticate, .
-    '''
-    conn = api_client.Connection()
-    recordset_id = "testConnection"
-    metadata = {"idigbio:RightsLicense": "CC0",
-                "idigbio:iDigbioProvidedByGUID": self._accountuuid,
-                "idigbio:RecordSetGUID": recordset_id,
-                "idigbio:CSVfilePath": "/tmp/CSVfile1.csv"}
-    self._recordset_uuid = conn.post_recordset(recordset_id, metadata)
+    # Bring down the server and test.
+    self._stopServer()
+    self.assertRaises(ClientException,
+                      api_client._post_image, self._filepath1, "ABC3")
+    # Bring up the server again.
+    self._startServer()
+    sleep(0.2)
+    print "Post image test4 done."
+
+    # Bring down the network and test.
+    subprocess.Popen(["sudo", "iptables", "-A", "OUTPUT", "-p", "tcp",
+                      "-j", "DROP"])
+    sleep(2)
+    self.assertRaises(ClientException,
+                      api_client._post_image, self._filepath1, "ABC4")
+    # Bring up the network again.
+    subprocess.Popen(["sudo", "iptables", "-D", "OUTPUT", "-p", "tcp",
+                      "-j", "DROP"])
+    print "Post image test5 done."
+
+  def _testPostCsv(self):
+    '''Test _post_csv.'''
+    #f = tempfile.NamedTemporaryFile("wb")
+    name = os.path.join(tempfile.gettempdir(), "temp.csv")
+    f = open(name, "wb")
+    f.write("test,test,test,test,test\ntest,test,test,test,test\n")
+    f.close()
+    api_client._post_csv(name)
+    print "Post csv test done."
 
   def runTest(self):
     self._testBuildUrl()
     self._testAuthenticate()
-    self._testPostRecordset()
-    self._testPostMediarecord()
-    self._testPostMedia()
-    self._testConnection()
-
+    self._testPostImage()
+    self._testPostCsv()
 
 if __name__ == '__main__':
       unittest.main()
