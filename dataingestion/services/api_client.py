@@ -29,21 +29,21 @@ def init(api_ep):
 TIMEOUT = 3
 
 def _build_url(collection):
+  assert api_endpoint
   if collection == "check":
-    assert api_endpoint
     ret = "%s/%s" % (api_endpoint, collection)
   else:
-    ret = "%s/%s" % ("http://127.0.0.1:8080", collection) # Temporarily for testing.
+    ret = "%s/upload/%s" % (api_endpoint, collection)
   return ret
 
 def _post_image(path, reference):
-  url = _build_url("image")
+  url = _build_url("images")
   params = {"file": open(path, "rb"), "filereference": reference}
   datagen, headers = multipart_encode(params)
   try:
     request = urllib2.Request(url, datagen, headers)
-    resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
-    #request.add_header("Authorization", "Basic %s" % auth_string)
+    request.add_header("Authorization", "Basic %s" % auth_string)
+    resp = urllib2.urlopen(request, timeout=TIMEOUT).read()    
     logger.debug("POSTing image done.")
     return resp
   except urllib2.HTTPError as e:
@@ -62,13 +62,13 @@ def _post_image(path, reference):
                           reason=str(e), url=url)
 
 def _post_csv(path):
-  url = _build_url("csv")
+  url = _build_url("datasets")
   params = {"file": open(path, "rb")}
   datagen, headers = multipart_encode(params)
   try:
     request = urllib2.Request(url, datagen, headers)
-    resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
-    #request.add_header("Authorization", "Basic %s" % auth_string)
+    request.add_header("Authorization", "Basic %s" % auth_string)
+    resp = urllib2.urlopen(request, timeout=TIMEOUT).read()    
     logger.debug("POSTing media done.")
     return resp
   except urllib2.HTTPError as e:
