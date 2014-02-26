@@ -7,7 +7,8 @@
 
 # This preprocess is to set up the paths to make sure the current module
 # referencing in the files to be tested.
-import sys, os, unittest, tempfile, datetime
+import sys, os, unittest, tempfile, datetime, urllib2, subprocess
+from threading import Thread
 rootdir = os.path.dirname(os.getcwd())
 sys.path.append(rootdir)
 sys.path.append(os.path.join(rootdir, 'lib'))
@@ -41,6 +42,8 @@ class TestIngestionManager(unittest.TestCase):
       f.write(header + "\n")
       f.write(content1 + "\n")
       f.write(content2)
+    self._startServer()
+    sleep(0.1)
 
   def tearDown(self):
     '''Clean up the tmp db file.'''
@@ -48,7 +51,29 @@ class TestIngestionManager(unittest.TestCase):
     os.remove(self._testDB)
     os.remove(self._csvfile1)
     os.remove(self._csvfile2)
+    self._stopServer()
 
+  def _startServer(self):
+    self._server_thread = Thread(target=self._serverThread)
+    self._server_thread.start()
+
+  def _stopServer(self):
+    url = ("http://127.0.0.1:8080/shutdown")
+    request = urllib2.Request(url)
+    try:
+      urllib2.urlopen(request)
+    except:
+      pass
+    self._server_thread.join()
+
+  def _serverThread(arg):
+    p = subprocess.Popen('stub_server/file-service.py',
+                         shell=False,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    p.communicate()
+
+ 
   def _testUploadTask(self):
     '''Test 1, successful.'''
     values = {
