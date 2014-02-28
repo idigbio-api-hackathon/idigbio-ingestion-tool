@@ -343,7 +343,7 @@ updateProgress = function() {
         csvfileuploaded = "No CSV file is generated.";
       } else if (progressObj.csvuploaded) {
         csvfileuploaded = "CSV file is uploaded.";
-      } else {
+      } else if (progressObj.finished){
         csvfileuploaded = "CSV file upload failed.";
       }
     }
