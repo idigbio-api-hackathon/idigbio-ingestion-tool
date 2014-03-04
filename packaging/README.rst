@@ -36,6 +36,7 @@ The pyexiv2 packet for Mac is only available in brew.
 1. You need to install brew by following: http://brew.sh/
 
 2. Install pyexiv2 from brew (Note it may take very looong time because it's going to install dependencies including boost)::
+
    brew pyexiv2
 
 32-Bit vs 64-Bit
