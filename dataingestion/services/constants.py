@@ -24,8 +24,8 @@ INPUT_CSV_FIELDNAMES = (
 
 G_DEFAULT_CSV_OUTPUT_NAME = 'media_records.csv'
 
-IMAGES_TABLENAME = 'imagesV9_0_1'
-BATCHES_TABLENAME = 'batchesV9_0_1'
+IMAGES_TABLENAME = 'imagesV9_0_2'
+BATCHES_TABLENAME = 'batchesV9_0_2'
 
 IMAGE_CSV_NAME = "image.csv"
 STUB_CSV_NAME = "stub.csv"

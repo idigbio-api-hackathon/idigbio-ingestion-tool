@@ -13,7 +13,7 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.sql.expression import desc
-import logging, hashlib, argparse, os, time, struct, re
+import logging, hashlib, argparse, os, time, struct, re, json
 import pyexiv2
 from datetime import datetime
 import types as pytypes
@@ -122,7 +122,7 @@ class ImageRecord(Base):
   """Indicates if there are warnings in the processing."""
   Warnings = Column(String)
   """MadiaAP record in JSON String."""
-  MediaAPContent = Column(types.BLOB)
+  MediaAPContent = Column(String)
   """
   The UTC time measured by the local machine. 
   None if the image is not uploaded.
@@ -131,7 +131,6 @@ class ImageRecord(Base):
   """The URL of the Media after posting the image."""
   MediaURL = Column(String)
   """MadiaRecord record in JSON String."""
-  MediaRecordContent = Column(types.BLOB)
   """
   Technical type (format) of digital multimedia object. 
   When using the image ingestion appliance, this is automatically filled based
@@ -154,9 +153,9 @@ class ImageRecord(Base):
   Blob of text containing the EXIF metadata from the media.
   Derived from the object when using the ingestion appliance.
   """
-  MediaEXIF = Column(types.BLOB)
+  MediaEXIF = Column(String)
   """All the annotations to the image by the user."""
-  Annotations = Column(types.BLOB)
+  Annotations = Column(String)
   """Returned by server at post_mediarecord."""
   etag = Column(String)
   """Checksum of the media object accessible via MediaUrl, using MD5."""
@@ -271,7 +270,7 @@ def _generate_record(csvrow, headerline):
   if error: # File not exist, cannot go further. Just return.
     logger.debug('Generating image record done with error.')
     return (mediapath, mediaguid, sruuid, error, warnings, mimetype,
-        msize, ctime, fowner, exif, str(annotations_dict), filemd5hexdigest,
+        msize, ctime, fowner, exif, json.dumps(annotations_dict), filemd5hexdigest,
         recordmd5.hexdigest())
 
   recordmd5.update(filemd5hexdigest)
@@ -316,13 +315,13 @@ def _generate_record(csvrow, headerline):
             exif_dict[exif_key] = str(exifinfo[exif_key].value)
         except: # There are some fields that cannot be extracted, just continue.
           continue
-      exif = str(exif_dict)
+      exif = json.dumps(exif_dict)
   except IOError as err:
     warnings += "[Cannot extract EXIF information.]"
 
   logger.debug('Generating image record done.')
   return (mediapath, mediaguid, sruuid, error, warnings, mimetype, msize,
-          ctime, fowner, exif, str(annotations_dict), filemd5hexdigest,
+          ctime, fowner, exif, json.dumps(annotations_dict), filemd5hexdigest,
           recordmd5.hexdigest())
 
 @check_session

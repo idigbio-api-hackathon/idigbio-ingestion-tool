@@ -25,7 +25,7 @@ import ctypes
      
 class TestAPIClient(unittest.TestCase):
   def setUp(self):
-    self._endpoint = "http://beta-api.idigbio.org/v1"
+    self._endpoint = "http://127.0.0.1:8080"
     api_client.init(self._endpoint)
     # The following uuid/apikey pair is only for testing purpose.
     self._accountuuid = "60f7cb1e-02f5-425c-bc37-cae87550317a"
@@ -52,7 +52,7 @@ class TestAPIClient(unittest.TestCase):
     self._server_thread.start()
 
   def _stopServer(self):
-    url = ("http://127.0.0.1:8080/shutdown")
+    url = ("http://127.0.0.1:8080/upload/shutdown")
     request = urllib2.Request(url)
     try:
       urllib2.urlopen(request)
@@ -66,13 +66,6 @@ class TestAPIClient(unittest.TestCase):
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
     p.communicate()
-
-  def _testBuildUrl(self):
-    '''Test _build_url with different parameters.'''
-    self.assertEqual(api_client._build_url("csv"),
-                     "http://127.0.0.1:8080/csv")
-    self.assertEqual(api_client._build_url("image"),
-                     "http://127.0.0.1:8080/image")
 
   def _testAuthenticate(self):
     '''
@@ -105,7 +98,8 @@ class TestAPIClient(unittest.TestCase):
   def _testPostImage(self):
     '''Test _post_image.'''
     # The file exists.
-    api_client._post_image(self._filepath1, "ABC")
+    api_client._post_image(
+        self._filepath1, "http://herbarium.bio.fsu.edu/images/herbarium/jpegs/E:\ImageIngestionAppliance\000000001.jpg")
     print "Post image test1 done."
     # The path does not exist.
     self.assertRaises(
@@ -147,7 +141,6 @@ class TestAPIClient(unittest.TestCase):
     print "Post csv test done."
 
   def runTest(self):
-    self._testBuildUrl()
     self._testAuthenticate()
     self._testPostImage()
     self._testPostCsv()
