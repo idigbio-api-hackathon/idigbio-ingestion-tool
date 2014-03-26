@@ -31,7 +31,8 @@ TIMEOUT = 3
 def _build_url(collection):
   assert api_endpoint
   if collection == "check":
-    ret = "%s/%s" % (api_endpoint, collection)
+    #ret = "%s/%s" % (api_endpoint, collection)
+    ret = "%s/%s" % ("http://beta-media.idigbio.org", collection)
   else:
     ret = "%s/upload/%s" % (api_endpoint, collection)
   return ret
@@ -115,7 +116,7 @@ def authenticate(user, key):
     auth_string = base64string
     return True
   except urllib2.HTTPError as e:
-    if e.code == 403:
+    if e.code == 403 or e.code == 401:
       logger.error(str(e))
       return False
     else:

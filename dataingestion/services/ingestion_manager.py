@@ -518,16 +518,13 @@ def _make_csvtempfile(batch):
   fname = os.path.join(tempfile.gettempdir(), "temp.csv")
   md5 = ""
   with open(fname, "wb") as f:
+    csvwriter = csv.writer(
+        f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     header = model.get_batch_details_fieldnames()
-    f.write(",".join(header) + "\n")
+    csvwriter.writerow(header)
     rows = model.get_batch_details(batch.id)
     for row in rows:
-      for item in row:
-        if item is None:
-          f.write(",")
-        else:
-          f.write(str(item) + ",")
-      f.write("\n")
+      csvwriter.writerow(row)
   with open(fname, "rb") as f:
     md5 = _md5_file(f)
   logger.debug("Making temporary CSV file done.")

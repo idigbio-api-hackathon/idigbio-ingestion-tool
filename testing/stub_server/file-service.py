@@ -16,7 +16,7 @@ class FileDemo(object):
         return """
         <html><body>
             <h2>Upload a file</h2>
-            <form action="image" method="post" enctype="multipart/form-data">
+            <form action="images" method="post" enctype="multipart/form-data">
             filename: <input type="file" name="file" /><br />
             <input type="submit" />
             </form>
@@ -27,7 +27,7 @@ class FileDemo(object):
     index.exposed = True
 
     @cherrypy.tools.json_out()
-    def image(self, file, filereference):
+    def images(self, file, filereference):
         out = """<html>
         <body>
             myFile length: %s<br />
@@ -61,10 +61,10 @@ class FileDemo(object):
             "content_type": unicode(file.content_type),
             "file_url": "127.0.0.1:8080/"+h
         }
-    image.exposed = True
+    images.exposed = True
 
     @cherrypy.tools.json_out()
-    def csv(self, file):
+    def datasets(self, file):
         out = """<html>
         <body>
             myFile length: %s<br />
@@ -97,7 +97,7 @@ class FileDemo(object):
             "content_type": unicode(file.content_type),
             "file_url": "127.0.0.1:8080/"+h
         }
-    csv.exposed = True
+    datasets.exposed = True
 
     @cherrypy.tools.json_out()
     def shutdown(self):
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     # CherryPy always starts with app.root when trying to map request URIs
     # to objects, so we need to mount a request handler root. A request
     # to '/' will be mapped to HelloWorld().index().
-    cherrypy.quickstart(FileDemo(), config=tutconf)
+    cherrypy.quickstart(FileDemo(), script_name="/upload", config=tutconf)
 else:
     # This branch is for the test suite; you can ignore it.
     cherrypy.tree.mount(FileDemo(), config=tutconf)
