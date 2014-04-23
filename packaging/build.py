@@ -13,7 +13,7 @@ SCRIPT_BASE_NAME = SCRIPT[:-3] # without the extension
 APP_NAME = "iDigBio Image Ingestion Tool"   # the app name with spaces and stuff
 APP_NAME_U = "iDigBio_Image_Ingestion_Tool" # an underscored version of the name
 OSX_IDENTIFIER = "org.nsf.idigbio.ingestion.client"
-VERSION = "0.5.1" # must be X.X.X format (OS X requires it)
+VERSION = "0.5.2" # must be X.X.X format (OS X requires it)
 LIB_DIRS = [os.path.join("..", "lib")]
 INCLUDES = ["cherrypy.wsgiserver", "cherrypy.wsgiserver.wsgiserver3",
             "webbrowser", "sqlite3", "sqlalchemy.dialects.sqlite", "pyexiv2"]
