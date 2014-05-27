@@ -311,6 +311,8 @@ def _generate_record(csvrow, headerline):
             exif_dict[exif_key] = exifinfo[exif_key].value
           elif exifinfo[exif_key].type in ("Flash"):
             exif_dict[exif_key] = exifinfo[exif_key].value
+          elif exifinfo[exif_key].type == "Undefined":
+            continue
           else:
             exif_dict[exif_key] = str(exifinfo[exif_key].value)
         except: # There are some fields that cannot be extracted, just continue.
