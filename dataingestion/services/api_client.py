@@ -9,7 +9,7 @@ This module encapulates the communication with iDigBio's storage service API.
 """
 import cherrypy
 import socket
-import argparse, json, urllib2, logging
+import argparse, json, urllib2, logging, time, sys
 import uuid
 import base64
 from poster.encode import multipart_encode
@@ -38,50 +38,80 @@ def _build_url(collection):
 
 def _post_image(path, reference):
   url = _build_url("images")
-  params = {"file": open(path, "rb"), "filereference": reference}
+  try:
+    params = {"file": open(path, "rb"), "filereference": reference}
+  except IOError as e:
+    logger.error("File IO error: {0}".format(e))
+    raise
+  size = sys.getsizeof(params)
   datagen, headers = multipart_encode(params)
   try:
     request = urllib2.Request(url, datagen, headers)
     request.add_header("Authorization", "Basic %s" % auth_string)
-    resp = urllib2.urlopen(request, timeout=TIMEOUT).read()    
-    logger.debug("POSTing image done.")
+    starttime = time.time()
+    startptime = time.clock()
+    resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
+    duration = time.time() - starttime
+    ptime = time.clock() - startptime
+    logger.debug("POSTing image done. Size: {0} Duration: {1} sec. Processing time: {2} sec."
+        .format(size, duration, ptime))
     return resp
   except urllib2.HTTPError as e:
-    logger.debug("urllib2.HTTPError caught")
-    logger.debug("Error code {0}".format(e.code))
+    logger.error("urllib2.HTTPError caught: {0}".format(e.code))
     if e.code == 500:
-      logger.debug("ServerException occurs")
+      logger.error("Fatal Server Exception Detected. HTTP Error code:{0}"
+          .format(e.code))
       raise ServerException(
           "Fatal Server Exception Detected. HTTP Error code:{0}".format(e.code))
+    logger.error("Failed to POST the media to server. url={0}, http_status={1},\
+        http_response_content={2}, local_path={3}"
+        .format(request.get_full_url(), e.code, e.read(), path))
     raise ClientException(
         "Failed to POST the media to server", url=request.get_full_url(),
         http_status=e.code, http_response_content=e.read(), local_path=path)
   except (urllib2.URLError, socket.error, socket.timeout, HTTPException) as e:
     # URLError: server down, network down.
+    logger.error("{0} caught while POSTing the media. reason={1}, url={2}."
+        .format(type(e), str(e), url))
     raise ClientException("{0} caught while POSTing the media.".format(type(e)),
                           reason=str(e), url=url)
 
 def _post_csv(path):
   url = _build_url("datasets")
-  params = {"file": open(path, "rb")}
+  try:
+    params = {"file": open(path, "rb")}
+  except IOError as e:
+    logger.error("File IO error: {0}".format(e))
+    raise
+  size = sys.getsizeof(params)
   datagen, headers = multipart_encode(params)
   try:
     request = urllib2.Request(url, datagen, headers)
     request.add_header("Authorization", "Basic %s" % auth_string)
+    starttime = time.time()
+    startptime = time.clock()
     resp = urllib2.urlopen(request, timeout=TIMEOUT).read()    
-    logger.debug("POSTing media done.")
+    duration = time.time() - starttime
+    ptime = time.clock() - startptime
+    logger.debug("POSTing CSV file done. Size: {0} Duration: {1} sec. Processing time: {2} sec."
+        .format(size, duration, ptime))
     return resp
   except urllib2.HTTPError as e:
-    logger.debug("urllib2.HTTPError caught")
-    logger.debug("Error code {0}".format(e.code))
+    logger.debug("urllib2.HTTPError caught: {0}".format(e.code))
     if e.code == 500:
-      logger.debug("ServerException occurs")
+      logger.error("Fatal Server Exception Detected. HTTP Error code:{0}"
+          .format(e.code))
       raise ServerException(
           "Fatal Server Exception Detected. HTTP Error code:{0}".format(e.code))
+    logger.error("Failed to POST the media to server. url={0}, http_status={1},\
+        http_response_content={2}, local_path={3}"
+        .format(request.get_full_url(), e.code, e.read(), path))
     raise ClientException(
         "Failed to POST the CSV file to server", url=request.get_full_url(),
         http_status=e.code, http_response_content=e.read())
   except (urllib2.URLError, socket.error, socket.timeout, HTTPException) as e:
+    logger.error("{0} caught while POSTing the media. reason={1}, url={2}."
+        .format(type(e), str(e), url))
     raise ClientException("{0} caught while POSTing the CSV file.".format(type(e)),
                           reason=str(e), url=url)
 
@@ -111,18 +141,23 @@ def authenticate(user, key):
     base64string = base64.encodestring('%s:%s' % (user, key)).replace('\n', '')
     req.add_header("Authorization", "Basic %s" % base64string)
     urllib2.urlopen(req, timeout=TIMEOUT)
-    logger.debug("Successfully logged in.")
+    logger.info("Successfully logged in.")
     auth_string = base64string
     return True
   except urllib2.HTTPError as e:
     if e.code == 403 or e.code == 401:
-      logger.error(str(e))
+      logger.error("authenticate error: {0}".format(e))
       return False
     else:
+      logger.error("Failed to authenticate with server. url={0}, http_status={1},\
+          http_response_content={2}, user={3}, key={4}"
+          .format(url, e.code, e.read(), user, key))
       raise ClientException("Failed to authenticate with server.", url=url,
                             http_status=e.code, http_response_content=e.read(),
                             reason=user)
   except (urllib2.URLError, socket.error, socket.timeout, HTTPException) as e:
+    logger.error("{0} caught while POSTing the media: url={1}, user={2}, key={3}"
+        .format(type(e), url, user, key))
     raise ClientException("{0} caught while POSTing the media.".format(type(e)),
                           url=url, reason=user)
   return False
@@ -220,11 +255,12 @@ class Connection(object):
         rv = func(*args, **kwargs)
         return rv
       except ClientException as err:
-        logger.debug("ClientException caught: {0}".format(err))
-        logger.debug("Current retry attempts: {0}".format(self.attempts))
+        logger.error("ClientException caught: {0}, Current retry attempts: {1}"
+            .format(err, self.attempts))
 
         if self.attempts > self.retries:
-          logger.debug("Retries exhausted.")
+          logger.error("Retries exhausted. retry threshold: {0}"
+              .format(self.retries))
           raise
 
         if err.http_status == 401: # Unauthorized

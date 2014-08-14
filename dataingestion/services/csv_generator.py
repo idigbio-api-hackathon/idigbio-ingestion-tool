@@ -5,7 +5,7 @@
 # This software may be used and distributed according to the terms of the
 # MIT license: http://www.opensource.org/licenses/mit-license.php
 
-import re, os, logging, csv, hashlib, threading
+import re, os, logging, csv, hashlib, threading, time
 from os.path import isdir, join, dirname, split, exists
 from dataingestion.services import user_config, constants
 from dataingestion.services.ingestion_manager import IngestServiceException
@@ -58,6 +58,8 @@ def get_files(imagepath, recursive):
 
 def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
   guidset = []
+  starttime = time.time()
+  startptime = time.clock()
   if guid_syntax is None or guid_syntax == "":
     logger.error("GUID Syntax is empty.")
     status.result = -1
@@ -66,7 +68,6 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
   if guid_syntax == "image_hash":
     for index in range(len(filenameset)):
       image_md5 = hashlib.md5()
-      logger.debug("media path:{0}".format(filenameset[index]))
       with open(filenameset[index], 'rb') as mediafile:
         while True:
           image_binary = mediafile.read(128)
@@ -74,7 +75,6 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
             break;
           image_md5.update(image_binary)
       guidset.append(image_md5.hexdigest())
-      logger.debug("image_md5:{0}".format(image_md5.hexdigest()))
   elif guid_syntax == "hash":
     for index in range(len(filenameset)):
       md5value = hashlib.md5()
@@ -94,6 +94,11 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
     status.error = "GUID Syntax not defined: " + guid_syntax
     raise IngestServiceException("GUID Syntax not defined: "
         + guid_syntax)
+  duration = time.time() - starttime
+  ptime = time.clock() - startptime
+  logger.debug(
+      "All records generated for {0} files, duration: {1} sec, processing time: {2} sec."
+      .format(len(filenameset), duration, ptime))
 
   return guidset
 

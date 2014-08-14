@@ -96,7 +96,6 @@ class QueueFunctionThread(Thread):
         sleep(0.01)
       except ServerException as e: 
         logger.error("Fatal Server Error Detected") 
-        logger.debug("Fatal Server Error Detected") 
         fatal_server_error = True
       except Exception as ex:
         logger.error("Exception caught in a QueueFunctionThread.")
@@ -320,7 +319,7 @@ def _upload_images(ongoing_upload_task, values):
 
     ongoing_upload_task.batch = batch
 
-    worker_thread_count = 1
+    worker_thread_count = 10
     # the object_queue and _image_job are passed to the thread.
     object_threads = [QueueFunctionThread(object_queue, _image_job,
         batch, _get_conn()) for _junk in xrange(worker_thread_count)]
@@ -358,7 +357,6 @@ def _upload_images(ongoing_upload_task, values):
 
         # Get the image record
         image_record = model.add_image(batch, row, headerline)
-        logger.debug("image_record {0}:".format(image_record))
 
         fn = partial(ongoing_upload_task.increment, 'total_count')
         postprocess_queue.put(fn)
@@ -370,8 +368,6 @@ def _upload_images(ongoing_upload_task, values):
           postprocess_queue.put(fn)
         else:
           object_queue.put(image_record)
-
-        logger.debug("image_record on queue")
 
         recordCount = recordCount + 1
       batch.RecordCount = recordCount
@@ -414,19 +410,22 @@ def _upload_images(ongoing_upload_task, values):
   finally:
     model.commit()
 
-# This function is passed to the threads.
+''' This function is passed to the threads.'''
 def _image_job(image_record, batch, conn):
   global ongoing_upload_task
   try:
-    logger.debug("--------------- An image job is started -----------------")
     if not batch:
+      logger.error("Batch record is None.")
       raise ClientException("Batch record is None.")
     if not image_record:
-      raise ClientException("image_recod is None.")
+      logger.error("image_record is None.")
+      raise ClientException("image_record is None.")
 
-    logger.debug("OriginalFileName: " + image_record.OriginalFileName)
+    logger.info("Image job started: OriginalFileName: {0}"
+        .format(image_record.OriginalFileName))
 
     if image_record.Error:
+      logger.error("image record has error: {0}".format(image_record.Error))
       raise ClientException(image_record.Error)
 
     # First, change the batch ID to this one. This field is overwriten.
@@ -452,8 +451,6 @@ def _image_job(image_record, batch, conn):
       raise ClientException("Upload failed because local MD5 does not match"
           + " the eTag or no eTag is returned.")
     if conn.attempts > 1:
-      logger.debug('Done after %d attempts' % (conn.attempts))
-    else:
       logger.debug('Done after %d attempts' % (conn.attempts))
 
     # Increment the success_count by 1.
@@ -485,7 +482,7 @@ def _image_job(image_record, batch, conn):
 
 def _upload_csv(batch, conn):
   try:
-    logger.debug("--------------- An CSV job is started -----------------")
+    logger.debug("CSV job started for {0}".format(batch.CSVfilePath))
     if not batch:
       raise ClientException("Batch record is None.")
 

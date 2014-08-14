@@ -32,6 +32,7 @@ class Authentication(object):
     """
     Authenticate the user account and return the authentication result.
     """
+    logger.debug("Authentication GET.")
     try:
       accountuuid = user_config.get_user_config('accountuuid')
       apikey = user_config.get_user_config('apikey')
@@ -52,6 +53,7 @@ class Authentication(object):
       JsonHTTPError 503: if the service is unavilable.
       JsonHTTPError 409: if the UUID/APIKey combination is incorrect.
     """
+    logger.debug("Authentication POST: {0}, {1}".format(accountuuid, apikey))
     try:
       ret = api_client.authenticate(accountuuid, apikey)
     except ClientException as ex:
@@ -73,6 +75,7 @@ class UserConfig(object):
     """
     Returns the user configuration value of a name.
     """
+    logger.debug("UserConfig GET: {0}".format(name))
     try:
       return json.dumps(ingestion_service.get_user_config(name))
     except AttributeError:
@@ -82,6 +85,7 @@ class UserConfig(object):
     """
     Sets a user configuration name with a value.
     """
+    logger.debug("UserConfig POST: {0}, {1}".format(name, value))
     ingestion_service.set_user_config(name, value)
 
   def DELETE(self):
@@ -99,6 +103,7 @@ class LastBatchInfo(object):
     Returns information about the last batch upload.
     TODO: Will be extended to allow querying info about any previous batches.
     """
+    logger.debug("LastBatchInfo GET.")
     try:
       result = model.get_last_batch_info()
       return json.dumps(result)
@@ -138,6 +143,7 @@ class IngestionResult(object):
     """
     Retures the result of the current upload batch. 
     """
+    logger.debug("IngestionResult GET.")
     try:
       result = ingestion_manager.get_result()
       resultdump = json.dumps(result)
@@ -153,6 +159,7 @@ class History(object):
     """
     Get the history of batches or images (depends on table_id).
     """
+    logger.debug("History GET: {0}".format(table_id))
     try:
       result = ingestion_manager.get_history(table_id)
       resultdump = json.dumps(result)
@@ -167,6 +174,7 @@ class GenerateCSV(object):
     """
     Post a generate CSV request with the given values.
     """
+    logger.debug("GenerateCSV POST (values ommited here).")
     try:
       dic = ast.literal_eval(values) # Parse the string to dictionary.
       csv_generator.run_gencsv(dic)
@@ -193,12 +201,14 @@ class CsvIngestionService(object):
   exposed = True
 
   def GET(self):
+    logger.debug("CsvIngestionService GET.")
     return '<html><body>CSV ingestion Service is running.</body></html>'
 
   def POST(self, values=None):
     """
     Ingest csv data.
     """
+    logger.debug("CsvIngestionService POST.")
     if values is None:
       return self._resume()
     else:
@@ -225,6 +235,7 @@ class DownloadAllCsv(object):
   exposed = True
 
   def GET(self, values):
+    logger.debug("DownloadAllCsv GET.")
     try:
       dic = ast.literal_eval(values) # Parse the string to dictionary.
       print dic
@@ -243,6 +254,7 @@ class GenerateOutputCsv(object):
   exposed = True
 
   def GET(self, values):
+    logger.debug("GenerateOutputCsv GET.")
     try:
       dic = ast.literal_eval(values) # Parse the string to dictionary.
       print dic

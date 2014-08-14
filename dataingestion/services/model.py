@@ -214,8 +214,6 @@ def _md5_file(f, block_size=2 ** 20):
   return md5
 
 def _generate_record(csvrow, headerline):
-  logger.debug('Generating image record ...')
-  
   mediapath = ""
   mediaguid = ""
   sruuid = ""
@@ -289,7 +287,7 @@ def _generate_record(csvrow, headerline):
     try:
       fowner = win_api.get_file_owner(mediapath)
     except Exception as e:
-      logger.debug("WIN API error: %s" % e)
+      logger.error("WIN API error: %s" % e)
       traceback.print_exc()
       warnings += "Windows NT get file owner error."
   else:
@@ -321,7 +319,6 @@ def _generate_record(csvrow, headerline):
   except IOError as err:
     warnings += "[Cannot extract EXIF information.]"
 
-  logger.debug('Generating image record done.')
   return (mediapath, mediaguid, sruuid, error, warnings, mimetype, msize,
           ctime, fowner, exif, json.dumps(annotations_dict), filemd5hexdigest,
           recordmd5.hexdigest())
@@ -344,17 +341,21 @@ def add_image(batch, csvrow, headerline):
   try:
     record = session.query(ImageRecord).filter_by(AllMD5=amd5).first()
   except Exception as e:
-    raise ModelException("Error occur during SQLITE access e:{0}".format(e))
+    logger.error('add_image: error occur during SQLITE access:{0}'.format(e))
+    raise ModelException("Error occur during SQLITE access:{0}".format(e))
   if record is None: # New record. Add the record.
+    logger.debug('add_image: new record: {0}'.format(mediapath))
     record = ImageRecord(mediapath, mediaguid, sruuid, error, warnings,
                          mimetype, msize, ctime, fowner, exif, annotations,
                          mmd5, amd5, batch)
     try:
       session.add(record)
     except Exception as e:
-      raise ModelException("Error occur during SQLITE add e:{0}".format(e))
+      logger.error('add_image: error occur during SQLITE add:{0}'.format(e))
+      raise ModelException("Error occur during SQLITE add:{0}".format(e))
     return record
   elif record.UploadTime: # Found the duplicate record, already uploaded.
+    logger.debug('add_image: already uploaded: {0}'.format(mediapath))
     return None
   else: # Found the duplicate record, but not uploaded or file not found.
     record.BatchID = batch.id
@@ -370,6 +371,7 @@ def add_batch(path, accountID, license, licenseStatementUrl, licenseLogoUrl):
     2. If the provided CSV file path is not to a valid file.
   """
   if (not path or not accountID or not license or not licenseLogoUrl):
+    logger.error('add_batch: At least one required field is not provided.')
     raise ModelException("At lease one required field is not provided.")
 
   start_time = datetime.now()
@@ -385,6 +387,7 @@ def add_batch(path, accountID, license, licenseStatementUrl, licenseLogoUrl):
   newrecord = UploadBatch(path, accountID, license, licenseStatementUrl,
       licenseLogoUrl, start_time, md5value.hexdigest())
   session.add(newrecord)
+  logger.debug('New batch added: {0}'.format(path))
   return newrecord
 
 def get_batch_details_fieldnames():
@@ -439,8 +442,8 @@ def get_batch_details(batch_id):
       # 11 - 20 above
     ).filter(ImageRecord.BatchID == batch_id).filter(UploadBatch.id == batch_id
     ).order_by(ImageRecord.id) # 21 elements.
-  
-  logger.debug("Image record count: " + str(query.count()))
+
+  logger.debug("get_batch_details: record count={0}.".format(query.count()))
 
   return query.all()
 
@@ -476,7 +479,7 @@ def get_all_success_details():
     ).filter(ImageRecord.BatchID == UploadBatch.id
     ).order_by(ImageRecord.id) # 21 elements.
   
-  logger.debug("Image record count: " + str(query.count()))
+  logger.debug("get_all_success_details: record count={0}.".format(query.count()))
 
   return query.all()
 
@@ -513,6 +516,8 @@ def get_all_batches():
       newelem.append(str(item))
       index = index + 1
     ret.append(newelem)
+
+  logger.debug("get_all_batches: batch count={0}.".format(len(ret)))
   return ret
 
 @check_session
@@ -533,15 +538,19 @@ def get_last_batch_info():
     else:
       retdict['finished'] = True
     dt = datetime.now() - batch.start_time
+    logger.debug("get_last_batch_info, last batch exists.")
     if dt.seconds > THRESHOLD_TIME:
       # TODO: Avoid this trick
       # This is a trick, because network failure does not write to db.
       # Then we think the last record you get must be "old enough".
       # In contrast, the CSV file failure writes to db.
       # The the last record you get is just written a second ago.
+      logger.debug("get_last_batch_info, set error code for last batch \
+          to network connection error.")
       retdict['ErrorCode'] = 'Network Connection Error.'
     return retdict
   else:
+    logger.debug("get_last_batch_info, last batch is empty.")
     # TODO: Avoid this trick
     # If there's no record before, it is possible a network connection failure.
     retdict = {'Empty': True, 'ErrorCode': 'Network Connection Error.'}

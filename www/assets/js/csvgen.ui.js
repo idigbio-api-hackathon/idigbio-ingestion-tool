@@ -122,7 +122,7 @@ updateCSVGenProgress = function() {
     
     $.getJSON(url, function(progressObj) {
         
-        $("#progresstext2").text("Processed: " + progressObj.count + " files.");
+        $("#progresstext2").text("Processing: " + progressObj.count + " files. Please wait ...");
         
         if (progressObj.result != 0) {
             $(".progress-primary").toggleClass('active');
@@ -146,6 +146,7 @@ updateCSVGenProgress = function() {
             $("#csv-generate-button").removeClass('disabled');
 
             if (progressObj.result == 1) {
+                $("#progresstext2").text("Successfully processed: " + progressObj.count + " files.");
                 targetfile = progressObj.targetfile.replace(/\\\\/g, "\\"); // Make sure the "\\" is replaced with "\".
                 showAlert2("The CSV file is successfully saved to: " +
                     targetfile, "", "alert-success");

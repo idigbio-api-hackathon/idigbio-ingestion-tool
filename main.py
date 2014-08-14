@@ -89,6 +89,7 @@ def main(argv):
   if not exists(log_folder):
     os.makedirs(log_folder)
   log_file = join(log_folder, "idigbio.ingest.log")
+  print "Log file:", log_file
   handler = logging.handlers.RotatingFileHandler(log_file, backupCount=10)
   handler.setFormatter(
       logging.Formatter(
@@ -104,9 +105,9 @@ def main(argv):
   db_file = join(data_folder, "idigbio.ingest.db")
   if args.newdb:
     _move_db(data_folder, db_file)
-    logger.debug("Creating a new DB file.")
+    logger.info("Creating a new DB file.")
 
-  logger.debug("Use DB file: {0}".format(db_file))
+  logger.info("Use DB file: {0}".format(db_file))
   dataingestion.services.model.setup(db_file)
   
   # Set up the user config.
@@ -134,6 +135,7 @@ def main(argv):
       import webbrowser
       webbrowser.open(
           "http://127.0.0.1:{0}".format(cherrypy.config['server.socket_port']))
+      logger.info("Webbrowser is opened.")
     except ImportError:
       # Gracefully fall back
       print("Open http://127.0.0.1:{0} in your webbrowser.".format(

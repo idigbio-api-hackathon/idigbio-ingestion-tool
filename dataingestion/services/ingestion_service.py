@@ -8,8 +8,7 @@
 """
 This is module manages the queue of tasks to be executed.
 """
-import cherrypy
-import Queue, os
+import cherrypy, Queue, os
 from datetime import datetime, timedelta
 from dataingestion.task_queue import BackgroundTaskQueue
 from dataingestion.services import (ingestion_manager, constants, api_client,
