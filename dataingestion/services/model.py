@@ -9,7 +9,7 @@ This module implements the data model for the service.
 """
 from sqlalchemy import (create_engine, Column, Integer, String, DateTime,
                         Boolean, types, distinct)
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import scoped_session, sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.sql.expression import desc
@@ -197,7 +197,7 @@ def setup(db_file):
   engine.Echo = True
   Base.metadata.create_all(engine)
 
-  Session = sessionmaker(bind=engine)
+  Session = scoped_session(sessionmaker(bind=engine))
   session = Session()
   print "DB Connection: %s" % db_conn
 

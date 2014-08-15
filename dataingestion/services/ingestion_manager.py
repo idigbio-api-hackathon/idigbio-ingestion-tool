@@ -9,7 +9,7 @@
 This module implements the core logic that manages the upload process.
 """
 import os, logging, argparse, tempfile, atexit, cherrypy, csv, json, tempfile
-import hashlib
+import hashlib, threading
 from functools import partial
 from datetime import datetime
 from Queue import Empty, Queue
@@ -98,17 +98,21 @@ class QueueFunctionThread(Thread):
         logger.error("Fatal Server Error Detected") 
         fatal_server_error = True
       except Exception as ex:
-        logger.error("Exception caught in a QueueFunctionThread.")
+        logger.error("Exception caught in a QueueFunctionThread:".format(ex))
         self.exc_infos.append(exc_info())
         logger.debug("Thread exiting...")
 
   def abort_thread(self):
     self.abort = True
 
-# This makes a ongoing_upload_task.
+batch_increment_lock = threading.Lock()
+batch_check_lock = threading.Lock()
 class BatchUploadTask:
   """
   State about a single batch upload task.
+  Note: batchUploadTask is threadsafe.
+  batch_increment_lock and batch_check_lock are used
+  to protect increment and check_continuous_fails.
   """
   STATUS_FINISHED = "finished"
   STATUS_RUNNING = "running"
@@ -126,34 +130,41 @@ class BatchUploadTask:
     self.fails = 0
     self.continuous_fails = 0
     self.max_continuous_fails = max_continuous_fails
- 
+
   # Increment a field's value by 1.
   def increment(self, field_name):
-    if hasattr(self, field_name) and type(getattr(self, field_name)) == int:
-      setattr(self, field_name, getattr(self, field_name) + 1)
-    else:
-      logger.error("BatchUploadTask object doesn't have this field or " +
-               "has has a field that cannot be incremented.")
-      raise ValueError("BatchUploadTask object doesn't have this field or " +
-               "has has a field that cannot be incremented.")
-
+    batch_increment_lock.acquire()
+    try:
+      if hasattr(self, field_name) and type(getattr(self, field_name)) == int:
+        setattr(self, field_name, getattr(self, field_name) + 1)
+      else:
+        logger.error("BatchUploadTask object doesn't have this field or " +
+                 "has has a field that cannot be incremented.")
+        raise ValueError("BatchUploadTask object doesn't have this field or " +
+                 "has has a field that cannot be incremented.")
+    finally:
+      batch_increment_lock.release()
   # Update the continuous failure times.
   def check_continuous_fails(self, succ_this_time):
     """
     :return: Whether this upload should be aborted.
     """
-    if succ_this_time:
-      #if self.continuous_fails != 0:
-      #  logger.debug('Continuous fails is going to be reset due to a success.')
-      self.continuous_fails = 0
-      return False
-    else:
-      self.continuous_fails += 1
+    batch_check_lock.acquire()
+    try:
+      if succ_this_time:
+        #if self.continuous_fails != 0:
+        #  logger.debug('Continuous fails is going to be reset due to a success.')
+        self.continuous_fails = 0
+        return False
+      else:
+        self.continuous_fails += 1
 
-    if self.continuous_fails <= self.max_continuous_fails:
-      return False
-    else:
-      return True
+      if self.continuous_fails <= self.max_continuous_fails:
+        return False
+      else:
+        return True
+    finally:
+      batch_check_lock.release()
 
 def get_progress():
   """
@@ -298,7 +309,6 @@ def _upload_images(ongoing_upload_task, values):
           oldbatch.CSVfilePath, oldbatch.iDigbioProvidedByGUID,
           oldbatch.RightsLicense, oldbatch.RightsLicenseStatementUrl,
           oldbatch.RightsLicenseLogoUrl)
-      model.commit()
     else: # Not resume. It is a new upload.
       logger.debug("Start a new csv batch.")
 
@@ -320,8 +330,8 @@ def _upload_images(ongoing_upload_task, values):
     ongoing_upload_task.batch = batch
 
     worker_thread_count = 10
-    # the object_queue and _image_job are passed to the thread.
-    object_threads = [QueueFunctionThread(object_queue, _image_job,
+    # the object_queue and _upload_single_image are passed to the thread.
+    object_threads = [QueueFunctionThread(object_queue, _upload_single_image,
         batch, _get_conn()) for _junk in xrange(worker_thread_count)]
     ongoing_upload_task.object_threads = object_threads
 
@@ -410,9 +420,20 @@ def _upload_images(ongoing_upload_task, values):
   finally:
     model.commit()
 
-''' This function is passed to the threads.'''
-def _image_job(image_record, batch, conn):
+commit_lock = threading.Lock()
+
+def _upload_single_image(image_record, batch, conn):
+  '''
+  This function is passed to the threads.
+  Note: session in model is singleton. It is not thread-safe.
+  commit_lock makes sure any access to image_record to be exclusive.
+  '''
   global ongoing_upload_task
+
+  filename = ""
+  mediaGUID = ""
+
+  commit_lock.acquire()
   try:
     if not batch:
       logger.error("Batch record is None.")
@@ -427,29 +448,40 @@ def _image_job(image_record, batch, conn):
     if image_record.Error:
       logger.error("image record has error: {0}".format(image_record.Error))
       raise ClientException(image_record.Error)
+    filename = image_record.OriginalFileName
+    mediaGUID = image_record.MediaGUID
+  finally:
+    commit_lock.release()
 
-    # First, change the batch ID to this one. This field is overwriten.
-    image_record.BatchID = str(batch.id)
+  try:
     # Post image to API.
     # ma_str is the return from server
-    img_str = conn.post_image(
-        image_record.OriginalFileName, image_record.MediaGUID)
-    image_record.MediaAPContent = img_str
+    img_str = conn.post_image(filename, mediaGUID)
+    #    image_record.OriginalFileName, image_record.MediaGUID)
     result_obj = json.loads(img_str)
     url = result_obj["file_url"]
 
     # img_etag is not stored in the db.
     img_etag = result_obj["file_md5"]
 
-    # Check the image integrity.
-    if img_etag and image_record.MediaMD5 == img_etag:
-      image_record.UploadTime = str(datetime.utcnow())
-      image_record.MediaURL = url
-    else:
-      logger.error("Upload failed because local MD5 does not match the eTag"
-          + " or no eTag is returned.")
-      raise ClientException("Upload failed because local MD5 does not match"
-          + " the eTag or no eTag is returned.")
+    commit_lock.acquire()
+    try:
+      # First, change the batch ID to this one. This field is overwriten.
+      image_record.BatchID = str(batch.id)
+      image_record.MediaAPContent = img_str
+      # Check the image integrity.
+      if img_etag and image_record.MediaMD5 == img_etag:
+        image_record.UploadTime = str(datetime.utcnow())
+        image_record.MediaURL = url
+      else:
+        logger.error("Upload failed because local MD5 does not match the eTag"
+            + " or no eTag is returned.")
+        raise ClientException("Upload failed because local MD5 does not match"
+            + " the eTag or no eTag is returned.")
+      model.commit()
+    finally:
+      commit_lock.release()
+
     if conn.attempts > 1:
       logger.debug('Done after %d attempts' % (conn.attempts))
 
@@ -471,7 +503,7 @@ def _image_job(image_record, batch, conn):
     ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
     raise
   except IOError as err:
-    logger.error("IOError: A CSV job failed.")
+    logger.error("IOError: An image job failed.")
     if err.errno == ENOENT: # No such file or directory.
       error_queue.put(
           'Local file %s not found' % repr(image_record.OriginalFileName))
