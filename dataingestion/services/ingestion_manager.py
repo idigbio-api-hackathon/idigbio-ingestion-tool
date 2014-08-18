@@ -161,6 +161,12 @@ class BatchUploadTask:
     self._csv_uploaded = True
     batch_attr_lock.release()
 
+  def csv_uploaded(self):
+    batch_attr_lock.acquire()
+    ret = self._csv_uploaded
+    batch_attr_lock.release()
+    return ret
+
   def get_skips(self):
     batch_attr_lock.acquire()
     count = self._skips
@@ -325,9 +331,9 @@ def upload_task(values):
     while postprocess_thread.isAlive():
       postprocess_thread.join(0.01)
     try:
-      if (ongoing_upload_task.get_successes() != 0):
-        _upload_csv(ongoing_upload_task.batch, _get_conn())
-      if ongoing_upload_task.get_fails() == 0: # All done.
+      _upload_csv(_get_conn())
+      if (ongoing_upload_task.get_fails() == 0
+          and ongoing_upload_task.csv_uploaded()): # All done.
         ongoing_upload_task.batch.finish_time = datetime.now()
         model.commit()
     except (ClientException, IOError):
@@ -574,15 +580,16 @@ def _upload_single_image(image_record, batch_id, conn):
     else:
       raise
 
-def _upload_csv(batch, conn):
+def _upload_csv(conn):
+  '''
+  We upload all the unuploaded records together.
+  '''
   try:
-    logger.debug("CSV job started for {0}".format(batch.CSVfilePath))
-    if not batch:
-      raise ClientException("Batch record is None.")
+    logger.debug("CSV job started.")
 
     # Post csv file to API.
     # ma_str is the return from server
-    name, f_md5 = _make_csvtempfile(batch)
+    name, f_md5 = _make_csvtempfile()
     csv_str = conn.post_csv(name)
     result_obj = json.loads(csv_str)
 
@@ -596,8 +603,8 @@ def _upload_csv(batch, conn):
       raise ClientException("Upload failed because local MD5 does not match"
           + " the eTag or no eTag is returned.")
     logger.debug('Done after %d attempts' % (conn.attempts))
-    batch.CSVUploaded = True
     ongoing_upload_task.set_csv_uploaded()
+    model.set_all_csv_uploaded()
   except ClientException as ex:
     logger.error("ClientException: A CSV job failed. Reason: %s" %ex)
     raise
@@ -605,7 +612,7 @@ def _upload_csv(batch, conn):
     logger.error("IOError: A CSV job failed.")
     raise
 
-def _make_csvtempfile(batch):
+def _make_csvtempfile():
   logger.debug("Making temporary CSV file ...")
   fname = os.path.join(tempfile.gettempdir(), "temp.csv")
   md5 = ""
@@ -614,7 +621,7 @@ def _make_csvtempfile(batch):
         f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     header = model.get_batch_details_fieldnames()
     csvwriter.writerow(header)
-    rows = model.get_batch_details(batch.id)
+    rows = model.get_unuploaded_information()
     for row in rows:
       csvwriter.writerow(row)
   with open(fname, "rb") as f:

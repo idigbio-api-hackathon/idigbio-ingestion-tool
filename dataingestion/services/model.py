@@ -448,6 +448,45 @@ def get_batch_details(batch_id):
   return query.all()
 
 @check_session
+def get_unuploaded_information():
+  '''Gets all the image records for a batch with batch_id.'''
+  query = session.query(
+      ImageRecord.MediaGUID,
+      ImageRecord.OriginalFileName,
+      ImageRecord.SpecimenRecordUUID,
+      ImageRecord.Error,
+      ImageRecord.Warnings,
+      ImageRecord.UploadTime,
+      ImageRecord.MediaURL,
+      ImageRecord.MimeType,
+      ImageRecord.MediaSizeInBytes,
+      ImageRecord.ProviderCreatedTimeStamp,
+      ImageRecord.ProviderCreatedByGUID,
+      # 0 - 10 above.
+      ImageRecord.MediaEXIF,
+      ImageRecord.Annotations,
+      ImageRecord.etag,
+      ImageRecord.MediaMD5,
+      UploadBatch.CSVfilePath,
+      UploadBatch.iDigbioProvidedByGUID,
+      UploadBatch.RightsLicense,
+      UploadBatch.RightsLicenseStatementUrl,
+      UploadBatch.RightsLicenseLogoUrl,
+      ImageRecord.BatchID
+      # 11 - 20 above
+    ).filter(UploadBatch.CSVUploaded == False).filter(ImageRecord.BatchID == UploadBatch.id
+    ).order_by(ImageRecord.id) # 21 elements.
+
+  logger.debug("get_unuploaded_information: record count={0}.".format(query.count()))
+
+  return query.all()
+
+@check_session
+def set_all_csv_uploaded():
+  session.query(UploadBatch).filter(UploadBatch.CSVUploaded==False).update(
+      {"CSVUploaded": True})
+
+@check_session
 def get_all_success_details():
   '''Gets all the image records for all batches.'''
   
