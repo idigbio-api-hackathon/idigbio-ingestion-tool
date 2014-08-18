@@ -105,45 +105,112 @@ class QueueFunctionThread(Thread):
   def abort_thread(self):
     self.abort = True
 
-batch_increment_lock = threading.Lock()
+batch_attr_lock = threading.Lock()
 batch_check_lock = threading.Lock()
 class BatchUploadTask:
   """
   State about a single batch upload task.
   Note: batchUploadTask is threadsafe.
-  batch_increment_lock and batch_check_lock are used
-  to protect increment and check_continuous_fails.
+  functions are used to do exclusive access to attributes.
   """
   STATUS_FINISHED = "finished"
   STATUS_RUNNING = "running"
 
   def __init__(self, batch=None, max_continuous_fails=1000):
     self.batch = batch
-    self.total_count = 0
-    self.object_queue = Queue()
-    self.status = None
-    self.error_msg = None
-    self.postprocess_queue = Queue()
-    self.error_queue = Queue()
-    self.success_count = 0
-    self.skips = 0
-    self.fails = 0
-    self.continuous_fails = 0
-    self.max_continuous_fails = max_continuous_fails
+    self.object_queue = Queue() # Thread safe object in python.
+    self.postprocess_queue = Queue() # Thread safe object in python.
+    self.error_queue = Queue() # Thread safe object in python.
+
+    self._total_count = 0
+    self._status = None
+    self._error_msg = None
+    self._successes = 0
+    self._skips = 0
+    self._fails = 0
+    self._continuous_fails = 0
+    self._max_continuous_fails = max_continuous_fails
+    self._csv_uploaded = False
+
+  def not_started(self):
+    batch_attr_lock.acquire()
+    not_started = (self._total_count == 0 and self._status != self.STATUS_FINISHED)
+    batch_attr_lock.release()
+    return not_started
+
+  def get_all_information(self):
+    batch_attr_lock.acquire()
+    total = self._total_count
+    skips = self._skips
+    successes = self._successes
+    fails = self._fails
+    csv = self._csv_uploaded
+    status = self._status
+    batch_attr_lock.release()
+
+    return total, skips, successes, fails, csv, status
+
+  def is_finished(self):
+    batch_attr_lock.acquire()
+    finished = (self._skips + self._successes + self._fails == self._total_count)
+    batch_attr_lock.release()
+    return finished
+
+  def set_csv_uploaded(self):
+    batch_attr_lock.acquire()
+    self._csv_uploaded = True
+    batch_attr_lock.release()
+
+  def get_skips(self):
+    batch_attr_lock.acquire()
+    count = self._skips
+    batch_attr_lock.release()
+    return count
+
+  def get_fails(self):
+    batch_attr_lock.acquire()
+    count = self._fails
+    batch_attr_lock.release()
+    return count
+
+  def get_successes(self):
+    batch_attr_lock.acquire()
+    count = self._successes
+    batch_attr_lock.release()
+    return count
+
+  def get_total_count(self):
+    batch_attr_lock.acquire()
+    count = self._total_count
+    batch_attr_lock.release()
+    return count
+
+  def get_status(self):
+    batch_attr_lock.acquire()
+    status = self._status
+    batch_attr_lock.release()
+    return status
+
+  def set_status(self, status):
+    batch_attr_lock.acquire()
+    self._status = status
+    batch_attr_lock.release()
 
   # Increment a field's value by 1.
-  def increment(self, field_name):
-    batch_increment_lock.acquire()
+  def increment(self, field_name_orig):
+    batch_attr_lock.acquire()
+    field_name = "_" + field_name_orig
     try:
       if hasattr(self, field_name) and type(getattr(self, field_name)) == int:
         setattr(self, field_name, getattr(self, field_name) + 1)
       else:
         logger.error("BatchUploadTask object doesn't have this field or " +
-                 "has has a field that cannot be incremented.")
+            "has a field that cannot be incremented: {0}".format(field_name))
         raise ValueError("BatchUploadTask object doesn't have this field or " +
-                 "has has a field that cannot be incremented.")
+            "has a field that cannot be incremented: {0}".format(field_name))
     finally:
-      batch_increment_lock.release()
+      batch_attr_lock.release()
+
   # Update the continuous failure times.
   def check_continuous_fails(self, succ_this_time):
     """
@@ -178,22 +245,21 @@ def get_progress():
     logger.error("No ongoing upload task.")
     raise IngestServiceException("No ongoing upload task.")
 
-  while (task.total_count == 0 and
-      task.status != BatchUploadTask.STATUS_FINISHED):
-    # Things are yet to be added.
-    sleep(0.1)
+  while(task.not_started()):
+    sleep(0.2)
 
-  return (fatal_server_error, input_csv_error, task.total_count, task.skips,
-          task.success_count, task.fails, ongoing_upload_task.batch.CSVUploaded,
-          True if task.status == BatchUploadTask.STATUS_FINISHED else False)
+  total, skips, successes, fails, csv, status = task.get_all_information()
+  return (fatal_server_error, input_csv_error, total, skips, successes, fails,
+          csv,
+          True if status == BatchUploadTask.STATUS_FINISHED else False)
 
 def get_result():
   """
   Return the details of the ongoing task.
   """
   # The result is given only when all the tasks are finished.
-  while ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED:
-    sleep(0.1)
+  while ongoing_upload_task.get_status() != BatchUploadTask.STATUS_FINISHED:
+    sleep(0.2)
   if ongoing_upload_task.batch:
     return model.get_batch_details(ongoing_upload_task.batch.id)
   else:
@@ -224,19 +290,18 @@ def upload_task(values):
   global input_csv_error 
 
   if (ongoing_upload_task and
-      ongoing_upload_task.status != BatchUploadTask.STATUS_FINISHED):
+      ongoing_upload_task.get_status() != BatchUploadTask.STATUS_FINISHED):
     # Ongoing task exists
     return False
 
   ongoing_upload_task = BatchUploadTask()
-  ongoing_upload_task.status = BatchUploadTask.STATUS_RUNNING
+  ongoing_upload_task.set_status(BatchUploadTask.STATUS_RUNNING)
 
   postprocess_queue = ongoing_upload_task.postprocess_queue
 
   def _postprocess(func=None, *args):
     func and func(*args)
 
-  # postprocess_thread is a new thread post processing the tasks?
   postprocess_thread = QueueFunctionThread(postprocess_queue, _postprocess)
   postprocess_thread.start()
 
@@ -248,20 +313,21 @@ def upload_task(values):
   error_thread = QueueFunctionThread(error_queue, _error)
   error_thread.start()
 
+  # Multi-threaded from here.
   try:
     try:
       _upload_images(ongoing_upload_task, values)
     except (ClientException, IOError):
       error_queue.put(str(IOError))
     while not postprocess_queue.empty():
-      sleep(0.01)
+      sleep(0.2)
     postprocess_thread.abort = True
     while postprocess_thread.isAlive():
       postprocess_thread.join(0.01)
     try:
-      if (ongoing_upload_task.success_count != 0):
+      if (ongoing_upload_task.get_successes() != 0):
         _upload_csv(ongoing_upload_task.batch, _get_conn())
-      if ongoing_upload_task.fails == 0: # All done.
+      if ongoing_upload_task.get_fails() == 0: # All done.
         ongoing_upload_task.batch.finish_time = datetime.now()
         model.commit()
     except (ClientException, IOError):
@@ -285,7 +351,7 @@ def upload_task(values):
     raise
   finally:
     # Reset of singleton task in the module.
-    ongoing_upload_task.status = BatchUploadTask.STATUS_FINISHED
+    ongoing_upload_task.set_status(BatchUploadTask.STATUS_FINISHED)
 
 def _upload_images(ongoing_upload_task, values):
   object_queue = ongoing_upload_task.object_queue
@@ -304,7 +370,6 @@ def _upload_images(ongoing_upload_task, values):
         raise IngestServiceException("Last batch already finished, why resume?")
       # Assign local variables with values in DB.
       CSVfilePath = oldbatch.CSVfilePath
-      #batch.id = batch.id + 1
       batch = model.add_batch(
           oldbatch.CSVfilePath, oldbatch.iDigbioProvidedByGUID,
           oldbatch.RightsLicense, oldbatch.RightsLicenseStatementUrl,
@@ -324,15 +389,16 @@ def _upload_images(ongoing_upload_task, values):
       logger.debug("Insert batch into the database")
       batch = model.add_batch(
           CSVfilePath, iDigbioProvidedByGUID, RightsLicense,
-          RightsLicenseStatementUrl, RightsLicenseLogoUrl) 
-      model.commit()
+          RightsLicenseStatementUrl, RightsLicenseLogoUrl)
 
+    model.commit()
     ongoing_upload_task.batch = batch
+    batch_id = str(batch.id)
 
     worker_thread_count = 10
     # the object_queue and _upload_single_image are passed to the thread.
     object_threads = [QueueFunctionThread(object_queue, _upload_single_image,
-        batch, _get_conn()) for _junk in xrange(worker_thread_count)]
+        batch_id, _get_conn()) for _junk in xrange(worker_thread_count)]
     ongoing_upload_task.object_threads = object_threads
 
     # Put all the records to the data base and the job queue.
@@ -369,13 +435,13 @@ def _upload_images(ongoing_upload_task, values):
         image_record = model.add_image(batch, row, headerline)
 
         fn = partial(ongoing_upload_task.increment, 'total_count')
-        postprocess_queue.put(fn)
+        ongoing_upload_task.postprocess_queue.put(fn)
 
         if image_record is None:
           # Skip this one because it's already uploaded.
           # Increment skips count and return.
           fn = partial(ongoing_upload_task.increment, 'skips')
-          postprocess_queue.put(fn)
+          ongoing_upload_task.postprocess_queue.put(fn)
         else:
           object_queue.put(image_record)
 
@@ -392,8 +458,7 @@ def _upload_images(ongoing_upload_task, values):
     # Wait until all images are executed.
     #while not object_queue.empty():
     #  sleep(0.01)
-    while ((ongoing_upload_task.skips + ongoing_upload_task.success_count + 
-        ongoing_upload_task.fails) != ongoing_upload_task.total_count):
+    while (not ongoing_upload_task.is_finished()):
       if fatal_server_error: 
         raise ServerException  
       sleep(1)
@@ -403,8 +468,8 @@ def _upload_images(ongoing_upload_task, values):
       while thread.isAlive():
         thread.join(0.01)
 
-    batch.FailCount = ongoing_upload_task.fails
-    batch.SkipCount = ongoing_upload_task.skips
+    batch.FailCount = ongoing_upload_task.get_fails()
+    batch.SkipCount = ongoing_upload_task.get_skips()
 
     was_error = _put_errors_from_threads(object_threads)
     if not was_error:
@@ -422,7 +487,7 @@ def _upload_images(ongoing_upload_task, values):
 
 commit_lock = threading.Lock()
 
-def _upload_single_image(image_record, batch, conn):
+def _upload_single_image(image_record, batch_id, conn):
   '''
   This function is passed to the threads.
   Note: session in model is singleton. It is not thread-safe.
@@ -435,9 +500,6 @@ def _upload_single_image(image_record, batch, conn):
 
   commit_lock.acquire()
   try:
-    if not batch:
-      logger.error("Batch record is None.")
-      raise ClientException("Batch record is None.")
     if not image_record:
       logger.error("image_record is None.")
       raise ClientException("image_record is None.")
@@ -467,7 +529,7 @@ def _upload_single_image(image_record, batch, conn):
     commit_lock.acquire()
     try:
       # First, change the batch ID to this one. This field is overwriten.
-      image_record.BatchID = str(batch.id)
+      image_record.BatchID = batch_id
       image_record.MediaAPContent = img_str
       # Check the image integrity.
       if img_etag and image_record.MediaMD5 == img_etag:
@@ -485,22 +547,22 @@ def _upload_single_image(image_record, batch, conn):
     if conn.attempts > 1:
       logger.debug('Done after %d attempts' % (conn.attempts))
 
-    # Increment the success_count by 1.
-    fn = partial(ongoing_upload_task.increment, 'success_count')
-    ongoing_upload_task.postprocess_queue.put(fn)
+    # Increment the successes by 1.
+    fn = partial(ongoing_upload_task.increment, 'successes')
+    ongoing_upload_task.postprocess_queue.put(fn) # Multi-thread
     # It's sccessful this time.
     fn = partial(ongoing_upload_task.check_continuous_fails, True)
-    ongoing_upload_task.postprocess_queue.put(fn)
+    ongoing_upload_task.postprocess_queue.put(fn) # Multi-thread
   except ClientException as ex:
     logger.error("ClientException: An image job failed. Reason: %s" %ex)
     fn = partial(ongoing_upload_task.increment, 'fails')
-    ongoing_upload_task.postprocess_queue.put(fn)
+    ongoing_upload_task.postprocess_queue.put(fn) # Multi-thread
     def _abort_if_necessary():
       if ongoing_upload_task.check_continuous_fails(False):
         logger.info("Aborting threads because continuous failures exceed the"
             + " threshold.")
         map(lambda x: x.abort_thread(), ongoing_upload_task.object_threads)
-    ongoing_upload_task.postprocess_queue.put(_abort_if_necessary)
+    ongoing_upload_task.postprocess_queue.put(_abort_if_necessary) # Multi-thread
     raise
   except IOError as err:
     logger.error("IOError: An image job failed.")
@@ -508,7 +570,7 @@ def _upload_single_image(image_record, batch, conn):
       error_queue.put(
           'Local file %s not found' % repr(image_record.OriginalFileName))
       fn = partial(ongoing_upload_task.increment, 'fails')
-      ongoing_upload_task.postprocess_queue.put(fn)
+      ongoing_upload_task.postprocess_queue.put(fn) # Multi-thread
     else:
       raise
 
@@ -535,6 +597,7 @@ def _upload_csv(batch, conn):
           + " the eTag or no eTag is returned.")
     logger.debug('Done after %d attempts' % (conn.attempts))
     batch.CSVUploaded = True
+    ongoing_upload_task.set_csv_uploaded()
   except ClientException as ex:
     logger.error("ClientException: A CSV job failed. Reason: %s" %ex)
     raise
