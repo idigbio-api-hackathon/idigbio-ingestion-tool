@@ -261,12 +261,27 @@
             <!-- Results table, row 4. -->
             <div class="span11 fade hide" id="result-table-container">
               <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="result-table"></table>
-              <form id='result-zip-gen-form' class="span11">
-                <div class="controls controls-row">
+              <div class="controls controls-row" id = "result-gen-container">
+                <form id='result-csv-gen-form' class="span11">
                   <div>
                     <input type="text" data-provide="typeahead" class="span6"
-                      id="result-zip-gen-path" name="result-zip-gen-path" placeholder="The path you want to save the Zip file."
-                      rel="tooltip" data-title='Specify the zip file path. If empty, it will be saved to default path.'>
+                     id="result-csv-gen-path" name="result-csv-gen-path" placeholder="The absolute path you want to save the CSV file."
+                     rel="tooltip" data-title='Specify the csv file path. Empty path is not valid.'>
+                  </div>
+                  <div class='span3'>
+                    <button id="result-csv-gen-button" class="btn medium-btn btn-success" type="submit">
+                      <i class="icon-download"></i>
+                      <span>Export CSV file</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+              <div class="controls controls-row fade hide" id = "result-zip-gen-container">
+                <form id='result-zip-gen-form' class="span11">
+                  <div>
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="result-zip-gen-path" name="result-zip-gen-path" placeholder="The absolute path you want to save the Zip file."
+                      rel="tooltip" data-title='Specify the zip file path. Empty path is not valid.'>
                   </div>
                   <div class='span3'>
                     <button id="result-zip-gen-button" class="btn medium-btn btn-success" type="submit">
@@ -274,8 +289,8 @@
                       <span>Export zip file</span>
                     </button>
                   </div>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
             <div class="span10" id="result-alert-container"></div>
           </div> <!-- upload-tag -->
@@ -317,12 +332,27 @@
               <h3 class="pagination-centered">Image Record Table</h3>
               <h4 id="image-history-table-description" class="pagination-centered"></h4>
               <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="image-history-table"></table>
-              <form id='hist-zip-gen-form' class="span11">
-                <div class="controls controls-row">
+              <div class="controls controls-row" id = "result-gen-container">
+                <form id='hist-csv-gen-form' class="span11">
+                  <div>
+                    <input type="text" data-provide="typeahead" class="span6"
+                      id="hist-csv-gen-path" name="hist-csv-gen-path" placeholder="The absolute path you want to save the CSV file."
+                      rel="tooltip" data-title='Specify the CSV file path. Empty path is not valid.'>
+                  </div>
+                  <div class='span3'>
+                    <button id="hist-csv-gen-button" class="btn medium-btn btn-success" type="submit">
+                      <i class="icon-download"></i>
+                      <span>Export CSV file</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+              <div class="controls controls-row fade hide" id = "hist-zip-gen-container">
+                <form id='hist-zip-gen-form' class="span11">
                   <div>
                     <input type="text" data-provide="typeahead" class="span6"
                       id="hist-zip-gen-path" name="hist-zip-gen-path" placeholder="The path you want to save the Zip file."
-                      rel="tooltip" data-title='Specify the zip file path. If empty, it will be saved to default path.'>
+                      rel="tooltip" data-title='Specify the zip file path. Empty path is not valid.'>
                   </div>
                   <div class='span3'>
                     <button id="hist-zip-gen-button" class="btn medium-btn btn-success" type="submit">
@@ -330,8 +360,8 @@
                       <span>Export zip file</span>
                     </button>
                   </div>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
             <div class="span10" id="hist-alert-container"></div>
           </div> <!-- history-tab -->

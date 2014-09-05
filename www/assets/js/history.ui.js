@@ -11,14 +11,27 @@ initHistoryUI = function() {
 
   $.getJSON('/services/history', { table_id: "" }, renderBatchHistory);
 
-  $('#download-all-csv-form').submit(function(event) {
+ $('#download-all-csv-form').submit(function(event) {
     event.preventDefault();
     var values =
       "{\'target_path\':\'" + processFieldValue('#download-all-csv-path') +
       "\'}";
-    postDownloadAllCSV(values);
+    postAllCSVGen(values);
   });
 
+  $('#hist-csv-gen-form').submit(function(event) {
+    event.preventDefault();
+    if ($('#hist-csv-gen-form').valid()) {
+      var values =
+        "{\'batch_id\':\'0" +
+        "\',\'target_path\':\'" + processFieldValue('#hist-csv-gen-path') +
+      "\'}";
+      postHistCSVGen(values);
+    }
+    else {
+      showAlert('The CSV file path cannot be empty.');
+    }
+  });
 
   $('#hist-zip-gen-form').submit(function(event) {
     event.preventDefault();
@@ -28,25 +41,6 @@ initHistoryUI = function() {
       "\'}";
     postHistZipGen(values);
   });
-}
-
-postDownloadAllCSV = function(values) {
-  var callback = function(path){
-    container = "#hist-alert-container2";
-    var alert_html =
-      ['<div class="alert alert-block fade span10" id="hist-alert2">',
-       '<button class="close" data-dismiss="alert">&times;</button>',
-        '<p id="hist-alert-text2">',
-        '</div>'].join('\n');
-    $(container).html(alert_html);
-    $("#hist-alert2").show();
-    $("#hist-alert2").addClass('in');
-    $("#hist-alert2").addClass("alert-success");
-    $("#hist-alert-text2").html("The CSV file is successfully saved to: "
-        + path);
-  };
-
-  $.getJSON("/services/downloadallcsv", {values: values}, callback);
 }
 
 postHistZipGen = function(values) {
@@ -130,32 +124,11 @@ renderMediaRecordHistory = function(data) {
   $('#image-history-table').dataTable({
     "aaData": data,
     "aoColumns": [
-      { "sTitle": "MediaGUID", "bVisible": false },
       { "sTitle": "OriginalFileName", "sWidth": "42%" },
-      { "sTitle": "SpecimenUUID", "bVisible": false },
-      { "sTitle": "Error", "bVisible": false },
-      { "sTitle": "Warnings", "bVisible": false },
-      { "sTitle": "UploadTime", "bVisible": false },
-      { "sTitle": "MediaURL", "bVisible": false },
-      { "sTitle": "MimeType", "bVisible": false },
-      { "sTitle": "MediaSizeInBytes", "bVisible": false },
-      { "sTitle": "ProviderCreatedTimeStamp", "bVisible": false },
-      { "sTitle": "providerCreatedByGUID", "bVisible": false },
-
-      { "sTitle": "MediaEXIF", "bVisible": false },
-      { "sTitle": "Annotations", "bVisible": false },
-      { "sTitle": "MediaRecordEtag", "bVisible": false },
-      { "sTitle": "MediaMD5", "bVisible": false },
-      { "sTitle": "CSVfilePath", "bVisible": false },
-      { "sTitle": "iDigbioProvidedByGUID", "bVisible": false },
-      { "sTitle": "RightsLicense", "bVisible": false },
-      { "sTitle": "RightsLicenseStatementUrl", "bVisible": false },
-      { "sTitle": "RightsLicenseLogoUrl", "bVisible": false },
-      { "sTitle": "Online Path or Error Message",
-        "sWidth": "58%",
+      { "sTitle": "Online Path or Error Message", "sWidth": "58%",
         "fnRender": function(obj) {
-          error = obj.aData[3]; // It is given as an array.
-          url = obj.aData[6];
+          error = obj.aData[1]; // It is given as an array.
+          url = obj.aData[2];
           var text;
           if (error != "") {
             text = "<span class=\"label label-important\">" + error + "</span>"
@@ -167,33 +140,65 @@ renderMediaRecordHistory = function(data) {
           }
           return text;
         }
-      } // 21 elements.
+      } // 3 elements.
     ],
-    "sDom": "<'row'<'span3'l><'span3'T><'span5'p>>t<'row'<'span6'i>>",
+    "sDom": "<'row'<'span5'l><'span6'p>>tr<'row'<'span6'i>>",
     "bPaginate": true,
     "bLengthChange": true,
     "bFilter": false,
     "bSort": true,
     "bInfo": true,
     "bAutoWidth": false,
-    "oTableTools": {
-      "sSwfPath": "assets/TableTools/swf/copy_csv_xls_pdf.swf",
-      "aButtons": [
-      {
-        "sExtends": 'csv',
-        "sButtonText": 'CSV(Complete)',
-        "sFieldBoundary": '"',
-        "sFieldSeperator": ',',
-        "sFileName": 'iDigBio-history.csv'
-      },
-      {
-        "sExtends": 'pdf',
-        "sTitle": 'iDigBio-history',
-        "sButtonText": 'PDF(Selective)',
-        "mColumns": "visible"
-      }]
-    },
     "bDestroy" : true,
     "sPaginationType": "bootstrap"
   });
 }
+
+postHistCSVGen = function(values) {
+  var callback = function(resultObj) {
+    container = "#hist-alert-container";
+    var alert_html =
+      ['<div class="alert alert-block fade span10" id="hist-alert">',
+       '<button class="close" data-dismiss="alert">&times;</button>',
+        '<p id="hist-alert-text">',
+        '</div>'].join('\n');
+    $(container).html(alert_html);
+    $("#hist-alert").show();
+    $("#hist-alert").addClass('in');
+    if (resultObj.error == "") {
+      $("#hist-alert").addClass("alert-success");
+      $("#hist-alert-text").html("The CSV file is successfully saved to: "
+          + resultObj.path);
+    } else {
+      $("#hist-alert").addClass("alert-error");
+      $("#hist-alert-text").html(resultObj.error);
+    }
+  };
+
+  $.getJSON("/services/genoutputcsv", {values: values}, callback);
+}
+
+postAllCSVGen = function(values) {
+  var callback = function(resultObj){
+    container = "#hist-alert-container2";
+    var alert_html =
+      ['<div class="alert alert-block fade span10" id="hist-alert2">',
+       '<button class="close" data-dismiss="alert">&times;</button>',
+        '<p id="hist-alert-text2">',
+        '</div>'].join('\n');
+    $(container).html(alert_html);
+    $("#hist-alert2").show();
+    $("#hist-alert2").addClass('in');
+    if (resultObj.error == "") {
+      $("#hist-alert2").addClass("alert-success");
+      $("#hist-alert-text2").html("The CSV file is successfully saved to: "
+          + resultObj.path);
+    } else {
+      $("#hist-alert2").addClass("alert-error");
+      $("#hist-alert-text2").html(resultObj.error);
+    }
+  };
+
+  $.getJSON("/services/generateallcsv", {values: values}, callback);
+}
+

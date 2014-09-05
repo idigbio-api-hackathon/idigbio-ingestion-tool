@@ -16,7 +16,7 @@ from Queue import Empty, Queue
 from threading import enumerate as threading_enumerate, Thread
 from time import sleep
 from sys import exc_info
-from os.path import isdir, join
+from os.path import join
 from traceback import format_exception
 from errno import ENOENT
 from dataingestion.services.api_client import (ClientException, Connection,
@@ -267,7 +267,7 @@ def get_result():
   while ongoing_upload_task.get_status() != BatchUploadTask.STATUS_FINISHED:
     sleep(0.2)
   if ongoing_upload_task.batch:
-    return model.get_batch_details(ongoing_upload_task.batch.id)
+    return model.get_batch_details_brief(ongoing_upload_task.batch.id)
   else:
     # If the task fails before the batch is created (e.g. fail to post a
     # record set), then the batch could be None.
@@ -282,7 +282,7 @@ def get_history(batch_id):
   if batch_id is None or batch_id == "":
     return model.get_all_batches()
   else:
-    return model.get_batch_details(batch_id)
+    return model.get_batch_details_brief(batch_id)
 
 def upload_task(values):
   """
@@ -432,7 +432,8 @@ def _upload_images(ongoing_upload_task, values):
               + " different number of columns")
 
         for col in row: 
-          if "\"" in col:  
+          if "\"" in col:
+            print col
             logger.debug("One of CSV field contains \"(Double Quatation)")
             raise InputCSVException(
                 "One of CSV field contains Double Quatation Mark(\")") 

@@ -12,7 +12,7 @@ from cherrypy import HTTPError
 from cherrypy._cpcompat import ntob
 from dataingestion.services import (constants, ingestion_service, csv_generator,
                                     ingestion_manager, api_client, model,
-                                    result_generator, csv_saver, user_config)
+                                    result_generator, user_config)
 
 logger = logging.getLogger('iDigBioSvc.ingest_rest')
 
@@ -228,7 +228,7 @@ class CsvIngestionService(object):
       raise JsonHTTPError(409, str(ex)) 
 
 
-class DownloadAllCsv(object):
+class GenerateAllCsv(object):
   """
   Generate the output CSV files, and put them into a zip file.
   """
@@ -238,12 +238,13 @@ class DownloadAllCsv(object):
     logger.debug("DownloadAllCsv GET.")
     try:
       dic = ast.literal_eval(values) # Parse the string to dictionary.
-      print dic
-      return json.dumps(
-          csv_saver.save_all(dic['target_path']))
+      path, error = result_generator.generateCSV(
+          None, dic['target_path'])
+      return json.dumps(dict(path=path, error=error))
+
 
     except IOError as ex:
-      print "ERROR GenerateOutputCsv"
+      print "ERROR GenerateAllCsv"
       raise JsonHTTPError(409, str(ex))
 
 
@@ -257,12 +258,30 @@ class GenerateOutputCsv(object):
     logger.debug("GenerateOutputCsv GET.")
     try:
       dic = ast.literal_eval(values) # Parse the string to dictionary.
-      print dic
+      path, error = result_generator.generateCSV(
+          dic['batch_id'], dic['target_path'])
+      return json.dumps(dict(path=path, error=error))
+
+    except IngestServiceException as ex:
+      print "ERROR GenerateOutputCsv"
+      raise JsonHTTPError(409, str(ex))
+
+
+class GenerateOutputZip(object):
+  """
+  Generate the output CSV files, and put them into a zip file.
+  """
+  exposed = True
+
+  def GET(self, values):
+    logger.debug("GenerateOutputZip GET.")
+    try:
+      dic = ast.literal_eval(values) # Parse the string to dictionary.
       return json.dumps(
-          result_generator.generate(dic['batch_id'], dic['target_path']))
+          result_generator.generateZip(dic['batch_id'], dic['target_path']))
 
     except IOError as ex:
-      print "ERROR GenerateOutputCsv"
+      print "ERROR GenerateOutputZip"
       raise JsonHTTPError(409, str(ex))
 
 
@@ -286,4 +305,5 @@ class DataIngestionService(object):
     self.generatecsv = GenerateCSV()
     self.csvgenprogress = CSVGenProgress()
     self.genoutputcsv = GenerateOutputCsv()
-    self.downloadallcsv = DownloadAllCsv()
+    self.genoutputzip = GenerateOutputZip()
+    self.generateallcsv = GenerateAllCsv()

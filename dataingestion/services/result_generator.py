@@ -15,7 +15,6 @@ from dataingestion.services import constants, model
 logger = logging.getLogger('iDigBioSvc.result_generator')
 
 def processTargetPaths(target_path, batch_id):
-  print target_path
   csv_path = ""
   if target_path is "":
     csv_path = model.get_csv_path(batch_id)
@@ -27,8 +26,39 @@ def processTargetPaths(target_path, batch_id):
   stub_csv_path = os.path.join(targetdir, constants.STUB_CSV_NAME)
   return target_path, image_csv_path, stub_csv_path
 
+def generateCSV(batch_id, target_path):
+  if not batch_id:
+    result = model.get_all_success_details()
+  else:
+    result = model.get_batch_details(batch_id)
 
-def generate(batch_id, target_path):
+  if not result:
+    print "No batch with id = " + batch_id
+    return None
+  # Make the outputstream for csv_path.
+  csv_headerline = model.get_batch_details_fieldnames()
+
+  error = ""
+
+  if not os.path.isabs(target_path):
+    error = "File " + str(target_path) + " open error. It is not an absolute path."
+    return target_path, error
+  elif os.path.isdir(target_path):
+    error = "File " + str(target_path) + " open error. It is a directory."
+    return target_path, error
+
+  try:
+    with open(target_path, 'wb') as csv_file:
+      csv_writer = csv.writer(csv_file, delimiter=',', quotechar='"',
+                            quoting=csv.QUOTE_ALL)
+      csv_writer.writerow(csv_headerline)
+      csv_writer.writerows(result)
+  except IOError as ex:
+    error = "File " + str(target_path) + " open error."
+
+  return target_path, error
+
+def generateZip(batch_id, target_path):
   result = model.get_batch_details(batch_id)
   if not result:
     print "No batch with id = " + batch_id

@@ -68,15 +68,47 @@ initMainUI = function() {
       postCsvUpload("new", values);
     }
     else {
-      showAlert('The CSV File Path cannot be empty.');
+      showAlert('The CSV file path cannot be empty.');
     }
     $("#upload-alert").hide();
+  });
+
+  $('#result-csv-gen-form').validate({
+    onfocusout: false,
+    onkeyup: false,
+    onsubmit: false,
+    errorPlacement: function(error, element) {},
+    highlight: function(element) {
+      $(element).closest('.control-group').addClass('error');
+    },
+    unhighlight: function(element) {
+      $(element).closest('.control-group').removeClass('error');
+    },
+    rules: {
+      resultcsvgenpath: {
+        required: true
+      }
+    }
+  });
+
+  $('#result-csv-gen-form').submit(function(event) {
+    event.preventDefault();
+    if ($('#result-csv-gen-form').valid()) {
+      var values =
+        "{\'batch_id\':\'0" +
+        "\',\'target_path\':\'" + processFieldValue('#result-csv-gen-path') +
+      "\'}";
+      postResultCSVGen(values);
+    }
+    else {
+      showAlert('The result CSV file cannot be empty.');
+    }
   });
 
   $('#result-zip-gen-form').submit(function(event) {
     event.preventDefault();
     var values =
-      "{\'batch_id\':\'" + batchid +
+      "{\'batch_id\':\'0" +
       "\',\'target_path\':\'" + processFieldValue('#result-zip-gen-path') +
     "\'}";
     postResultZipGen(values);
@@ -209,6 +241,30 @@ initCsvLicenseSelector = function() {
   });
 }
 
+postResultCSVGen = function(values) {
+  var callback = function(resultObj) {
+    container = "#result-alert-container";
+    var alert_html =
+      ['<div class="alert alert-block fade span10" id="result-alert">',
+       '<button class="close" data-dismiss="alert">&times;</button>',
+        '<p id="result-alert-text">',
+        '</div>'].join('\n');
+    $(container).html(alert_html);
+    $("#result-alert").show();
+    $("#result-alert").addClass('in');
+    if (resultObj.error == "") {
+      $("#result-alert").addClass("alert-success");
+      $("#result-alert-text").html("The CSV file is successfully saved to: "
+          + resultObj.path);
+    } else {
+      $("#result-alert").addClass("alert-error");
+      $("#result-alert-text").html(resultObj.error);
+    }
+  };
+
+  $.getJSON("/services/genoutputcsv", {values: values}, callback);
+}
+
 postResultZipGen = function(values) {
   var callback = function(path){
     container = "#result-alert-container";
@@ -225,7 +281,7 @@ postResultZipGen = function(values) {
         + path);
   };
 
-  $.getJSON("/services/genoutputcsv", {values: values}, callback);
+  $.getJSON("/services/genoutputzip", {values: values}, callback);
 }
 
 postCsvUpload = function(action, values) {
@@ -364,7 +420,7 @@ updateProgress = function() {
 		    "<p>Server under maintenance. Try Later</p>", ].join("");
       showAlert(errMsg, extra, "alert-warning");
     } else if (progressObj.input_csv_error) {
-      var errMsg = ["<p><strong>O.o Input CSV FILE ERROR</strong> ",
+      var errMsg = ["<p><strong>Input CSV FILE ERROR</strong> ",
                     "<p>Your input CSV file is weird</p> ",
                     "<p>THis error occurs when your CSV file has different number",
                     " of columns among rows or any field contains double quatation",
@@ -381,6 +437,15 @@ updateProgress = function() {
 
       $("#csv-upload-button").attr('disabled', false);
       $("#csv-upload-button").removeClass('disabled');
+
+      if (progressObj.successes == 0) {
+        $("#result-gen-container").addClass('in');
+        $("#result-gen-container").addClass('hide');
+      }
+      else {
+        $("#result-gen-container").removeClass('in');
+        $("#result-gen-container").removeClass('hide');
+      }
 
       if (progressObj.fails > 0 || progressObj.total == 0) {
         if (progressObj.fails > 0) {
@@ -405,7 +470,7 @@ updateProgress = function() {
         $("#retry-button").click(function(event) {
           event.preventDefault();
           $("#upload-alert").alert('close');
-        // TODO: Differentiate the CSV task or dir task.
+          // TODO: Differentiate the CSV task or dir task.
           postCsvUpload("retry");
         });
       }
@@ -418,12 +483,10 @@ updateProgress = function() {
         // If we haven't tried one file, no need to get results.
         $.getJSON('/services/ingestionresult', renderResult);
       }
-
-      return;
+    } else {
+      // Calls itself again after 1000ms.
+      setTimeout("updateProgress ()", 1000);
     }
-
-    // Calls itself again after 1000ms.
-    setTimeout("updateProgress ()", 1000);
   });
 }
 
@@ -432,33 +495,11 @@ renderResult = function(data) {
   $('#result-table').dataTable({
     "aaData": data,
     "aoColumns": [
-      { "sTitle": "MediaGUID", "bVisible": false },
       { "sTitle": "OriginalFileName", "sWidth": "42%" },
-      { "sTitle": "SpecimenUUID", "bVisible": false },
-      { "sTitle": "Error", "bVisible": false },
-      { "sTitle": "Warnings", "bVisible": false },
-      { "sTitle": "UploadTime", "bVisible": false },
-      { "sTitle": "MediaURL", "bVisible": false },
-      { "sTitle": "MimeType", "bVisible": false },
-      { "sTitle": "MediaSizeInBytes", "bVisible": false },
-      { "sTitle": "ProviderCreatedTimeStamp", "bVisible": false },
-      { "sTitle": "providerCreatedByGUID", "bVisible": false },
-      
-      { "sTitle": "MediaEXIF", "bVisible": false },
-      { "sTitle": "Annotations", "bVisible": false },
-      { "sTitle": "MediaRecordEtag", "bVisible": false },
-      { "sTitle": "MediaMD5", "bVisible": false },
-      { "sTitle": "CSVfilePath", "bVisible": false },
-      { "sTitle": "iDigbioProvidedByGUID", "bVisible": false },
-      { "sTitle": "RightsLicense", "bVisible": false },
-      { "sTitle": "RightsLicenseStatementUrl", "bVisible": false },
-      { "sTitle": "RightsLicenseLogoUrl", "bVisible": false },
-      { "sTitle": "Online Path or Error Message",
-        "sWidth": "58%",
+      { "sTitle": "Online Path or Error Message", "sWidth": "58%",
         "fnRender": function(obj) {
-          error = obj.aData[3]; // It is given as an array.
-          url = obj.aData[6];
-          batchid = obj.aData[20];
+          error = obj.aData[1]; // It is given as an array.
+          url = obj.aData[2];
           var text;
           if (error != "") {
             text = "<span class=\"label label-important\">" + error + "</span>"
@@ -470,32 +511,15 @@ renderResult = function(data) {
           }
           return text;
         }
-      } // 21 elements.
+      } // 3 elements.
     ],
-    "sDom": "<'row'<'span3'l><'span3'T><'span5'p>>t<'row'<'span6'i>>",
+    "sDom": "<'row'<'span5'l><'span6'p>>tr<'row'<'span6'i>>",
     "bPaginate": true,
     "bLengthChange": true,
     "bFilter": false,
     "bSort": true,
     "bInfo": true,
     "bAutoWidth": false,
-    "oTableTools": {
-      "sSwfPath": "assets/TableTools/swf/copy_csv_xls_pdf.swf",
-      "aButtons": [
-      {
-        "sExtends": "csv",
-        "sButtonText": 'CSV(Complete)',
-        "sFieldBoundary": '"',
-        "sFieldSeperator": ',',
-        "sFileName": 'iDigBio-result.csv'
-      },
-      {
-        "sExtends": 'pdf',
-        "sTitle": 'iDigBio-result',
-        "sButtonText": 'PDF(Selective)',
-        "mColumns": "visible"
-      }]
-    },
     "bDestroy" : true,
     "sPaginationType": "bootstrap"
   });

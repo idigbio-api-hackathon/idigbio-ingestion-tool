@@ -412,10 +412,27 @@ def get_batch_details_fieldnames():
       # 11 - 20 above.
 
 @check_session
-def get_batch_details(batch_id):
+def get_batch_details_brief(batch_id):
   '''Gets all the image records for a batch with batch_id.'''
   batch_id = int(batch_id)
   
+  query = session.query(
+      ImageRecord.OriginalFileName,
+      ImageRecord.Error,
+      ImageRecord.MediaURL,
+    ).filter(ImageRecord.BatchID == batch_id).filter(UploadBatch.id == batch_id
+    ).order_by(ImageRecord.id) # 3 elements.
+
+  logger.debug("get_batch_details: record count={0}.".format(query.count()))
+
+  return query.all()
+
+@check_session
+def get_batch_details(batch_id):
+  '''Gets all the image records for a batch with batch_id.'''
+  batch_id = int(batch_id)
+  if (batch_id == 0): # Get the last batch.
+    batch_id = int(session.query(UploadBatch.id).order_by(desc(UploadBatch.id)).first()[0])
   query = session.query(
       ImageRecord.MediaGUID,
       ImageRecord.OriginalFileName,
@@ -444,7 +461,6 @@ def get_batch_details(batch_id):
     ).order_by(ImageRecord.id) # 21 elements.
 
   logger.debug("get_batch_details: record count={0}.".format(query.count()))
-
   return query.all()
 
 @check_session
@@ -517,7 +533,7 @@ def get_all_success_details():
     ).filter(ImageRecord.UploadTime != None
     ).filter(ImageRecord.BatchID == UploadBatch.id
     ).order_by(ImageRecord.id) # 21 elements.
-  
+
   logger.debug("get_all_success_details: record count={0}.".format(query.count()))
 
   return query.all()
@@ -543,7 +559,7 @@ def get_all_batches():
     UploadBatch.FailCount,
     UploadBatch.SkipCount
     ).order_by(UploadBatch.id) # 11 elements
-  
+
   ret = []
   for elem in query:
     newelem = []
