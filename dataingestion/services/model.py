@@ -404,12 +404,12 @@ def get_batch_details_fieldnames():
       "MediaSizeInBytes", "ProviderCreatedTimeStamp",
       "providerCreatedByGUID",
       # 0 - 10 above.
-      "MediaEXIF", "Annotations",
+      "Annotations",
       "MediaRecordEtag", "MediaMD5",
       "CSVfilePath", "iDigbioProvidedByGUID",
       "RightsLicense", "RightsLicenseStatementUrl",
       "RightsLicenseLogoUrl", "batchID"]
-      # 11 - 20 above.
+      # 11 - 19 above.
 
 @check_session
 def get_batch_details_brief(batch_id):
@@ -446,7 +446,6 @@ def get_batch_details(batch_id):
       ImageRecord.ProviderCreatedTimeStamp,
       ImageRecord.ProviderCreatedByGUID,
       # 0 - 10 above.
-      ImageRecord.MediaEXIF,
       ImageRecord.Annotations,
       ImageRecord.etag,
       ImageRecord.MediaMD5,
@@ -456,9 +455,9 @@ def get_batch_details(batch_id):
       UploadBatch.RightsLicenseStatementUrl,
       UploadBatch.RightsLicenseLogoUrl,
       ImageRecord.BatchID
-      # 11 - 20 above
+      # 11 - 19 above
     ).filter(ImageRecord.BatchID == batch_id).filter(UploadBatch.id == batch_id
-    ).order_by(ImageRecord.id) # 21 elements.
+    ).order_by(ImageRecord.id) # 20 elements.
 
   logger.debug("get_batch_details: record count={0}.".format(query.count()))
   return query.all()
