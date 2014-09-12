@@ -52,7 +52,10 @@ def get_files(imagepath, recursive):
     if allowed_files.match(imagepath):
       filenameset.append(imagepath)
     else:
-      status.result = 1
+      status.result = -1
+      status.error = "File type is unsupported: " + imagepath
+      logger.error(status.error)
+      raise IngestServiceException(status.error)
 
   return filenameset
 
@@ -61,10 +64,10 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
   starttime = time.time()
   startptime = time.clock()
   if guid_syntax is None or guid_syntax == "":
-    logger.error("GUID Syntax is empty.")
     status.result = -1
     status.error = "GUID Syntax is empty."
-    raise IngestServiceException("GUID Syntax is empty.")
+    logger.error(status.error)
+    raise IngestServiceException(status.error)
   if guid_syntax == "image_hash":
     for index in range(len(filenameset)):
       image_md5 = hashlib.md5()
@@ -89,11 +92,10 @@ def get_mediaguids(guid_syntax, guid_prefix, filenameset, commonvalue):
         guid_postfix = filenameset[index]
       guidset.append(guid_prefix + guid_postfix)
   else:
-    logger.error("Error: guid_syntax is not defined: " + guid_syntax)
     status.result = -1
     status.error = "GUID Syntax not defined: " + guid_syntax
-    raise IngestServiceException("GUID Syntax not defined: "
-        + guid_syntax)
+    logger.error(status.error)
+    raise IngestServiceException(status.error)
   duration = time.time() - starttime
   ptime = time.clock() - startptime
   logger.debug(
@@ -115,7 +117,7 @@ def gen_csv():
                  + " is not a valid path.")
     status.result = -1
     status.error = "\"" + imagedir + "\" is not a valid path."
-    raise IngestServiceException("\"" + imagedir + "\" is not a valid path.")
+    raise IngestServiceException(status.error)
 
   # This process takes the most amount of time:
   filenameset = get_files(imagedir, dic[user_config.G_RECURSIVE])
@@ -124,7 +126,7 @@ def gen_csv():
     logger.error("IngestServiceException: No valid media file is in the path.")
     status.result = -1
     status.error = "No valid media file is in the path."
-    raise IngestServiceException("No valid media file is in the path.")
+    raise IngestServiceException(status.error)
 
   # Find the headerline and commonvalues.
   headerline = ["idigbio:OriginalFileName", "idigbio:MediaGUID"]
@@ -248,11 +250,9 @@ def get_targetfile():
     status.targetfile = targetfile
   try:
     if targetfile == "":
-      if isdir(imagedir):
-        targetfile = join(imagedir, constants.G_DEFAULT_CSV_OUTPUT_NAME)
-      else:
+      if not isdir(imagedir):
         imagedir = dirname(imagedir)
-        targetfile = join(imagedir, user_config.G_DEFAULT_CSV_OUTPUT_NAME)
+      targetfile = join(imagedir, constants.G_DEFAULT_CSV_OUTPUT_NAME)
       logger.debug("targetfile=" + targetfile)
       status.targetfile = targetfile
   except IOError as ex:

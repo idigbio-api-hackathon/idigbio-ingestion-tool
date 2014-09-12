@@ -225,14 +225,12 @@ class BatchUploadTask:
     batch_check_lock.acquire()
     try:
       if succ_this_time:
-        #if self.continuous_fails != 0:
-        #  logger.debug('Continuous fails is going to be reset due to a success.')
-        self.continuous_fails = 0
+        self._continuous_fails = 0
         return False
       else:
-        self.continuous_fails += 1
+        self._continuous_fails += 1
 
-      if self.continuous_fails <= self.max_continuous_fails:
+      if self._continuous_fails <= self._max_continuous_fails:
         return False
       else:
         return True
@@ -300,27 +298,27 @@ def upload_task(values):
     # Ongoing task exists
     return False
 
-  ongoing_upload_task = BatchUploadTask()
-  ongoing_upload_task.set_status(BatchUploadTask.STATUS_RUNNING)
-
-  postprocess_queue = ongoing_upload_task.postprocess_queue
-
-  def _postprocess(func=None, *args):
-    func and func(*args)
-
-  postprocess_thread = QueueFunctionThread(postprocess_queue, _postprocess)
-  postprocess_thread.start()
-
-  def _error(item):
-    logger.error(item)
-
-  # error_thread is a new thread logging the errors.
-  error_queue = ongoing_upload_task.error_queue
-  error_thread = QueueFunctionThread(error_queue, _error)
-  error_thread.start()
-
-  # Multi-threaded from here.
   try:
+    ongoing_upload_task = BatchUploadTask()
+    ongoing_upload_task.set_status(BatchUploadTask.STATUS_RUNNING)
+
+    postprocess_queue = ongoing_upload_task.postprocess_queue
+
+    def _postprocess(func=None, *args):
+      func and func(*args)
+
+    postprocess_thread = QueueFunctionThread(postprocess_queue, _postprocess)
+    postprocess_thread.start()
+
+    def _error(item):
+      logger.error(item)
+
+    # error_thread is a new thread logging the errors.
+    error_queue = ongoing_upload_task.error_queue
+    error_thread = QueueFunctionThread(error_queue, _error)
+    error_thread.start()
+
+    # Multi-threaded from here.
     try:
       _upload_images(ongoing_upload_task, values)
     except (ClientException, IOError):
@@ -558,18 +556,18 @@ def _upload_single_image(image_record, batch_id, conn):
     fn = partial(ongoing_upload_task.increment, 'successes')
     ongoing_upload_task.postprocess_queue.put(fn) # Multi-thread
     # It's sccessful this time.
-    fn = partial(ongoing_upload_task.check_continuous_fails, True)
-    ongoing_upload_task.postprocess_queue.put(fn) # Multi-thread
+    #fn = partial(ongoing_upload_task.check_continuous_fails, True)
+    #ongoing_upload_task.postprocess_queue.put(fn) # Multi-thread
   except ClientException as ex:
     logger.error("ClientException: An image job failed. Reason: %s" %ex)
     fn = partial(ongoing_upload_task.increment, 'fails')
     ongoing_upload_task.postprocess_queue.put(fn) # Multi-thread
-    def _abort_if_necessary():
-      if ongoing_upload_task.check_continuous_fails(False):
-        logger.info("Aborting threads because continuous failures exceed the"
-            + " threshold.")
-        map(lambda x: x.abort_thread(), ongoing_upload_task.object_threads)
-    ongoing_upload_task.postprocess_queue.put(_abort_if_necessary) # Multi-thread
+    #def _abort_if_necessary():
+    #  if ongoing_upload_task.check_continuous_fails(False):
+    #    logger.info("Aborting threads because continuous failures exceed the"
+    #        + " threshold.")
+    #    map(lambda x: x.abort_thread(), ongoing_upload_task.object_threads)
+    #ongoing_upload_task.postprocess_queue.put(_abort_if_necessary) # Multi-thread
     raise
   except IOError as err:
     logger.error("IOError: An image job failed.")

@@ -29,9 +29,9 @@ quiet_mode = False
 
 USER_CONFIG_FILENAME = 'user.conf'
 
-logger = logging.getLogger("iDigBioSvc.api_client")
+logger = logging.getLogger("iDigBioSvc.main")
 
-def main(argv):  
+def main(argv):
   # Process configuration files and configure modules.
   idigbio_conf_path = join(current_dir, 'etc', 'idigbio.conf')
   config = ConfigParser.ConfigParser()

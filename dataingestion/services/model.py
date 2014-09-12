@@ -599,8 +599,6 @@ def get_last_batch_info():
       # Then we think the last record you get must be "old enough".
       # In contrast, the CSV file failure writes to db.
       # The the last record you get is just written a second ago.
-      logger.debug("get_last_batch_info, set error code for last batch \
-          to network connection error.")
       retdict['ErrorCode'] = 'Network Connection Error.'
     return retdict
   else:

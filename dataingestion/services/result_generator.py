@@ -14,7 +14,7 @@ from dataingestion.services import constants, model
 
 logger = logging.getLogger('iDigBioSvc.result_generator')
 
-def processTargetPaths(target_path, batch_id):
+def _processTargetPaths(target_path, batch_id):
   csv_path = ""
   if target_path is "":
     csv_path = model.get_csv_path(batch_id)
@@ -33,8 +33,8 @@ def generateCSV(batch_id, target_path):
     result = model.get_batch_details(batch_id)
 
   if not result:
-    print "No batch with id = " + batch_id
-    return None
+    error = "No batch with id = {0}".format(batch_id)
+    return target_path, error
   # Make the outputstream for csv_path.
   csv_headerline = model.get_batch_details_fieldnames()
 
@@ -42,19 +42,24 @@ def generateCSV(batch_id, target_path):
 
   if not os.path.isabs(target_path):
     error = "File " + str(target_path) + " open error. It is not an absolute path."
+    logger.error(error)
     return target_path, error
   elif os.path.isdir(target_path):
     error = "File " + str(target_path) + " open error. It is a directory."
+    logger.error(error)
     return target_path, error
 
   try:
     with open(target_path, 'wb') as csv_file:
       csv_writer = csv.writer(csv_file, delimiter=',', quotechar='"',
-                            quoting=csv.QUOTE_ALL)
+                              quoting=csv.QUOTE_ALL)
       csv_writer.writerow(csv_headerline)
+      logger.info("Write to CSV file: rows={0}.".format(len(result)))
       csv_writer.writerows(result)
+      logger.info("CSV file is successfully written.")
   except IOError as ex:
     error = "File " + str(target_path) + " open error."
+    logger.error(error)
 
   return target_path, error
 
@@ -64,7 +69,7 @@ def generateZip(batch_id, target_path):
     print "No batch with id = " + batch_id
     return None
 
-  target_path, image_csv_path, stub_csv_path = processTargetPaths(
+  target_path, image_csv_path, stub_csv_path = _processTargetPaths(
       target_path, batch_id)
 
   # Make the outputstream for image_csv_file.

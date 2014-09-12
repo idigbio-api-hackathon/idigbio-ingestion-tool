@@ -8,7 +8,7 @@
 """
 This is module manages the queue of tasks to be executed.
 """
-import cherrypy, Queue, os
+import cherrypy, Queue, os, logging
 from datetime import datetime, timedelta
 from dataingestion.task_queue import BackgroundTaskQueue
 from dataingestion.services import (ingestion_manager, constants, api_client,
@@ -19,6 +19,8 @@ from dataingestion.services.user_config import (get_user_config,
 singleton_task = BackgroundTaskQueue(cherrypy.engine, qsize=1, qwait=20)
 singleton_task.subscribe()
 singleton_task.start()
+
+logger = logging.getLogger("iDigBioSvc.ingestion_service")
 
 def _upload_task(values):
   api_client.authenticate(get_user_config('accountuuid'),
@@ -37,9 +39,13 @@ def start_upload(values=None):
     # Initial checks before the task is added to the queue.
     path = values[user_config.CSV_PATH]
     if not os.path.exists(path):
-      raise ValueError('CSV file \"' + path + '\" does not exist.')
+      error = 'CSV file \"' + path + '\" does not exist.'
+      logger.error(error)
+      raise ValueError(error)
     elif os.path.isdir(path):
-      raise ValueError('The CSV path is a directory.')
+      error = 'The CSV path is a directory.'
+      logger.error(error)
+      raise ValueError(error)
   try:
     return singleton_task.put(_upload_task, values)
   except Queue.Full:

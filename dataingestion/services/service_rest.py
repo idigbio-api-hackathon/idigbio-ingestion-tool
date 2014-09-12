@@ -14,7 +14,7 @@ from dataingestion.services import (constants, ingestion_service, csv_generator,
                                     ingestion_manager, api_client, model,
                                     result_generator, user_config)
 
-logger = logging.getLogger('iDigBioSvc.ingest_rest')
+logger = logging.getLogger('iDigBioSvc.service_rest')
 
 
 class JsonHTTPError(HTTPError):
@@ -44,6 +44,9 @@ class Authentication(object):
       return json.dumps(ret)
     except ClientException as ex:
       cherrypy.log.error(str(ex), __name__)
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(503, str(ex))
  
   def POST(self, accountuuid, apikey):
@@ -58,6 +61,9 @@ class Authentication(object):
       ret = api_client.authenticate(accountuuid, apikey)
     except ClientException as ex:
       cherrypy.log.error(str(ex), __name__)
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(503, 'iDigBio Service Currently Unavailable.')
 
     if ret:
@@ -65,7 +71,10 @@ class Authentication(object):
       user_config.set_user_config('accountuuid', accountuuid)
       user_config.set_user_config('apikey', apikey)
     else:
-      raise JsonHTTPError(409, 'Authentication combination incorrect.')
+      error = "Authentication combination incorrect."
+      print error
+      logger.error(error)
+      raise JsonHTTPError(409, error)
 
 
 class UserConfig(object):
@@ -79,7 +88,10 @@ class UserConfig(object):
     try:
       return json.dumps(ingestion_service.get_user_config(name))
     except AttributeError:
-      raise JsonHTTPError(404, 'Not such config option is found.')
+      error = "Error: no such config option is found."
+      print error
+      logger.error(error)
+      raise JsonHTTPError(404, error)
 
   def POST(self, name, value):
     """
@@ -108,6 +120,9 @@ class LastBatchInfo(object):
       result = model.get_last_batch_info()
       return json.dumps(result)
     except IngestServiceException as ex:
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(409, str(ex))
 
 
@@ -133,6 +148,9 @@ class IngestionProgress(object):
                csvuploaded=csvuploaded,
                finished=finished))
     except IngestServiceException as ex:
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(409, str(ex))
 
 
@@ -149,6 +167,9 @@ class IngestionResult(object):
       resultdump = json.dumps(result)
       return resultdump
     except IngestServiceException as ex:
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(409, str(ex))
 
 
@@ -159,12 +180,15 @@ class History(object):
     """
     Get the history of batches or images (depends on table_id).
     """
-    logger.debug("History GET: {0}".format(table_id))
+    logger.debug("History GET: table_id={0}".format(table_id))
     try:
       result = ingestion_manager.get_history(table_id)
       resultdump = json.dumps(result)
       return resultdump
     except IngestServiceException as ex:
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(409, str(ex))
 
 
@@ -194,6 +218,9 @@ class CSVGenProgress(object):
       return json.dumps(dict(count=count, result=result, targetfile=targetfile,
                              error=error))
     except IngestServiceException as ex:
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(409, str(ex))
 
 
@@ -219,12 +246,18 @@ class CsvIngestionService(object):
     try:
       ingestion_service.start_upload(values)
     except ValueError as ex:
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(409, str(ex))
 
   def _resume(self):
     try:
       ingestion_service.start_upload()
     except ValueError as ex:
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(409, str(ex)) 
 
 
@@ -244,7 +277,9 @@ class GenerateAllCsv(object):
 
 
     except IOError as ex:
-      print "ERROR GenerateAllCsv"
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(409, str(ex))
 
 
@@ -255,15 +290,18 @@ class GenerateOutputCsv(object):
   exposed = True
 
   def GET(self, values):
-    logger.debug("GenerateOutputCsv GET.")
     try:
       dic = ast.literal_eval(values) # Parse the string to dictionary.
+      logger.debug("GenerateOutputCsv GET. target_path={0}".format(dic['target_path']))
       path, error = result_generator.generateCSV(
           dic['batch_id'], dic['target_path'])
+      logger.debug("GenerateOutputCsv GET. path={0}, error={1}".format(path, error))
       return json.dumps(dict(path=path, error=error))
 
     except IngestServiceException as ex:
-      print "ERROR GenerateOutputCsv"
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(409, str(ex))
 
 
@@ -281,7 +319,9 @@ class GenerateOutputZip(object):
           result_generator.generateZip(dic['batch_id'], dic['target_path']))
 
     except IOError as ex:
-      print "ERROR GenerateOutputZip"
+      error = "Error: " + str(ex)
+      print error
+      logger.error(error)
       raise JsonHTTPError(409, str(ex))
 
 
