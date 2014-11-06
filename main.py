@@ -37,10 +37,12 @@ def main(argv):
   config = ConfigParser.ConfigParser()
   config.read(idigbio_conf_path)
   api_endpoint = config.get('iDigBio', 'idigbio.api_endpoint')
+  worker_thread_count = config.get('iDigBio', 'idigbio.worker_thread_count')
   disable_startup_service_check = config.get(
     'iDigBio', 'devmode_disable_startup_service_check')
   
   dataingestion.services.api_client.init(api_endpoint)
+  dataingestion.services.ingestion_manager.init(worker_thread_count)
   cherrypy.config.update(join(current_dir, 'etc', 'http.conf'))
   
   engine_conf_path = join(current_dir, 'etc', 'engine.conf')

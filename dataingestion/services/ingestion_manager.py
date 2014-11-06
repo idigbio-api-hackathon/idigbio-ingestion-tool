@@ -30,6 +30,8 @@ ongoing_upload_task = None
 fatal_server_error = False 
 input_csv_error = False 
 
+worker_thread_count = 10 # init
+
 class IngestServiceException(Exception):
   def __init__(self, msg, reason=''):
     Exception.__init__(self, msg)
@@ -39,6 +41,11 @@ class InputCSVException(Exception):
   def __init__(self, msg, reason=''):
     Exception.__init__(self, msg)
     self.reason = reason
+
+def init(wtc):
+  global worker_thread_count
+  worker_thread_count = wtc
+  print "Worker threads: %s" % worker_thread_count
 
 def _get_conn():
   """
@@ -361,6 +368,7 @@ def _upload_images(ongoing_upload_task, values):
   object_queue = ongoing_upload_task.object_queue
   postprocess_queue = ongoing_upload_task.postprocess_queue
   error_queue = ongoing_upload_task.error_queue
+  global worker_thread_count
   global fatal_server_error 
 
   conn = _get_conn()
@@ -399,10 +407,9 @@ def _upload_images(ongoing_upload_task, values):
     ongoing_upload_task.batch = batch
     batch_id = str(batch.id)
 
-    worker_thread_count = 10
     # the object_queue and _upload_single_image are passed to the thread.
     object_threads = [QueueFunctionThread(object_queue, _upload_single_image,
-        batch_id, _get_conn()) for _junk in xrange(worker_thread_count)]
+        batch_id, _get_conn()) for _junk in xrange(int(worker_thread_count))]
     ongoing_upload_task.object_threads = object_threads
 
     # Put all the records to the data base and the job queue.
@@ -431,7 +438,6 @@ def _upload_images(ongoing_upload_task, values):
 
         for col in row: 
           if "\"" in col:
-            print col
             logger.debug("One of CSV field contains \"(Double Quatation)")
             raise InputCSVException(
                 "One of CSV field contains Double Quatation Mark(\")") 
