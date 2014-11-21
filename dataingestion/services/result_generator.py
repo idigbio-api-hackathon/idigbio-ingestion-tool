@@ -52,7 +52,7 @@ def generateCSV(batch_id, target_path):
   try:
     with open(target_path, 'wb') as csv_file:
       csv_writer = csv.writer(csv_file, delimiter=',', quotechar='"',
-                              quoting=csv.QUOTE_ALL)
+                              quoting=csv.QUOTE_MINIMAL)
       csv_writer.writerow(csv_headerline)
       logger.info("Write to CSV file: rows={0}.".format(len(result)))
       csv_writer.writerows(result)
@@ -83,7 +83,7 @@ def generateZip(batch_id, target_path):
 
   with open(image_csv_path, 'wb') as image_csv_file:
     csv_writer = csv.writer(image_csv_file, delimiter=',', quotechar='"',
-                            quoting=csv.QUOTE_ALL)
+                            quoting=csv.QUOTE_MINIMAL)
     csv_writer.writerow(image_csv_headerline)
     csv_writer.writerows(image_csv_content)
   
@@ -120,7 +120,7 @@ def generateZip(batch_id, target_path):
 
   with open(stub_csv_path, 'wb') as stub_csv_file:
     csv_writer = csv.writer(stub_csv_file, delimiter=',', quotechar='"',
-                            quoting=csv.QUOTE_ALL)
+                            quoting=csv.QUOTE_MINIMAL)
     csv_writer.writerow(stub_csv_headerline)
     csv_writer.writerows(stub_csv_content)
 

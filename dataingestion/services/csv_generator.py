@@ -219,7 +219,7 @@ def gen_csv():
   try:
     with open(status.targetfile, 'wb') as csvfile:
       csvwriter = csv.writer(csvfile, delimiter=',', quotechar='"',
-                             quoting=csv.QUOTE_ALL)
+                             quoting=csv.QUOTE_MINIMAL)
       csvwriter.writerow(headerline)
       csvwriter.writerows(outputstream)
       status.result = 1

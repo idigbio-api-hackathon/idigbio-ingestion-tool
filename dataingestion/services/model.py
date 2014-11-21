@@ -478,7 +478,6 @@ def get_unuploaded_information():
       ImageRecord.ProviderCreatedTimeStamp,
       ImageRecord.ProviderCreatedByGUID,
       # 0 - 10 above.
-      ImageRecord.MediaEXIF,
       ImageRecord.Annotations,
       ImageRecord.etag,
       ImageRecord.MediaMD5,
@@ -488,9 +487,9 @@ def get_unuploaded_information():
       UploadBatch.RightsLicenseStatementUrl,
       UploadBatch.RightsLicenseLogoUrl,
       ImageRecord.BatchID
-      # 11 - 20 above
+      # 11 - 19 above
     ).filter(UploadBatch.CSVUploaded == False).filter(ImageRecord.BatchID == UploadBatch.id
-    ).order_by(ImageRecord.id) # 21 elements.
+    ).order_by(ImageRecord.id) # 20 elements.
 
   logger.debug("get_unuploaded_information: record count={0}.".format(query.count()))
 
@@ -518,7 +517,6 @@ def get_all_success_details():
       ImageRecord.ProviderCreatedTimeStamp,
       ImageRecord.ProviderCreatedByGUID,
       # 0 - 10 above.
-      ImageRecord.MediaEXIF,
       ImageRecord.Annotations,
       ImageRecord.etag,
       ImageRecord.MediaMD5,
@@ -528,10 +526,10 @@ def get_all_success_details():
       UploadBatch.RightsLicenseStatementUrl,
       UploadBatch.RightsLicenseLogoUrl,
       ImageRecord.BatchID
-      # 11 - 20 above
+      # 11 - 19 above
     ).filter(ImageRecord.UploadTime != None
     ).filter(ImageRecord.BatchID == UploadBatch.id
-    ).order_by(ImageRecord.id) # 21 elements.
+    ).order_by(ImageRecord.id) # 20 elements.
 
   logger.debug("get_all_success_details: record count={0}.".format(query.count()))
 
