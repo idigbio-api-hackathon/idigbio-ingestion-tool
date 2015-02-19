@@ -14,7 +14,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.sql.expression import desc
 import logging, hashlib, argparse, os, time, struct, re, json
-import pyexiv2
+# import pyexiv2
 from datetime import datetime
 import types as pytypes
 from dataingestion.services import constants
@@ -295,27 +295,28 @@ def _generate_record(csvrow, headerline):
     warnings += "[OS not supported when getting file owner.]"
 
   try:
-    exifinfo = pyexiv2.ImageMetadata(mediapath)
-    exifinfo.read()
-    if not exifinfo:
-      exif = ""
-      warnings += "[Cannot extract EXIF information.]"
-    else:
-      exif_dict = {}
-      for exif_key in exifinfo.keys():
-        try:
-          if type(exifinfo[exif_key].value) in (
-              pytypes.IntType, pytypes.LongType, pytypes.FloatType):
-            exif_dict[exif_key] = exifinfo[exif_key].value
-          elif exifinfo[exif_key].type in ("Flash"):
-            exif_dict[exif_key] = exifinfo[exif_key].value
-          elif exifinfo[exif_key].type == "Undefined":
-            continue
-          else:
-            exif_dict[exif_key] = str(exifinfo[exif_key].value)
-        except: # There are some fields that cannot be extracted, just continue.
-          continue
-      exif = json.dumps(exif_dict)
+    # exifinfo = pyexiv2.ImageMetadata(mediapath)
+    # exifinfo.read()
+    # if not exifinfo:
+    #   exif = ""
+    #   warnings += "[Cannot extract EXIF information.]"
+    # else:
+    #   exif_dict = {}
+    #   for exif_key in exifinfo.keys():
+    #     try:
+    #       if type(exifinfo[exif_key].value) in (
+    #           pytypes.IntType, pytypes.LongType, pytypes.FloatType):
+    #         exif_dict[exif_key] = exifinfo[exif_key].value
+    #       elif exifinfo[exif_key].type in ("Flash"):
+    #         exif_dict[exif_key] = exifinfo[exif_key].value
+    #       elif exifinfo[exif_key].type == "Undefined":
+    #         continue
+    #       else:
+    #         exif_dict[exif_key] = str(exifinfo[exif_key].value)
+    #     except: # There are some fields that cannot be extracted, just continue.
+    #       continue
+    #   exif = json.dumps(exif_dict)
+    exif = "{}"
   except IOError as err:
     warnings += "[Cannot extract EXIF information.]"
 
