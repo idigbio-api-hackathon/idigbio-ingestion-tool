@@ -10,14 +10,18 @@ cd into the proper directory and run::
 When run on Windows, an exe is built. When run on Mac OS X, a .app bundle and a
 dmg (for distribution) are built.
 
+Please use 32bit machines to build the executable.
+
 Prior Windows Setup
 -------------------
 
 On Windows, you'll need to install Python 2.7 from python.org_ (we used 2.7.3),
-and cx_Freeze_.
+and pip from (https://pip.pypa.io/en/latest/installing.html).
 
-You need to download and install pyexiv2 from
-http://tilloy.net/dev/pyexiv2/download.html.
+Then run "pip install -r windows.txt" from the packaging folder
+
+If you are getting errors like "import cx_freeze.util failed". Please check the version of cx_Freeze you are using.
+Some versions of cx_Freeze give these sort of errors. Please use cx_Freeze version 4.3.3 to fix it.
 
 Prior OS X Setup
 ----------------
@@ -31,13 +35,6 @@ for it::
     rm setuptools-0.6c11-py2.7.egg
     sudo easy_install-2.7 py2app
 
-The pyexiv2 packet for Mac is only available in brew.
-
-1. You need to install brew by following: http://brew.sh/
-
-2. Install pyexiv2 from brew (Note it may take very looong time because it's going to install dependencies including boost)::
-
-   brew install pyexiv2
 
 32-Bit vs 64-Bit
 ----------------
