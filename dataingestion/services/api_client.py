@@ -7,7 +7,6 @@
 """
 This module encapulates the communication with iDigBio's storage service API.
 """
-import cherrypy
 import socket
 import argparse, json, urllib2, logging, time, sys
 import uuid
@@ -31,7 +30,7 @@ TIMEOUT = 3
 def _build_url(collection):
   assert api_endpoint
   if collection == "check":
-    ret = "%s/%s" % (api_endpoint, collection)    
+    ret = "%s/%s" % (api_endpoint, collection)
   else:
     ret = "%s/upload/%s" % (api_endpoint, collection)
   return ret
@@ -90,7 +89,7 @@ def _post_csv(path):
     request.add_header("Authorization", "Basic %s" % auth_string)
     starttime = time.time()
     startptime = time.clock()
-    resp = urllib2.urlopen(request, timeout=TIMEOUT).read()    
+    resp = urllib2.urlopen(request, timeout=TIMEOUT).read()
     duration = time.time() - starttime
     ptime = time.clock() - startptime
     logger.debug("POSTing CSV file done. Size: {0} Duration: {1} sec. Processing time: {2} sec."
