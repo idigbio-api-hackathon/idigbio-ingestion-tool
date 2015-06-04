@@ -36,9 +36,13 @@ def _build_url(collection):
   return ret
 
 def _post_image(path, reference):
+  with open(path, "rb") as stream:
+    _post_stream(stream, reference)
+
+def _post_stream(stream, reference):
   url = _build_url("images")
   try:
-    params = {"file": open(path, "rb"), "filereference": reference}
+    params = {"file": stream, "filereference": reference}
   except IOError as e:
     logger.error("File IO error: {0}".format(e))
     raise
